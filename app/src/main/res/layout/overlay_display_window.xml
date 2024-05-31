@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <TextureView android:id="@+id/overlay_display_window_texture"
+        android:layout_width="0px"
+        android:layout_height="0px" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center_vertical|right">
+        <ImageView
+            android:id="@+id/overlay_display_window_hide"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/go_right" />
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp" />
+
+        <ImageView
+            android:id="@+id/overlay_display_window_lock"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/go_unlock" />
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp" />
+
+        <ImageView
+            android:id="@+id/overlay_display_window_focus"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:visibility="gone"
+            android:src="@drawable/focus_weak" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/overlay_display_window_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:textColor="#FF0000"
+        android:layout_gravity="top|center_horizontal"
+        android:text="副屏模拟器" />
+</FrameLayout>
