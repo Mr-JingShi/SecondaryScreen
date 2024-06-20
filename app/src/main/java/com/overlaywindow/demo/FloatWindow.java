@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -28,7 +29,8 @@ final class FloatWindow {
     private final float WINDOW_ALPHA = 0.95f;
     private final boolean DISABLE_MOVE_AND_RESIZE = false;
     private final boolean ADD_FLAG_SECURE = false;
-
+    private final boolean USE_SELF_VIRTUALDISPLAY = false;
+    private final boolean USE_SURFACE_EVENT = false;
     private final Context mContext;
     private final int mDisplayId;
     private int mWidth;
@@ -55,7 +57,8 @@ final class FloatWindow {
     private FloatIcon mFloatIcon;
     private boolean isLocked = false;
     private boolean isFocused = false;
-    private SocketClient mSocketClient;
+    private ControlClient mControlClient;
+    private VideoClient mVideoClient;
 
     public FloatWindow(Context context) {
         mContext = context;
@@ -71,10 +74,6 @@ final class FloatWindow {
 
         int width = defaultDisplay.getWidth();
         int height = defaultDisplay.getHeight();
-        if (width < height) {
-            width = defaultDisplay.getHeight();
-            height = defaultDisplay.getWidth();
-        }
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getMetrics(displayMetrics);
@@ -222,12 +221,6 @@ final class FloatWindow {
         mLiveScale = 1.0f;
     }
 
-    private void forwardEvent(MotionEvent event) {
-        event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
-
-        SocketClient.send(event);
-    }
-
     private final View.OnClickListener mHideListener =
             new View.OnClickListener() {
                 @Override
@@ -245,9 +238,7 @@ final class FloatWindow {
                     if (isFocused) {
                         mFocusImageView.setImageResource(R.drawable.focus_strong);
 
-                        Log.i(TAG, "mWindowParams.flags: " + mWindowParams.flags);
                         mWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                        Log.i(TAG, "mWindowParams.flags: " + mWindowParams.flags);
                     } else {
                         mFocusImageView.setImageResource(R.drawable.focus_weak);
 
@@ -262,13 +253,22 @@ final class FloatWindow {
                 public void onClick(View v) {
                     isLocked = !isLocked;
                     if (isLocked) {
-                        if (mSocketClient == null) {
-                            mSocketClient = new SocketClient();
+                        if (mControlClient == null) {
+                            mControlClient = new ControlClient();
                         }
 
                         mLockImageView.setImageResource(R.drawable.go_lock);
 
                         mFocusImageView.setVisibility(View.VISIBLE);
+
+                        if (USE_SURFACE_EVENT) {
+                            mTextureView.setOnTouchListener((view, event) -> {
+                                    if (mControlClient !=  null) {
+                                        ControlClient.offerEvent(event);
+                                    }
+                                    return true;
+                            });
+                        }
                     } else {
                         mLockImageView.setImageResource(R.drawable.go_unlock);
 
@@ -278,6 +278,10 @@ final class FloatWindow {
 
                         mWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
                         mWindowManager.updateViewLayout(mWindowContent, mWindowParams);
+
+                        if (USE_SURFACE_EVENT) {
+                            mTextureView.setOnTouchListener(null);
+                        }
                     }
                 }
             };
@@ -307,15 +311,27 @@ final class FloatWindow {
             new SurfaceTextureListener() {
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-                    VirtualDisplay virtualDisplay = mDisplayManager.createVirtualDisplay("OverlayWindowVirtualDisplay", width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
+                    Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
 
-                    Display display = virtualDisplay.getDisplay();
-                    Log.i(TAG, "FloatWindow display: " + display);
+                    if (USE_SELF_VIRTUALDISPLAY) {
+                        String name = "virtualdisplay";
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                            name = "PC_virtualdisplay";
+                        }
+                        VirtualDisplay virtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
+
+                        Display display = virtualDisplay.getDisplay();
+                        Log.i(TAG, "FloatWindow display: " + display);
+                    } else {
+                        if (mVideoClient == null) {
+                            mVideoClient = new VideoClient();
+                            mVideoClient.start(new Surface(surfaceTexture));
+                        }
+                    }
                 }
 
                 @Override
                 public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-
                     return true;
                 }
 
@@ -327,14 +343,17 @@ final class FloatWindow {
                 public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
                 }
             };
-
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
             Log.i(TAG, "FloatWindow onTouch: " + event);
 
-            if (isLocked) {
-                forwardEvent(event);
+            if (!USE_SURFACE_EVENT && isLocked) {
+                if (mControlClient != null) {
+                    event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
+
+                    ControlClient.offerEvent(event);
+                }
                 return true;
             }
 

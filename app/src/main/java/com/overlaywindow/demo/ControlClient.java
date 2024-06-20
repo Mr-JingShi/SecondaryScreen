@@ -4,33 +4,30 @@ import android.os.Parcel;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-
-public class SocketClient {
-    private static String TAG = "SocketClient";
+public class ControlClient {
+    private static String TAG = "ControlClient";
     private static String HOST = "127.0.0.1";
     private static int PORT = 8402;
     private static int TIMEOUT = 3000;
-    private Socket mSocket;
-    private OutputStream mOutputStream;
 
-    private SendThread mSendThread;
+    private ControlClientThread controlClientThread;
 
     private static final BlockingQueue<MotionEvent> mMotionEventQueue = new ArrayBlockingQueue<>(128);
 
-    public SocketClient() {
-        mSendThread = new SendThread();
+    public ControlClient() {
+        controlClientThread = new ControlClientThread();
+        controlClientThread.start();
     }
-    class SendThread extends Thread {
-        SendThread() {
-            super("SendThread");
-            System.out.println("SendThread");
-            start();
+    class ControlClientThread extends Thread {
+        private Socket mSocket;
+        ControlClientThread() {
+            super("ControlClientThread");
+            Log.d(TAG, "ControlClientThread");
         }
         @Override
         public void run() {
@@ -40,10 +37,6 @@ public class SocketClient {
                 mSocket = new Socket();
                 mSocket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
 
-                mSocket.setSoTimeout(TIMEOUT);
-
-                mOutputStream = mSocket.getOutputStream();
-
                 byte[] length = new byte[4];
                 while (!Thread.currentThread().isInterrupted()) {
                     MotionEvent event = mMotionEventQueue.take();
@@ -52,13 +45,22 @@ public class SocketClient {
                     byte[] bytes = parcel.marshall();
                     parcel.recycle();
 
-                    mOutputStream.write(intToByte4(bytes.length, length));
-                    mOutputStream.write(bytes);
-                    mOutputStream.flush();
+                    mSocket.getOutputStream().write(intToByte4(bytes.length, length));
+                    mSocket.getOutputStream().write(bytes);
+                    mSocket.getOutputStream().flush();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("socket error:" + e.toString());
+                System.out.println("socket exception:" + e);
+            }
+
+            try {
+                if (mSocket != null) {
+                    mSocket.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.d(TAG, "socket close exception:" + e);
             }
         }
     }
@@ -71,36 +73,9 @@ public class SocketClient {
         return targets;
     }
 
-    public static void send(MotionEvent event) {
+    public static void offerEvent(MotionEvent event) {
         if (!mMotionEventQueue.offer(event)) {
             Log.d(TAG, "offer error");
-        }
-    }
-
-    public void close() {
-        try {
-            mOutputStream.close();
-            mSocket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.d(TAG, "send error:" + e);
-        }
-    }
-
-    public void stop() {
-        if (mSendThread != null) {
-            mSendThread.interrupt();
-        }
-    }
-
-    public void join() {
-        try {
-            if (mSendThread != null) {
-                mSendThread.join();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.d(TAG, "join error:" + e);
         }
     }
 }

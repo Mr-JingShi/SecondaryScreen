@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 public class Shell {
     private Shell() {}
 
-    public static Shell.Result execCommand(String command, boolean isRoot, boolean isNeedResultMsg) {
+    public static Shell.Result execCommand(String command) {
         int result = -1;
         if (command == null) {
             return new Shell.Result(result, null, null);
@@ -33,18 +33,16 @@ public class Shell {
 
             result = process.waitFor();
 
-            if (isNeedResultMsg) {
-                successMsg = new StringBuilder();
-                errorMsg = new StringBuilder();
-                successResult = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                errorResult = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                String s;
-                while ((s = successResult.readLine()) != null) {
-                    successMsg.append(s);
-                }
-                while ((s = errorResult.readLine()) != null) {
-                    errorMsg.append(s);
-                }
+            successMsg = new StringBuilder();
+            errorMsg = new StringBuilder();
+            successResult = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            errorResult = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            String s;
+            while ((s = successResult.readLine()) != null) {
+                successMsg.append(s);
+            }
+            while ((s = errorResult.readLine()) != null) {
+                errorMsg.append(s);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,19 +67,21 @@ public class Shell {
                 process.destroy();
             }
         }
-        return new Shell.Result(result, successMsg == null ? null : successMsg.toString(), errorMsg == null ? null : errorMsg.toString());
+        return new Shell.Result(result,
+                                successMsg == null ? null : successMsg.toString(),
+                                errorMsg == null ? null : errorMsg.toString()
+                                );
     }
 
     public static class Result {
-
-        public int result;
-        public String successMsg;
-        public String errorMsg;
+        public int mResult;
+        public String mSuccessMsg;
+        public String mErrorMsg;
 
         public Result(int result, String successMsg, String errorMsg) {
-            this.result = result;
-            this.successMsg = successMsg;
-            this.errorMsg = errorMsg;
+            this.mResult = result;
+            this.mSuccessMsg = successMsg;
+            this.mErrorMsg = errorMsg;
         }
     }
 }
