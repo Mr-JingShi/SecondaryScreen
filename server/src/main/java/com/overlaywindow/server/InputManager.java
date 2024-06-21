@@ -5,6 +5,10 @@ import android.view.InputEvent;
 
 import java.lang.reflect.Method;
 
+
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/wrappers/InputManager.java
+
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
 public final class InputManager {
 

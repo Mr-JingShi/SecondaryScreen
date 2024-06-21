@@ -4,6 +4,9 @@ import android.graphics.Rect;
 
 import java.util.Objects;
 
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/Size.java
+
 public final class Size {
     private final int mWidth;
     private final int mHeight;

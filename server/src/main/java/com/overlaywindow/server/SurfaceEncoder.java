@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/SurfaceEncoder.java
+
 public class SurfaceEncoder {
 
     private static final int DEFAULT_I_FRAME_INTERVAL = 10; // seconds

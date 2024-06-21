@@ -5,7 +5,7 @@ plugins {
 android {
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.floatwindow.demo"
+        applicationId "com.overlaywindow.demo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

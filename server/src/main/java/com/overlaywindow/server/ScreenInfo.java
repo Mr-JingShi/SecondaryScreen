@@ -2,6 +2,9 @@ package com.overlaywindow.server;
 
 import android.graphics.Rect;
 
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenInfo.java
+
 public final class ScreenInfo {
     private static final int LOCK_VIDEO_ORIENTATION_INITIAL = -2;
     /**

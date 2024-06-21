@@ -6,6 +6,9 @@ import android.os.Build;
 import android.os.IBinder;
 import android.view.Surface;
 
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenCapture.java
+
 public class ScreenCapture {
     private static String VIRTUALDISPLAY = "virtualdisplay";
     private ScreenInfo mScreenInfo;

@@ -8,6 +8,9 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+// 部分逻辑参考自：
+// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
+
 final class FloatIcon {
     private static final String TAG = "FloatIcon";
 

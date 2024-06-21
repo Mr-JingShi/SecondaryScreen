@@ -12,6 +12,9 @@ import android.view.Surface;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
+// 部分逻辑参考自：
+// https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/wrappers/SurfaceControl.java
+
 @SuppressLint("PrivateApi")
 public final class SurfaceControl {
     private static final String PACKAGE_NAME = "com.android.shell";

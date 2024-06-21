@@ -5,6 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+// 部分逻辑参考自：
+// https://github.com/gtf35/app_process-shell-use/blob/master/app/src/main/java/shellService/ServiceShellUtils.java
+
 public class Shell {
     private Shell() {}
 

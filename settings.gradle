@@ -1,2 +1,2 @@
 rootProject.name = "OverlayWindow"
-include ':app', ":server", ":virtualdisplay"
+include ':app', ":server", "sample", ":virtualdisplay"
