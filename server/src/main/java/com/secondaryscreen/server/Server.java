@@ -1,4 +1,4 @@
-package com.overlaywindow.server;
+package com.secondaryscreen.server;
 
 public class Server {
     public static void main(String[] args) {

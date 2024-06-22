@@ -5,7 +5,7 @@ plugins {
 android {
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.overlaytwindow.server"
+        applicationId "com.secondaryscreen.server"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,4 +1,4 @@
-package com.overlaywindow.server;
+package com.secondaryscreen.server;
 
 public class ActivityDetector {
     private static int SCAN_INTERVAL = 1000; // 1s

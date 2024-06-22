@@ -1,4 +1,4 @@
-package com.overlaywindow.server;
+package com.secondaryscreen.server;
 
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/DisplayInfo.java

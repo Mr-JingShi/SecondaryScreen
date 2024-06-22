@@ -1,4 +1,4 @@
-package com.overlaywindow.server;
+package com.secondaryscreen.server;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;

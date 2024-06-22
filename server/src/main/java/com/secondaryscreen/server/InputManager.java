@@ -1,4 +1,4 @@
-package com.overlaywindow.server;
+package com.secondaryscreen.server;
 
 import android.annotation.SuppressLint;
 import android.view.InputEvent;
