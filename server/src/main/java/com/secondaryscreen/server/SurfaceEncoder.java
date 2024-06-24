@@ -204,4 +204,43 @@ public class SurfaceEncoder {
 
         return format;
     }
+
+    public static int chooseMaxSize(Size size) {
+        int maxSize = 0;
+        try {
+            MediaCodec mediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
+            MediaFormat mediaFormat = MediaFormat.createVideoFormat(VIDEO_FORMAT, size.getWidth(), size.getHeight());
+            mediaCodec.configure(mediaFormat, null, null, 0);
+
+            MediaFormat outputFormat = mediaCodec.getOutputFormat();
+            System.out.println("outputFormat:" + outputFormat);
+            if (outputFormat != null) {
+                int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH);
+                int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT);
+                System.out.println("outputFormat.KEY_MAX_WIDTH:" + maxWidth);
+                System.out.println("outputFormat.KEY_MAX_HEIGHT:" + maxHeight);
+
+                for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {
+                    System.out.println("size.getWidth():" + size.getWidth() + ", size.getHeight():" + size.getHeight());
+
+                    if (maxWidth < size.getWidth() || maxHeight < size.getHeight()) {
+                        maxSize = chooseMaxSizeFallback(size);
+                        if (maxSize == 0) {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+
+                    size = ScreenInfo.computeVideoSize(size.getWidth(), size.getHeight(), maxSize);
+                }
+            }
+            mediaCodec.stop();
+            mediaCodec.release();
+        } catch (IOException e) {
+            System.out.println("chooseMaxSize IOException:" + e);
+        }
+
+        return maxSize;
+    }
 }

@@ -18,7 +18,10 @@ public class ScreenCapture {
 
     public ScreenCapture(DisplayInfo displayInfo) {
         this.mDisplayInfo = displayInfo;
-        this.mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, 0, -1);
+
+        int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
+
+        this.mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, maxSize, -1);
     }
 
     public void start(Surface surface) {
