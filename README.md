@@ -10,9 +10,7 @@ OverlayWindow 好用的副屏模拟器
 * 演示文稿：演示者可以在一个屏幕上播放要演示的文稿，同时在另一个屏幕上显示备注。
 * 多屏协同：多个屏幕连接在一起，每个屏幕可以显示不同的内容，提高多任务处理效率。
 
-通过[AndroidStido模拟器](doc/AndroidStudio模拟器.md)和[模拟辅助显示设备](doc/模拟辅助显示设备.md)可以了解到，  
-overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是触摸屏，无法相应双指、多指触摸事件，同时部分设备无法弹出软键盘等问题。  
-因此此项目旨在解决上述问题。
+通过[AndroidStido模拟器](doc/AndroidStudio模拟器.md)和[模拟辅助显示设备](doc/模拟辅助显示设备.md)可以了解到，overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是触摸屏，无法相应双指、多指触摸事件，同时部分设备无法弹出软键盘等问题。因此此项目旨在解决上述问题。
 
 # 目标
 
@@ -20,45 +18,21 @@ overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是�
 
 # 简介
 
-## app
+## app -- OverlayWindow APP
 
 模仿Android系统的“模拟辅助显示设备”，可放大缩小悬浮窗，扩展了：锁定悬浮窗（操作内部surface），隐藏（最小化）悬浮窗等功能。
+
+发送实时触摸事件给server，接受video编码后的数据，通过MediaCodec将video解码，将video渲染到悬浮窗surface上。
 
 ## sample
 
 模拟开发项目，主屏幕上显示“主屏”字样，副屏幕上显示“副屏”字样，还提供了触摸拖动文字功能。
 
-# server
+## server
 
 通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。
 
-通过事件注入响应app中触发的单指、双指、多指触摸事件。
-
-通过MediaCodec将video编码，推送给app，以完成video渲染。
-
-## jar包执行步骤
-
-cd /x/y/z/SecondaryScreen/server/build/intermediates/apk/debug
-
-cp server-debug.apk secondaryscreen-server-debug.jar
-
-adb push secondaryscreen-server-debug.jar /data/local/tmp/
-
-Android 10 ～ 12需要指定Activity
-
-adb shell CLASSPATH=/data/local/tmp/overlaywindow-server-debug.jar app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity
-
-Android 13以及以上不需要指定Activity
-
-adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar app_process / com.secondaryscreen.server.Server
-
-或者nphup方式启动
-
-adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar nohup app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity  >/dev/null 2>&1 &
-
-adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar nohup app_process / com.secondaryscreen.server.Server >/dev/null 2>&1 &
-
-# virtualdisplay
+接受实时触摸事件，修改displayId后完成事件注入以响应OverlayWindow APP中触发的触摸事件，通过MediaCodec将video编码，推送给OverlayWindow APP，以完成video渲染。
 
 # 注意事项
 
@@ -73,12 +47,12 @@ Android 13及以上设备上创建virtualdisplay后，APP可以识别到virtuald
 ## 电脑充当副屏
 
 1. 启动jar包
-2. 通过scrcpy映射
+2. 启动scrcpy
 
 ## Android设备悬浮窗充当副屏
 
 1. 启动jar包
-2. 启动 OverlayWindow APP
+2. 启动OverlayWindow APP
 
 ## 感谢
 
