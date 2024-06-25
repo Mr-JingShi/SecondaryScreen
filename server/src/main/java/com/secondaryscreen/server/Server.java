@@ -1,16 +1,25 @@
 package com.secondaryscreen.server;
 
+import android.os.Build;
+
 public class Server {
     public static void main(String[] args) {
         try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                throw new RuntimeException("暂不支持Android 10以下设备！！！");
+            }
+
             String firstActivity = null;
             String secondActivity = null;
 
-            if (args.length == 2) {
+            if (args.length >= 2) {
                 firstActivity = args[0];
                 secondActivity = args[1];
                 System.out.println("firstActivity:" + firstActivity);
                 System.out.println("secondActivity:" + secondActivity);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    throw new RuntimeException(">= Android 13时，无需指定activity！！！");
+                }
             }
 
             DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(0);
@@ -39,7 +48,7 @@ public class Server {
                 activityDetector.join();
             }
         } catch (Exception e) {
-            System.out.println("listen Exception:" + e);
+            System.out.println("Server main exception:" + e);
         }
     }
 }

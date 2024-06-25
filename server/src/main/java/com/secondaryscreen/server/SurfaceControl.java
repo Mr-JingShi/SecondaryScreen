@@ -80,6 +80,8 @@ public final class SurfaceControl {
     }
 
     public static int createVirtualDisplay(int width, int height, int densityDpi) throws Exception {
+        // 通过反射创建virtualdisplay的灵感来源自Android源码
+        // https://cs.android.com/android/platform/superproject/+/android-14.0.0_r1:frameworks/base/core/java/android/hardware/display/DisplayManager.java;drc=b3691fab2356133dfc7e11c213732ffef9a85315;l=1567
         IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
         Method[] dmMethods = dm.getClass().getDeclaredMethods();
         Method method = findMethodAndMakeAccessible(dmMethods,"createVirtualDisplay");

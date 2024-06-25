@@ -2,54 +2,84 @@ OverlayWindow 好用的副屏模拟器
 
 # 背景
 
-最近几年新能源电车大火，华为等不少厂商推出了副驾屏，不少车机应用开始支持副驾屏，用以实现主副屏联动。开发工程师可通过Android手机开发者模式中的“绘图-模拟辅助显示“模拟副屏，此时主屏会有一个副屏叠加窗，然副屏无法进行触摸操作，我们可以通过scrcpy把副屏映射到电脑上进行相关操作。
+最近几年新能源电车大火，华为等不少厂商推出了副驾屏，不少车机应用开始支持副驾屏，用以实现主副屏联动。
 
-# App创建副屏
+同时，多屏联动也可以用于以下场景：
+* 酒店登记：酒店员工通过一个屏幕操作，顾客通过另一个屏幕查看相关登记信息。
+* 超市收银：超市收银员通过一个屏幕操作，顾客通过另一个屏幕查看相关收银信息。
+* 演示文稿：演示者可以在一个屏幕上播放要演示的文稿，同时在另一个屏幕上显示备注。
+* 多屏协同：多个屏幕连接在一起，每个屏幕可以显示不同的内容，提高多任务处理效率。
 
-目标：支持单指、双指、多指触摸，可弹出软键盘，可隐藏，可scrcpy映射。
+通过[AndroidStido模拟器](doc/AndroidStudio模拟器.md)和[模拟辅助显示设备](doc/模拟辅助显示设备.md)可以了解到，  
+overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是触摸屏，无法相应双指、多指触摸事件，同时部分设备无法弹出软键盘等问题。  
+因此此项目旨在解决上述问题。
 
-## 注意事项
+# 目标
 
-支持Android 10及以上机型
+支持单指、双指、多指触摸，可弹出软键盘，无遮盖（或者可隐藏），可scrcpy映射。
 
-因App无Android系统级权限，所以OverlayWindow App创建VirtualDisplay无法在另一个App中使用，此时会报权限错误。然可通过shell命令提权，使用am start命令启动secondActivity，并通过--display参数指定到副屏上，这样就能让secondActivity运行在OverlayWindow App创建的副屏上。 
+# 简介
 
-业务App需要过滤掉OverlayWindow App创建的VirtualDisplay（如过滤VirtualDisplay的名称），否则业务App无法正常运行。然后通过scrcpy方式验证业务App正常启动secondActivity的逻辑，这样就能覆盖OverlayWindow App无法验证的部分（shell命令启动secondActivity）。
+## app
 
-因此scrcpy+OverlayWindow App搭配才能覆盖所有业务逻辑。
+模仿Android系统的“模拟辅助显示设备”，可放大缩小悬浮窗，扩展了：锁定悬浮窗（操作内部surface），隐藏（最小化）悬浮窗等功能。
 
-## 整体架构
+## sample
 
-### demo
+模拟开发项目，主屏幕上显示“主屏”字样，副屏幕上显示“副屏”字样，还提供了触摸拖动文字功能。
 
-悬浮窗：权限、启动、touch等
+# server
 
-virtualDisplay：创建，绑定surface等
+通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。
 
-socketCliet：与jar包通信，主要传递x、y转换后的touch事件
+通过事件注入响应app中触发的单指、双指、多指触摸事件。
 
-#### app启动
+通过MediaCodec将video编码，推送给app，以完成video渲染。
 
-正常app启动即可
+## jar包执行步骤
 
-### server
+cd /x/y/z/SecondaryScreen/server/build/intermediates/apk/debug
 
-socketServer：与app通信，接受touch事件
+cp server-debug.apk secondaryscreen-server-debug.jar
 
-injectEevent：完成touch事件注入
+adb push secondaryscreen-server-debug.jar /data/local/tmp/
 
-detectThread：检测并启动副屏activity
+Android 10 ～ 12需要指定Activity
 
-#### jar包执行步骤
+adb shell CLASSPATH=/data/local/tmp/overlaywindow-server-debug.jar app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity
 
-cd /x/y/z/OverlayWindow/server/build/intermediates/apk/debug
+Android 13以及以上不需要指定Activity
 
-cp server-debug.apk overlaywindow-server-debug.jar
-
-adb push overlaywindow-server-debug.jar /data/local/tmp/
-
-adb shell CLASSPATH=/data/local/tmp/overlaywindow-server-debug.jar app_process / com.overlaywindow.server.Server A.B.C/A.B.C.MainActivity A.B.C/A.B.C.SecondActivity
+adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar app_process / com.secondaryscreen.server.Server
 
 或者nphup方式启动
 
-adb shell CLASSPATH=/data/local/tmp/overlaywindow-server-debug.jar nohup app_process / com.overlaywindow.server.Server A.B.C/A.B.C.MainActivity A.B.C/A.B.C.SecondActivity >/dev/null 2>&1 &
+adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar nohup app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity  >/dev/null 2>&1 &
+
+adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar nohup app_process / com.secondaryscreen.server.Server >/dev/null 2>&1 &
+
+# virtualdisplay
+
+# 注意事项
+
+因Google从Android 10开始才支持带displayId的事件注入，因此此模拟器仅支持Android 10及以上机型。
+
+Android 10 ～ 12设备上创建virtualdisplay后，APP可以识别到virtualdisplay，但是在通过指定displayId拉起activity时会报权限错误。 可以通过am start命令拉起activity，此时模拟器就无法覆盖到APP正常拉起activity的逻辑。
+
+Android 13及以上设备上创建virtualdisplay后，APP可以识别到virtualdisplay，在通过指定displayId拉起activity时可正常拉起activity，无任何权限问题，因此极力推荐使用Android 13及以上设备。
+
+# 操作
+
+## 电脑充当副屏
+
+1. 启动jar包
+2. 通过scrcpy映射
+
+## Android设备悬浮窗充当副屏
+
+1. 启动jar包
+2. 启动 OverlayWindow APP
+
+## 感谢
+
+特别感谢[scrcpy](https://github.com/Genymobile/scrcpy)，给了我诸多灵感。

@@ -96,7 +96,6 @@ public class VideoClient {
                     Log.i(TAG, "sizeBuffer width:" + width);
                     Log.i(TAG, "sizeBuffer height:" + height);
 
-
                     ByteBuffer csd0 = ByteBuffer.wrap(codecBuffer, 0, bufferInfo.size);
                     mMediaDecoder.configure(width, height,  csd0, mSurface);
 

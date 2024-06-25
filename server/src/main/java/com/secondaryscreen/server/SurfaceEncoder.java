@@ -215,24 +215,26 @@ public class SurfaceEncoder {
             MediaFormat outputFormat = mediaCodec.getOutputFormat();
             System.out.println("outputFormat:" + outputFormat);
             if (outputFormat != null) {
-                int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH);
-                int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT);
+                int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH, 0);
+                int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT, 0);
                 System.out.println("outputFormat.KEY_MAX_WIDTH:" + maxWidth);
                 System.out.println("outputFormat.KEY_MAX_HEIGHT:" + maxHeight);
 
-                for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {
-                    System.out.println("size.getWidth():" + size.getWidth() + ", size.getHeight():" + size.getHeight());
+                if (maxWidth != 0 && maxHeight != 0) {
+                    for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {
+                        System.out.println("size.getWidth():" + size.getWidth() + ", size.getHeight():" + size.getHeight());
 
-                    if (maxWidth < size.getWidth() || maxHeight < size.getHeight()) {
-                        maxSize = chooseMaxSizeFallback(size);
-                        if (maxSize == 0) {
+                        if (maxWidth < size.getWidth() || maxHeight < size.getHeight()) {
+                            maxSize = chooseMaxSizeFallback(size);
+                            if (maxSize == 0) {
+                                break;
+                            }
+                        } else {
                             break;
                         }
-                    } else {
-                        break;
-                    }
 
-                    size = ScreenInfo.computeVideoSize(size.getWidth(), size.getHeight(), maxSize);
+                        size = ScreenInfo.computeVideoSize(size.getWidth(), size.getHeight(), maxSize);
+                    }
                 }
             }
             mediaCodec.stop();
