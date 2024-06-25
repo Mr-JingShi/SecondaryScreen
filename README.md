@@ -22,13 +22,15 @@ OverlayWindow 好用的副屏模拟器
 
 模仿Android系统的“模拟辅助显示设备”，可放大缩小悬浮窗，扩展了：锁定悬浮窗（操作内部surface），隐藏（最小化）悬浮窗等功能。发送实时触摸事件给server，接受video编码后的数据，通过MediaCodec将video解码，将video渲染到悬浮窗surface上。
 
-## sample
+## sample -- SecondaryScreenSample APP
 
 模拟开发项目，主屏幕上显示“主屏”字样，副屏幕上显示“副屏”字样，还提供了触摸拖动文字功能。
 
-## server
+## server -- secondaryscreen-server-debug.jar
 
 通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。接收实时触摸事件，修改displayId后完成事件注入以响应OverlayWindow APP中触发的触摸事件，通过MediaCodec将video编码，推送给OverlayWindow APP，以完成video渲染。
+
+[jar包操作步骤](doc/jar包操作步骤.md)
 
 # 注意事项
 
