@@ -222,7 +222,7 @@ public class SurfaceEncoder {
 
                 if (maxWidth != 0 && maxHeight != 0) {
                     for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {
-                        System.out.println("size.getWidth():" + size.getWidth() + ", size.getHeight():" + size.getHeight());
+                        System.out.println("size.width:" + size.getWidth() + ", size.height:" + size.getHeight());
 
                         if (maxWidth < size.getWidth() || maxHeight < size.getHeight()) {
                             maxSize = chooseMaxSizeFallback(size);

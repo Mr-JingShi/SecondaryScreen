@@ -52,6 +52,6 @@ Android 13及以上设备上创建virtualdisplay后，APP可以识别到virtuald
 1. 启动jar包
 2. 启动OverlayWindow APP
 
-## 感谢
+# 感谢
 
 特别感谢[scrcpy](https://github.com/Genymobile/scrcpy)，给了我诸多灵感。
