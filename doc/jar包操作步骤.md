@@ -14,7 +14,7 @@ Android 13以及以上不需要指定Activity
 
 adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar app_process / com.secondaryscreen.server.Server
 
-或者nphup方式启动
+或者nohup方式启动
 
 adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar nohup app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity  >/dev/null 2>&1 &
 
