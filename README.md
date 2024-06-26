@@ -1,4 +1,4 @@
-OverlayWindow 好用的副屏模拟器
+**SecondaryScreen** 好用的副屏模拟器
 
 # 背景
 
