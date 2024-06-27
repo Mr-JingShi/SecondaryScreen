@@ -28,29 +28,15 @@ public class SampleActivity extends AppCompatActivity {
 
         mTextView.setOnTouchListener((view, event) -> {
             Log.i(TAG, "SampleActivity onTouchEvent: " + event);
-            float x = event.getRawX();
-            float y = event.getRawY();
-            float oldX = mTextView.getX();
-            float oldY = mTextView.getY();
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                float x = event.getRawX() - mTextView.getWidth() / 2;
+                float y = event.getRawY() - mTextView.getHeight() / 2;
 
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                if (x > oldX && x < oldX + mTextView.getWidth()
-                && y > oldY && y < oldY + mTextView.getHeight()) {
-                    isMatch = true;
-                }
-            } else if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                if (isMatch) {
-                    x = x - mTextView.getWidth() / 2;
-                    y = y - mTextView.getHeight() / 2;
+                x = Math.max(0, Math.min(x, getResources().getDisplayMetrics().widthPixels - mTextView.getWidth()));
+                y = Math.max(0, Math.min(y, getResources().getDisplayMetrics().heightPixels - mTextView.getHeight()));
 
-                    x = Math.max(0, Math.min(x, getResources().getDisplayMetrics().widthPixels - mTextView.getWidth()));
-                    y = Math.max(0, Math.min(y, getResources().getDisplayMetrics().heightPixels - mTextView.getHeight()));
-
-                    mTextView.setX(x);
-                    mTextView.setY(y);
-                }
-            } else {
-                isMatch = false;
+                mTextView.setX(x);
+                mTextView.setY(y);
             }
             return true;
         });
