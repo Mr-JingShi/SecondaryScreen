@@ -10,8 +10,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class SecondActivity extends AppCompatActivity {
     private static String TAG = "SecondActivity";
-    private TextView mTextView;
-    private boolean isMatch = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,19 +18,17 @@ public class SecondActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_second);
 
-        mTextView = findViewById(R.id.title);
-
-        mTextView.setOnTouchListener((view, event) -> {
+        findViewById(R.id.title).setOnTouchListener((view, event) -> {
             Log.i(TAG, "SampleActivity onTouchEvent: " + event);
             if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                float x = event.getRawX() - mTextView.getWidth() / 2;
-                float y = event.getRawY() - mTextView.getHeight() / 2;
+                float x = event.getRawX() - view.getWidth() / 2;
+                float y = event.getRawY() - view.getHeight() / 2;
 
-                x = Math.max(0, Math.min(x, getResources().getDisplayMetrics().widthPixels - mTextView.getWidth()));
-                y = Math.max(0, Math.min(y, getResources().getDisplayMetrics().heightPixels - mTextView.getHeight()));
+                x = Math.max(0, Math.min(x, getResources().getDisplayMetrics().widthPixels - view.getWidth()));
+                y = Math.max(0, Math.min(y, getResources().getDisplayMetrics().heightPixels - view.getHeight()));
 
-                mTextView.setX(x);
-                mTextView.setY(y);
+                view.setX(x);
+                view.setY(y);
             }
             return true;
         });
