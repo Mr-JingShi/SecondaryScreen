@@ -75,13 +75,10 @@ final class FloatWindow {
 
         mDisplayId = defaultDisplay.getDisplayId();
 
-        int width = defaultDisplay.getWidth();
-        int height = defaultDisplay.getHeight();
-
         DisplayMetrics displayMetrics = new DisplayMetrics();
-        defaultDisplay.getMetrics(displayMetrics);
-
-        resize(width, height, displayMetrics.densityDpi, false);
+        defaultDisplay.getRealMetrics(displayMetrics);
+        
+        resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
 
         createWindow();
 
@@ -207,6 +204,8 @@ final class FloatWindow {
         mWindowParams.y = y;
         mWindowParams.width = width;
         mWindowParams.height = height;
+
+        Log.i(TAG, "FloatWindow width: " + width + " height: " + height);
 
         mRealScale = scale;
     }
