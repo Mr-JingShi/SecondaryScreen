@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         if (mFloatWindow != null) {
-            mFloatWindow.reshow();
+            Toast.makeText(this, getString(R.string.make_happy), Toast.LENGTH_SHORT).show();
 
             finish();
         } else if (hasPermission()) {
@@ -51,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startFloatWindow() {
         Log.i(TAG, "MainActivity startFloatWindow");
-        mFloatWindow = new FloatWindow(MainActivity.this);
+        mFloatWindow = new FloatWindow();
         mFloatWindow.show();
     }
 

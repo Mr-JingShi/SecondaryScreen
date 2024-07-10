@@ -18,10 +18,10 @@ final class FloatIcon {
 
     private View mWindowContent;
 
-    public FloatIcon(Context context, View windowContent) {
+    public FloatIcon(View windowContent) {
         mWindowContent = windowContent;
 
-        mShowImageView = new ImageView(context);
+        mShowImageView = new ImageView(DemoApplication.getApp());
         mShowImageView.setImageResource(R.drawable.go_left);
         mShowImageView.setOnClickListener(mShowListener);
         mShowImageView.setVisibility(View.GONE);
@@ -42,14 +42,16 @@ final class FloatIcon {
         windowParams.width = 48;
         windowParams.height = 48;
 
-        WindowManager windowManager = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+        WindowManager windowManager = (WindowManager)DemoApplication.getApp().getSystemService(Context.WINDOW_SERVICE);
         windowManager.addView(mShowImageView, windowParams);
     }
 
     public void show() {
         mShowImageView.setVisibility(View.VISIBLE);
+        mWindowContent.setVisibility(View.GONE);
     }
-    public void hide() {
+    private void hide() {
+        mWindowContent.setVisibility(View.VISIBLE);
         mShowImageView.setVisibility(View.GONE);
     }
 
@@ -57,8 +59,7 @@ final class FloatIcon {
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mShowImageView.setVisibility(View.GONE);
-                    mWindowContent.setVisibility(View.VISIBLE);
+                    hide();
                 }
             };
 }

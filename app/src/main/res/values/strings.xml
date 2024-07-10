@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">OverlayWindow</string>
+    <string name="overlay_window_title">副屏模拟器</string>
+    <string name="jar_not_started">jar包未启动，请选择如下任意一种方式启动jiar包：</string>
+    <string name="adb_pair_remark">\n--在Android设备上开启无线调试，然后在副屏App进行pair连接。</string>
+    <string name="adb_tcpip_remark">\n--在电脑端执行adb tcpip 5555，然后在副屏App上进行tcpip连接。</string>
+    <string name="pairing_code">WLAN配对码</string>
+    <string name="port_number">端口号</string>
+    <string name="move">拖动</string>
+    <string name="pair">配对</string>
+    <string name="connect">连接</string>
+    <string name="cancel">取消</string>
+    <string name="make_happy">调皮一下</string>
+    <string name="adb_tcpip_title">ADB-TCPIP调试</string>
+    <string name="adb_pair_title">ADB-PAIR调试</string>
+    <string name="adb_status">ADB连接状态：</string>
+    <string name="adb_disconnect">未连接</string>
+    <string name="adb_connecting">连接中</string>
+    <string name="adb_connect_success">连接成功</string>
+    <string name="adb_connect_failed">连接失败</string>
+    <string name="first_activity">A.B.C/A.B.C.FirstActivity</string>
+    <string name="seoncd_activity">A.B.C/A.B.C.SecondActivity</string>
 </resources>

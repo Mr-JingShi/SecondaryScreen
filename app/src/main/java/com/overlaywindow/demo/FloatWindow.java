@@ -1,11 +1,13 @@
 package com.overlaywindow.demo;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -20,6 +22,7 @@ import android.view.TextureView.SurfaceTextureListener;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
@@ -34,7 +37,6 @@ final class FloatWindow {
     private final boolean ADD_FLAG_SECURE = false;
     private final boolean USE_SELF_VIRTUALDISPLAY = false;
     private final boolean USE_SURFACE_EVENT = false;
-    private final Context mContext;
     private final int mDisplayId;
     private int mWidth;
     private int mHeight;
@@ -42,11 +44,15 @@ final class FloatWindow {
     private DisplayManager mDisplayManager;
     private WindowManager mWindowManager;
     private View mWindowContent;
+    private ImageView mTcpipImageView;
+    private ImageView mPairImageView;
+    private TextView  mRemarkTextView;
     private ImageView mHideImageView;
     private ImageView mLockImageView;
     private ImageView mFocusImageView;
     private WindowManager.LayoutParams mWindowParams;
     private TextureView mTextureView;
+    private SurfaceTexture mSurfaceTexture;
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
     private boolean mWindowVisible;
@@ -58,17 +64,17 @@ final class FloatWindow {
     private float mLiveScale = 1.0f;
     private float mRealScale;
     private FloatIcon mFloatIcon;
+    private AdbDebug mAdbDebug;
+    private FloatDialog mFloatDialog;
     private boolean isLocked = false;
     private boolean isFocused = false;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
 
-    public FloatWindow(Context context) {
-        mContext = context;
-
-        mDisplayManager = (DisplayManager)context.getSystemService(
+    public FloatWindow() {
+        mDisplayManager = (DisplayManager)DemoApplication.getApp().getSystemService(
                 Context.DISPLAY_SERVICE);
-        mWindowManager = (WindowManager)context.getSystemService(
+        mWindowManager = (WindowManager)DemoApplication.getApp().getSystemService(
                 Context.WINDOW_SERVICE);
 
         Display defaultDisplay = mWindowManager.getDefaultDisplay();
@@ -82,17 +88,11 @@ final class FloatWindow {
 
         createWindow();
 
-        mFloatIcon = new FloatIcon(context, mWindowContent);
-    }
+        mFloatIcon = new FloatIcon(mWindowContent);
 
-    public void reshow() {
-        if (mWindowContent != null && !mWindowContent.isShown()) {
-            Log.i(TAG, "FloatWindow reshow");
-            mWindowContent.setVisibility(View.VISIBLE);
-        }
-        if (mFloatIcon != null) {
-            mFloatIcon.hide();
-        }
+        mAdbDebug = new AdbDebug();
+
+        mFloatDialog = new FloatDialog(this, mAdbDebug);
     }
 
     public void show() {
@@ -136,10 +136,16 @@ final class FloatWindow {
     }
 
     private void createWindow() {
-        LayoutInflater inflater = LayoutInflater.from(mContext);
+        LayoutInflater inflater = LayoutInflater.from(DemoApplication.getApp());
 
         mWindowContent = inflater.inflate(R.layout.overlay_display_window, null);
         mWindowContent.setOnTouchListener(mOnTouchListener);
+
+        mTcpipImageView = mWindowContent.findViewById(R.id.overlay_display_window_tcpip);
+        mTcpipImageView.setOnClickListener(mTcpipListener);
+
+        mPairImageView = mWindowContent.findViewById(R.id.overlay_display_window_pair);
+        mPairImageView.setOnClickListener(mPairListener);
 
         mHideImageView = mWindowContent.findViewById(R.id.overlay_display_window_hide);
         mHideImageView.setOnClickListener(mHideListener);
@@ -149,6 +155,33 @@ final class FloatWindow {
 
         mFocusImageView = mWindowContent.findViewById(R.id.overlay_display_window_focus);
         mFocusImageView.setOnClickListener(mFocusListener);
+
+        mRemarkTextView = mWindowContent.findViewById(R.id.overlay_display_window_remark);
+
+        if (secondaryVirtualDisplayReady()) {
+            Log.i(TAG, "secondaryVirtualDisplayReady");
+            mTcpipImageView.setVisibility(View.GONE);
+            mPairImageView.setVisibility(View.GONE);
+            mRemarkTextView.setVisibility(View.GONE);
+            mLockImageView.setVisibility(View.VISIBLE);
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(DemoApplication.getApp().getString(R.string.jar_not_started));
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                mPairImageView.setVisibility(View.GONE);
+            } else {
+                sb.append(DemoApplication.getApp().getString(R.string.adb_pair_remark));
+
+                int adbWifiEnabled = Settings.Global.getInt(DemoApplication.getApp().getContentResolver(), "adb_wifi_enabled", 0);
+                Log.i(TAG, "adbWifiEnabled: " + adbWifiEnabled);
+            }
+            sb.append(DemoApplication.getApp().getString(R.string.adb_tcpip_remark));
+
+            String remark = sb.toString();
+            Log.i(TAG, "remark: " + remark);
+
+            mRemarkTextView.setText(remark);
+        }
 
         mTextureView = mWindowContent.findViewById(R.id.overlay_display_window_texture);
         mTextureView.setPivotX(0);
@@ -176,8 +209,8 @@ final class FloatWindow {
         mWindowParams.gravity = Gravity.TOP | Gravity.LEFT;
         mWindowParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
-        mGestureDetector = new GestureDetector(mContext, mOnGestureListener);
-        mScaleGestureDetector = new ScaleGestureDetector(mContext, mOnScaleGestureListener);
+        mGestureDetector = new GestureDetector(DemoApplication.getApp(), mOnGestureListener);
+        mScaleGestureDetector = new ScaleGestureDetector(DemoApplication.getApp(), mOnScaleGestureListener);
 
         mWindowX = 0;
         mWindowY = 0;
@@ -205,8 +238,6 @@ final class FloatWindow {
         mWindowParams.width = width;
         mWindowParams.height = height;
 
-        Log.i(TAG, "FloatWindow width: " + width + " height: " + height);
-
         mRealScale = scale;
     }
 
@@ -223,11 +254,41 @@ final class FloatWindow {
         mLiveScale = 1.0f;
     }
 
+    public View getWindowContent() {
+        return mWindowContent;
+    }
+
+    private final View.OnClickListener mTcpipListener =
+            new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mFloatDialog.show(false);
+                    focusImageViewShow(true);
+                }
+            };
+
+    private final View.OnClickListener mPairListener =
+            new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.i(TAG, "mPairListener");
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        DemoApplication.getApp().startActivity(intent);
+
+                        mFloatDialog.show(true);
+                        focusImageViewShow(true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
     private final View.OnClickListener mHideListener =
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mWindowContent.setVisibility(View.GONE);
                     mFloatIcon.show();
                 }
             };
@@ -237,16 +298,7 @@ final class FloatWindow {
                 @Override
                 public void onClick(View v) {
                     isFocused = !isFocused;
-                    if (isFocused) {
-                        mFocusImageView.setImageResource(R.drawable.focus_strong);
-
-                        mWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                    } else {
-                        mFocusImageView.setImageResource(R.drawable.focus_weak);
-
-                        mWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                    }
-                    mWindowManager.updateViewLayout(mWindowContent, mWindowParams);
+                    focusImageViewChange(isFocused);
                 }
             };
     private final View.OnClickListener mLockListener =
@@ -261,7 +313,7 @@ final class FloatWindow {
 
                         mLockImageView.setImageResource(R.drawable.go_lock);
 
-                        mFocusImageView.setVisibility(View.VISIBLE);
+                        focusImageViewShow(true);
 
                         if (USE_SURFACE_EVENT) {
                             mTextureView.setOnTouchListener((view, event) -> {
@@ -275,11 +327,7 @@ final class FloatWindow {
                         mLockImageView.setImageResource(R.drawable.go_unlock);
 
                         isFocused = false;
-                        mFocusImageView.setVisibility(View.GONE);
-                        mFocusImageView.setImageResource(R.drawable.focus_weak);
-
-                        mWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-                        mWindowManager.updateViewLayout(mWindowContent, mWindowParams);
+                        focusImageViewShow(false);
 
                         if (USE_SURFACE_EVENT) {
                             mTextureView.setOnTouchListener(null);
@@ -325,9 +373,11 @@ final class FloatWindow {
                         Display display = virtualDisplay.getDisplay();
                         Log.i(TAG, "FloatWindow display: " + display);
                     } else {
-                        if (mVideoClient == null) {
+                        if (View.VISIBLE == mLockImageView.getVisibility()) {
                             mVideoClient = new VideoClient();
                             mVideoClient.start(new Surface(surfaceTexture));
+                        } else {
+                            mSurfaceTexture = surfaceTexture;
                         }
                     }
                 }
@@ -348,8 +398,6 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            Log.i(TAG, "FloatWindow onTouch: " + event);
-
             if (!USE_SURFACE_EVENT && isLocked) {
                 if (mControlClient != null) {
                     event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
@@ -400,4 +448,67 @@ final class FloatWindow {
                     return true;
                 }
             };
+
+    private boolean secondaryVirtualDisplayReady() {
+        Display[] displays = mDisplayManager.getDisplays();
+        if (displays.length > 1) {
+            for (Display display : displays) {
+                if (display.getName().contains("virtualdisplay")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void serverReady() {
+        Log.i(TAG, "serverReady");
+        try {
+            boolean ready = false;
+            for (int i = 0; i < 3; i++) {
+                ready = secondaryVirtualDisplayReady();
+                if (ready || i == 2) {
+                    break;
+                }
+                Log.i(TAG, "serverReady wait 1s");
+                Thread.sleep(1000);
+            }
+
+            if (ready) {
+                mAdbDebug.disconnect();
+
+                if (!USE_SELF_VIRTUALDISPLAY
+                        && mVideoClient == null
+                        && mSurfaceTexture != null) {
+                    mLockImageView.setVisibility(View.VISIBLE);
+                    mPairImageView.setVisibility(View.GONE);
+                    mTcpipImageView.setVisibility(View.GONE);
+                    mRemarkTextView.setVisibility(View.GONE);
+
+                    mVideoClient = new VideoClient();
+                    mVideoClient.start(new Surface(mSurfaceTexture));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void focusImageViewChange(boolean focus) {
+        if (focus) {
+            mFocusImageView.setImageResource(R.drawable.focus_strong);
+
+            mWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        } else {
+            mFocusImageView.setImageResource(R.drawable.focus_weak);
+
+            mWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        }
+        mWindowManager.updateViewLayout(mWindowContent, mWindowParams);
+    }
+
+    public void focusImageViewShow(boolean show) {
+        mFocusImageView.setVisibility(show ? View.VISIBLE : View.GONE);
+        focusImageViewChange(false);
+    }
 }
