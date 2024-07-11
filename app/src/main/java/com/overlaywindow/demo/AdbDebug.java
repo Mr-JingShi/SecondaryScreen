@@ -21,6 +21,9 @@ import io.github.muntashirakon.adb.LocalServices;
 import io.github.muntashirakon.adb.android.AdbMdns;
 import io.github.muntashirakon.adb.android.AndroidUtils;
 
+// 部分逻辑参考自：
+// https://github.com/MuntashirAkon/libadb-android/blob/master/app/src/main/java/io/github/muntashirakon/adb/testapp/MainViewModel.java
+
 public class AdbDebug {
     private static String TAG = "AdbDebug";
 

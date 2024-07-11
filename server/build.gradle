@@ -1,11 +1,13 @@
 plugins {
     id 'com.android.library'
+    // id 'com.android.application'
 }
 
 android {
     compileSdk rootProject.ext.compileSdkVersion
-    namespace "com.secondaryscreen.server"
     defaultConfig {
+        // applicationId "com.secondaryscreen.server"
+        namespace "com.secondaryscreen.server"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,5 +1,32 @@
 # jar包执行步骤
 
+第一步：修改server目录下build.gradle文件
+
+```groovy
+plugins {
+    id 'com.android.library'
+}
+修改为
+plugins {
+    id 'com.android.application'
+}
+```
+
+```groovy
+defaultConfig {
+    namespace "com.secondaryscreen.server"
+}
+添加applicationId "com.secondaryscreen.server"
+defaultConfig {
+    // applicationId "com.secondaryscreen.server"
+    namespace "com.secondaryscreen.server"
+}
+```
+
+第二步：删除server路径下的build文件夹
+
+第三步：重新编译server
+
 cd /x/y/z/SecondaryScreen/server/build/intermediates/apk/debug
 
 cp server-debug.apk secondaryscreen-server-debug.jar

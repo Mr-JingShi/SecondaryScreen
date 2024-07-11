@@ -23,6 +23,8 @@ import android.sun.security.x509.X509CertInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -48,12 +50,22 @@ import java.util.Date;
 import java.util.Random;
 
 import io.github.muntashirakon.adb.AbsAdbConnectionManager;
+import io.github.muntashirakon.adb.PRNGFixes;
+
+// 部分逻辑参考自：
+// https://github.com/MuntashirAkon/libadb-android/blob/master/app/src/main/java/io/github/muntashirakon/adb/testapp/AdbConnectionManager.java
 
 public class AdbManager extends AbsAdbConnectionManager {
     private static AbsAdbConnectionManager INSTANCE;
 
     public static AbsAdbConnectionManager getInstance(@NonNull Context context) throws Exception {
         if (INSTANCE == null) {
+            PRNGFixes.apply();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                HiddenApiBypass.addHiddenApiExemptions("L");
+            }
+
             INSTANCE = new AdbManager(context);
         }
         return INSTANCE;
@@ -126,7 +138,9 @@ public class AdbManager extends AbsAdbConnectionManager {
     private static Certificate readCertificateFromFile(@NonNull Context context)
             throws IOException, CertificateException {
         File certFile = new File(context.getFilesDir(), "cert.pem");
-        if (!certFile.exists()) return null;
+        if (!certFile.exists()) {
+            return null;
+        }
         try (InputStream cert = new FileInputStream(certFile)) {
             return CertificateFactory.getInstance("X.509").generateCertificate(cert);
         }
@@ -149,7 +163,9 @@ public class AdbManager extends AbsAdbConnectionManager {
     private static PrivateKey readPrivateKeyFromFile(@NonNull Context context)
             throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         File privateKeyFile = new File(context.getFilesDir(), "private.key");
-        if (!privateKeyFile.exists()) return null;
+        if (!privateKeyFile.exists()) {
+            return null;
+        }
         byte[] privKeyBytes = new byte[(int) privateKeyFile.length()];
         try (InputStream is = new FileInputStream(privateKeyFile)) {
             is.read(privKeyBytes);

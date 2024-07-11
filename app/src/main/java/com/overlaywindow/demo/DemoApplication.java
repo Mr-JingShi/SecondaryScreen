@@ -2,12 +2,7 @@ package com.overlaywindow.demo;
 
 import android.app.Application;
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
-
-import org.lsposed.hiddenapibypass.HiddenApiBypass;
-
-import io.github.muntashirakon.adb.PRNGFixes;
 
 public class DemoApplication extends Application {
     private static String TAG = "DemoApplication";
@@ -23,7 +18,6 @@ public class DemoApplication extends Application {
         super.onCreate();
 
         Log.i(TAG, "onCreate");
-        PRNGFixes.apply();
     }
 
     @Override
@@ -31,10 +25,6 @@ public class DemoApplication extends Application {
         super.attachBaseContext(base);
 
         Log.i(TAG, "attachBaseContext");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            HiddenApiBypass.addHiddenApiExemptions("L");
-        }
-
         mApp = this;
     }
 

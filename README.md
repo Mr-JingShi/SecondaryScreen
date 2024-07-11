@@ -1,4 +1,4 @@
-**SecondaryScreen** 好用的副屏模拟器
+**SecondaryScreen** 一款简单好用的副屏模拟器
 
 # 背景
 
@@ -26,32 +26,41 @@
 
 模拟开发项目，主屏幕上显示“主屏”字样，副屏幕上显示“副屏”字样，还提供了触摸拖动文字功能。
 
-## server -- secondaryscreen-server-debug.jar
+## server -- OverlayWindow APP‘s server
 
 通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。接收实时触摸事件，修改displayId后完成事件注入以响应OverlayWindow APP中触发的触摸事件，通过MediaCodec将video编码，推送给OverlayWindow APP，以完成video渲染。
 
-[jar包操作步骤](doc/jar包操作步骤.md)
+目前server已集成到OverlayWindow APP，server也可以独立运行，具体方式参考[jar包操作步骤](doc/jar包操作步骤.md)
 
 # 注意事项
 
 因Google从Android 10开始才支持带displayId的事件注入，因此此模拟器仅支持Android 10及以上机型。
 
-Android 10 ～ 12设备上创建virtualdisplay后，APP可以识别到virtualdisplay，但是在通过指定displayId拉起activity时会报权限错误。 可以通过am start命令拉起activity，此时模拟器就无法覆盖到APP正常拉起activity的逻辑。
+Android 10 ～ 12设备上创建virtualdisplay后，APP可以识别到virtualdisplay，但是在通过指定displayId拉起activity时会报权限错误。 可以通过am start命令拉起activity，此时模拟器就无法覆盖到APP正常拉起activity的逻辑，此时需要配置firstActivity和secondActivity的名称。
 
 Android 13及以上设备上创建virtualdisplay后，APP可以识别到virtualdisplay，在通过指定displayId拉起activity时可正常拉起activity，无任何权限问题，因此极力推荐使用Android 13及以上设备。
+
+Android 10及以上设备可以通过adb tcpip 5555开启ADB WIFI调试，APP内部通过输入端口号进行连接，连接成功后APP具有ADB shell权限，APP可以直接启动server。
+
+Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位配对码和端口号进行配对，配对成功后APP具有ADB shell权限，APP可以直接启动server。
 
 # 操作
 
 ## 电脑充当副屏
 
-1. 启动jar包
-2. 启动scrcpy
+1. 手动加载server-jar包或OverlayWindow APP连接/配对ADB调试启动server
+2. scrcpy
 
 ## Android设备悬浮窗充当副屏
 
-1. 启动jar包
-2. 启动OverlayWindow APP
+1. OverlayWindow APP连接/配对ADB调试启动server
 
 # 感谢
 
 特别感谢[scrcpy](https://github.com/Genymobile/scrcpy)，给了我诸多灵感。
+
+# License
+
+Copyright 2024 &copy; 苏明白
+
+Dual licensed under the terms of [Apache-2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html). 
