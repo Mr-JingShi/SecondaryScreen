@@ -25,6 +25,10 @@ android {
             minifyEnabled true
         }
     }
+    buildFeatures {
+        buildConfig true
+        aidl true
+    }
 }
 
 dependencies {

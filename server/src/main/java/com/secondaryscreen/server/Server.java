@@ -1,6 +1,7 @@
 package com.secondaryscreen.server;
 
 import android.os.Build;
+import android.view.IRotationWatcher;
 
 public class Server {
     public static void main(String[] args) {
@@ -22,13 +23,32 @@ public class Server {
                 }
             }
 
-            DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(0);
+            DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(true);
 
-            int displayId = SurfaceControl.createVirtualDisplay(displayInfo.getSize().getWidth(), displayInfo.getSize().getHeight(), displayInfo.getDensityDpi());
+            Size size = displayInfo.getSize();
+            int displayId = SurfaceControl.createVirtualDisplay(size.getWidth(), size.getHeight(), displayInfo.getDensityDpi());
 
             System.out.println("displayId:" + displayId);
 
-            displayInfo.setMirrorDisplayId(displayId);
+            DisplayInfo.setMirrorDisplayId(displayId);
+
+            ServiceManager.getWindowManager().registerRotationWatcher(new IRotationWatcher.Stub() {
+                @Override
+                public void onRotationChanged(int rotation) {
+                    DisplayInfo info = ServiceManager.getDisplayManager().getDisplayInfo(true);
+
+                    Size size = info.getSize();
+                    System.out.println("onRotationChanged with:" + size.getWidth() + " heigth:" + size.getHeight());
+
+                    try {
+                        SurfaceControl.resizeVirtualDisplay(size.getWidth(), size.getHeight(), info.getDensityDpi());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    ServiceManager.getWindowManager().onRotationChanged(rotation, info);
+                }
+            }, 0);
 
             ActivityDetector activityDetector =  null;
             if (firstActivity != null && secondActivity != null) {
@@ -39,7 +59,7 @@ public class Server {
             ControlConnection controlConnection = new ControlConnection(displayId);
             controlConnection.start();
 
-            VideoConnection videoConnection = new VideoConnection(displayInfo);
+            VideoConnection videoConnection = new VideoConnection();
             videoConnection.start();
 
             controlConnection.join();

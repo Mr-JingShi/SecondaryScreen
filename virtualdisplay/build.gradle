@@ -3,9 +3,10 @@ plugins {
 }
 
 android {
+    namespace "com.secondaryscreen.virtualdisplay"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.overlaywindow.virtualdisplay"
+        applicationId "com.secondaryscreen.virtualdisplay"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

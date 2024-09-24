@@ -13,6 +13,7 @@ import java.lang.reflect.Method;
 public final class DisplayManager {
     private final Object mManager; // instance of hidden class android.hardware.display.DisplayManagerGlobal
     private Method mCreateVirtualDisplayMethod;
+    private DisplayInfo mDisplayInfo;
 
     static DisplayManager create() {
         try {
@@ -29,9 +30,16 @@ public final class DisplayManager {
         this.mManager = manager;
     }
 
-    public DisplayInfo getDisplayInfo(int displayId) {
+    public DisplayInfo getDisplayInfo(boolean refresh) {
+        if (mDisplayInfo == null || refresh) {
+            mDisplayInfo = getDisplayInfo();
+        }
+        return mDisplayInfo;
+    }
+
+    private DisplayInfo getDisplayInfo() {
         try {
-            Object displayInfo = mManager.getClass().getMethod("getDisplayInfo", int.class).invoke(mManager, displayId);
+            Object displayInfo = mManager.getClass().getMethod("getDisplayInfo", int.class).invoke(mManager, 0);
             Class<?> cls = displayInfo.getClass();
 
             int width = cls.getDeclaredField("logicalWidth").getInt(displayInfo);
@@ -39,15 +47,7 @@ public final class DisplayManager {
             int rotation = cls.getDeclaredField("rotation").getInt(displayInfo);
             int densityDpi = cls.getDeclaredField("logicalDensityDpi").getInt(displayInfo);
 
-            if (width < height) {
-                int tmp = width;
-                width = height;
-                height = tmp;
-            }
-
-            System.out.println("width:" + width);
-            System.out.println("height:" + height);
-            System.out.println("densityDpi:" + densityDpi);
+            System.out.println("width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
             return new DisplayInfo(new Size(width, height), rotation, densityDpi);
         } catch (ReflectiveOperationException e) {

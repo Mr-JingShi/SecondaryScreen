@@ -22,6 +22,7 @@ public final class ServiceManager {
         }
     }
 
+    private static WindowManager windowManager;
     private static DisplayManager displayManager;
     private static InputManager inputManager;
     private ServiceManager() {
@@ -36,6 +37,13 @@ public final class ServiceManager {
         } catch (Exception e) {
             throw new AssertionError(e);
         }
+    }
+
+    public static WindowManager getWindowManager() {
+        if (windowManager == null) {
+            windowManager = WindowManager.create();
+        }
+        return windowManager;
     }
 
     public static DisplayManager getDisplayManager() {

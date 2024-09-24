@@ -8,7 +8,6 @@ import android.view.Surface;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/SurfaceEncoder.java
@@ -30,10 +29,8 @@ public class SurfaceEncoder {
     private final int mMaxFps;
     private final boolean mDownsizeOnError;
 
-    private boolean mFirstFrameSent =false;
+    private boolean mFirstFrameSent = false;
     private int mConsecutiveErrors;
-
-    private final AtomicBoolean stopped = new AtomicBoolean();
 
     public SurfaceEncoder(ScreenCapture capture, Streamer streamer, int videoBitRate, int maxFps, boolean downsizeOnError) {
         this.mCapture = capture;
@@ -44,6 +41,7 @@ public class SurfaceEncoder {
     }
 
     public void streamScreen() throws IOException {
+        mCapture.init();
         MediaCodec mediaCodec = createMediaCodec();
         MediaFormat format = createFormat(VIDEO_FORMAT, mVideoBitRate, mMaxFps);
 
@@ -139,16 +137,16 @@ public class SurfaceEncoder {
 
     private boolean encode(MediaCodec codec) throws IOException {
         boolean eof = false;
-        boolean alive = true;
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
-        while (!eof) {
-            if (stopped.get()) {
-                alive = false;
-                break;
-            }
+        while (!mCapture.consumeReset() && !eof) {
             int outputBufferId = codec.dequeueOutputBuffer(bufferInfo, -1);
             try {
+                if (mCapture.consumeReset()) {
+                    // must restart encoding with new size
+                    break;
+                }
+
                 eof = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
                 if (outputBufferId >= 0) {
                     ByteBuffer codecBuffer = codec.getOutputBuffer(outputBufferId);
@@ -171,7 +169,7 @@ public class SurfaceEncoder {
             }
         }
 
-        return !eof && alive;
+        return !eof;
     }
 
     private static MediaCodec createMediaCodec() throws IOException, IllegalArgumentException {
@@ -209,7 +207,9 @@ public class SurfaceEncoder {
         int maxSize = 0;
         try {
             MediaCodec mediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
-            MediaFormat mediaFormat = MediaFormat.createVideoFormat(VIDEO_FORMAT, size.getWidth(), size.getHeight());
+            int width = size.getWidth();
+            int height = size.getHeight();
+            MediaFormat mediaFormat = MediaFormat.createVideoFormat(VIDEO_FORMAT, width, height);
             mediaCodec.configure(mediaFormat, null, null, 0);
 
             MediaFormat outputFormat = mediaCodec.getOutputFormat();
@@ -217,8 +217,13 @@ public class SurfaceEncoder {
             if (outputFormat != null) {
                 int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH, 0);
                 int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT, 0);
-                System.out.println("outputFormat.KEY_MAX_WIDTH:" + maxWidth);
-                System.out.println("outputFormat.KEY_MAX_HEIGHT:" + maxHeight);
+                if ((width > height && maxWidth < maxHeight)
+                    || (width < height && maxWidth > maxHeight)) {
+                    int tmp = maxWidth;
+                    maxWidth = maxHeight;
+                    maxHeight = tmp;
+                }
+                System.out.println("KEY_MAX_WIDTH:" + maxWidth + " KEY_MAX_HEIGHT:" + maxHeight);
 
                 if (maxWidth != 0 && maxHeight != 0) {
                     for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {

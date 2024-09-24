@@ -82,7 +82,7 @@ public final class ControlConnection {
                         System.out.println("eventBuffer.length:" + eventBuffer.length + " < len:" + len);
                         eventBuffer = new byte[len];
                     }
-                    recv(inputStream, eventBuffer, byte4ToInt(lengthBuffer));
+                    recv(inputStream, eventBuffer, len);
 
                     Parcel parcel = Parcel.obtain();
                     parcel.unmarshall(eventBuffer, 0, len);

@@ -37,10 +37,10 @@ final class FloatIcon {
         windowParams.format = PixelFormat.RGBA_8888;
         windowParams.alpha = 0.8f;
         windowParams.gravity = Gravity.CENTER_VERTICAL | Gravity.RIGHT;
-        windowParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+        // windowParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
-        windowParams.width = 48;
-        windowParams.height = 48;
+        windowParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        windowParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
 
         WindowManager windowManager = (WindowManager)DemoApplication.getApp().getSystemService(Context.WINDOW_SERVICE);
         windowManager.addView(mShowImageView, windowParams);

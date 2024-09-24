@@ -21,6 +21,7 @@ public final class SurfaceControl {
     private static final String VIRTUALDISPLAY_NAME_UNSAFE = "PC_virtualdisplay";
     private static final String VIRTUALDISPLAY_NAME = "virtualdisplay";
     private static final Class<?> CLASS;
+    private static Object VIRTUALDISPLAY_TOKEN;
 
     static {
         try {
@@ -87,6 +88,8 @@ public final class SurfaceControl {
         Method method = findMethodAndMakeAccessible(dmMethods,"createVirtualDisplay");
 
         Object callback = virtualDisplayCallback();
+        // 保存token
+        VIRTUALDISPLAY_TOKEN = callback;
 
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             Surface surface = getSurface(width, height);
@@ -194,7 +197,22 @@ public final class SurfaceControl {
         throw new NoSuchMethodException(name);
     }
 
-    public static void destroyDisplay(IBinder displayToken) {
+    public static void resizeVirtualDisplay(int width, int height, int densityDpi) throws Exception {
+        if (VIRTUALDISPLAY_TOKEN != null) {
+            IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
+            Method[] dmMethods = dm.getClass().getDeclaredMethods();
+            Method method = findMethodAndMakeAccessible(dmMethods,"resizeVirtualDisplay");
+
+            method.invoke(
+                    /* this */ dm,
+                    /* callback */ VIRTUALDISPLAY_TOKEN,
+                    /* width */ width,
+                    /* height */ height,
+                    /* densityDpi */ densityDpi);
+        }
+    }
+
+        public static void destroyDisplay(IBinder displayToken) {
         try {
             CLASS.getMethod("destroyDisplay", IBinder.class).invoke(null, displayToken);
         } catch (Exception e) {

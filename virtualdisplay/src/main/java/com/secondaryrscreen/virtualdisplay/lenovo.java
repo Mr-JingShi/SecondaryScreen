@@ -1,9 +1,7 @@
-package com.secondayrscreen.virtualdisplay;
+package com.secondaryscreen.virtualdisplay;
 
 import android.graphics.PixelFormat;
 import android.media.ImageReader;
-import android.media.MediaCodec;
-import android.media.MediaFormat;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.view.Surface;
@@ -11,9 +9,8 @@ import android.view.Surface;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-public class xiaomi {
+public class lenovo {
     private static final Method GET_SERVICE_METHOD;
-    private static String VIDEO_FORMAT = "video/avc";
 
     static {
         try {
@@ -62,14 +59,11 @@ public class xiaomi {
             // VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT 1 << 7;
             // VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH 1 << 6
             // VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS 1 << 9
-            setFlags.invoke(builder, (1<<0)|(1<<1));// (1<<0)|(1<<1)
+            setFlags.invoke(builder, (1<<10)|(1<<0)|(1<<3));// (1<<10)|(1<<0)|(1<<3)
             setDisplayIdToMirror.invoke(builder,-1);
 
-            MediaCodec mediaCodec = MediaCodec.createEncoderByType(VIDEO_FORMAT);
-            MediaFormat mediaFormat = MediaFormat.createVideoFormat(VIDEO_FORMAT, 1920, 1200);
-            mediaCodec.configure(mediaFormat, null, null, 0);
-
-            setSurface.invoke(builder, mediaCodec.createInputSurface());
+            ImageReader imageReader = ImageReader.newInstance(1920, 1200, PixelFormat.RGBA_8888, 1);
+            setSurface.invoke(builder, imageReader.getSurface());
 
             Object config = build.invoke(builder);
 
@@ -83,16 +77,6 @@ public class xiaomi {
             int displayId = (int)createVirtualDisplay.invoke(displayManager, config, callback, null, packageName);
 
             System.out.println("displayId:" + displayId);
-
-            Thread.sleep(10000000);
-
-            mediaCodec.start();
-
-            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-            mediaCodec.dequeueOutputBuffer(bufferInfo, -1);
-
-            mediaCodec.stop();
-            mediaCodec.release();
 
             Thread.sleep(10000000);
         } catch (Exception e) {

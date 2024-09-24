@@ -7,7 +7,7 @@ public final class DisplayInfo {
     private final Size mSize;
     private final int mRotation;
     private final int mDensityDpi;
-    private int mMirrorDisplayId = 0;
+    private static int mMirrorDisplayId = 0;
 
     public DisplayInfo(Size size, int rotation, int densityDpi) {
         this.mSize = size;
@@ -23,10 +23,11 @@ public final class DisplayInfo {
         return mRotation;
     }
 
-    public void setMirrorDisplayId(int displayId) {
-        this.mMirrorDisplayId = displayId;
+    public static void setMirrorDisplayId(int displayId) {
+        mMirrorDisplayId = displayId;
     }
-    public int getMirrorDisplayId() {
+
+    public static int getMirrorDisplayId() {
         return mMirrorDisplayId;
     }
 

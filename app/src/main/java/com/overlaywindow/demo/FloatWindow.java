@@ -1,8 +1,9 @@
 package com.overlaywindow.demo;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
+import android.content.IntentFilter;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -27,7 +28,7 @@ import android.widget.TextView;
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
 
-final class FloatWindow {
+final class FloatWindow extends BroadcastReceiver {
     private static final String TAG = "FloatWindow";
     private final float INITIAL_SCALE = 0.5f;
     private final float MIN_SCALE = 0.3f;
@@ -70,6 +71,7 @@ final class FloatWindow {
     private boolean isFocused = false;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
+    private int mRotation;
 
     public FloatWindow() {
         mDisplayManager = (DisplayManager)DemoApplication.getApp().getSystemService(
@@ -87,6 +89,9 @@ final class FloatWindow {
         resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
 
         createWindow();
+
+        mRotation = getRotation();
+        DemoApplication.getApp().registerReceiver(this, new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED));
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
@@ -207,7 +212,6 @@ final class FloatWindow {
 
         mWindowParams.alpha = WINDOW_ALPHA;
         mWindowParams.gravity = Gravity.TOP | Gravity.LEFT;
-        mWindowParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
         mGestureDetector = new GestureDetector(DemoApplication.getApp(), mOnGestureListener);
         mScaleGestureDetector = new ScaleGestureDetector(DemoApplication.getApp(), mOnScaleGestureListener);
@@ -359,6 +363,7 @@ final class FloatWindow {
 
     private final SurfaceTextureListener mSurfaceTextureListener =
             new SurfaceTextureListener() {
+                private VirtualDisplay mVirtualDisplay = null;
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
@@ -368,9 +373,8 @@ final class FloatWindow {
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                             name = "PC_virtualdisplay";
                         }
-                        VirtualDisplay virtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
-
-                        Display display = virtualDisplay.getDisplay();
+                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
+                        Display display = mVirtualDisplay.getDisplay();
                         Log.i(TAG, "FloatWindow display: " + display);
                     } else {
                         if (View.VISIBLE == mLockImageView.getVisibility()) {
@@ -384,15 +388,21 @@ final class FloatWindow {
 
                 @Override
                 public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+                    // Log.v(TAG, "onSurfaceTextureDestroyed");
                     return true;
                 }
 
                 @Override
                 public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
+                    Log.i(TAG, "onSurfaceTextureSizeChanged width:" + width + " height:" + height);
+                    if (USE_SELF_VIRTUALDISPLAY && mVirtualDisplay != null) {
+                        mVirtualDisplay.resize(width, height, mDensityDpi);
+                    }
                 }
 
                 @Override
                 public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
+                    // Log.v(TAG, "onSurfaceTextureUpdated");
                 }
             };
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
@@ -510,5 +520,45 @@ final class FloatWindow {
     public void focusImageViewShow(boolean show) {
         mFocusImageView.setVisibility(show ? View.VISIBLE : View.GONE);
         focusImageViewChange(false);
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (intent == null) {
+            return;
+        }
+
+        String action = intent.getAction();
+        // 屏幕旋转
+        if (action.equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
+            int rotation = getRotation();
+            if (mRotation != rotation) {
+                mRotation = rotation;
+                onRotationChanged();
+            }
+        }
+    }
+
+    public static int getRotation() {
+        WindowManager wm = (WindowManager) DemoApplication.getApp().getSystemService(Context.WINDOW_SERVICE);
+        int rotation = wm.getDefaultDisplay().getRotation();
+        Log.i(TAG, "rotation:" + rotation);
+        return rotation;
+    }
+
+    private void onRotationChanged() {
+        Display defaultDisplay = mWindowManager.getDefaultDisplay();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        defaultDisplay.getRealMetrics(displayMetrics);
+
+        mWidth = displayMetrics.widthPixels;
+        mHeight = displayMetrics.heightPixels;
+        mDensityDpi = displayMetrics.densityDpi;
+
+        Log.i(TAG, "onRotationChanged width:" + mWidth + " height:" + mHeight);
+        mTextureView.getLayoutParams().width = mWidth;
+        mTextureView.getLayoutParams().height = mHeight;
+
+        relayout();
     }
 }

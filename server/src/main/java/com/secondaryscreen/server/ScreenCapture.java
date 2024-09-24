@@ -6,31 +6,67 @@ import android.os.Build;
 import android.os.IBinder;
 import android.view.Surface;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenCapture.java
 
-public class ScreenCapture {
+public class ScreenCapture implements WindowManager.RotationListener {
+    private final AtomicBoolean mResetCapture = new AtomicBoolean();
     private static String VIRTUALDISPLAY = "virtualdisplay";
     private ScreenInfo mScreenInfo;
-    private DisplayInfo mDisplayInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
 
-    public ScreenCapture(DisplayInfo displayInfo) {
-        this.mDisplayInfo = displayInfo;
+    public ScreenCapture() {}
 
+    public void init() {
+        ServiceManager.getWindowManager().setRotationListener(this);
+
+        computeScreenInfo();
+    }
+
+    private void computeScreenInfo() {
+        DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
         int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
 
-        this.mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, maxSize, -1);
+        mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, maxSize, -1);
+    }
+
+    @Override
+    public void onRotationChanged(int rotation, DisplayInfo displayInfo) {
+        computeScreenInfo();
+
+        requestReset();
+    }
+
+    /**
+     * Request the encoding session to be restarted, for example if the capture implementation detects that the video source size has changed (on
+     * device rotation for example).
+     */
+    protected void requestReset() {
+        mResetCapture.set(true);
+    }
+
+    /**
+     * Consume the reset request (intended to be called by the encoder).
+     *
+     * @return {@code true} if a reset request was pending, {@code false} otherwise.
+     */
+    public boolean consumeReset() {
+        return mResetCapture.getAndSet(false);
     }
 
     public void start(Surface surface) {
         Rect contentRect = mScreenInfo.getContentRect();
+        System.out.println("contentRect:" + contentRect);
 
         // does not include the locked video orientation
         Rect unlockedVideoRect = mScreenInfo.getUnlockedVideoSize().toRect();
+        System.out.println("unlockedVideoRect:" + unlockedVideoRect);
         int videoRotation = mScreenInfo.getVideoRotation();
-        int mirrorDisplayId = mDisplayInfo.getMirrorDisplayId();
+        System.out.println("videoRotation:" + videoRotation);
+        int mirrorDisplayId = DisplayInfo.getMirrorDisplayId();
 
         if (mDisplay != null) {
             SurfaceControl.destroyDisplay(mDisplay);
@@ -59,8 +95,14 @@ public class ScreenCapture {
     }
 
     public void release() {
+        ServiceManager.getWindowManager().setRotationListener(null);
         if (mDisplay != null) {
             SurfaceControl.destroyDisplay(mDisplay);
+            mDisplay = null;
+        }
+        if (mVirtualDisplay != null) {
+            mVirtualDisplay.release();
+            mVirtualDisplay = null;
         }
     }
 
@@ -69,7 +111,8 @@ public class ScreenCapture {
     }
 
     public boolean setMaxSize(int maxSize) {
-        mScreenInfo = ScreenInfo.computeScreenInfo(mScreenInfo.getReverseVideoRotation(), mDisplayInfo.getSize(), null, maxSize, -1);
+        DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
+        mScreenInfo = ScreenInfo.computeScreenInfo(mScreenInfo.getReverseVideoRotation(), displayInfo.getSize(), null, maxSize, -1);
         return true;
     }
 

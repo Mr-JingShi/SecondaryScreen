@@ -131,7 +131,7 @@ public class AdbManager extends AbsAdbConnectionManager {
     @NonNull
     @Override
     protected String getDeviceName() {
-        return "OverlayWindowApp";
+        return "OverlayWindow App";
     }
 
     @Nullable

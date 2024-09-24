@@ -13,17 +13,16 @@ public class MediaDecoder {
     private static String VIDEO_FORMAT = "video/avc";
     private Thread mThread;
     private MediaCodec mMediaCodec;
-    private volatile boolean mRunning = false;
 
-    public MediaDecoder() {
+    public MediaDecoder() {}
+
+    public void configure(int width, int height, ByteBuffer csd0, Surface surface) {
         try {
             mMediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
 
-    public void configure(int width, int height, ByteBuffer csd0, Surface surface) {
         MediaFormat format = MediaFormat.createVideoFormat(VIDEO_FORMAT, width, height);
 
         format.setByteBuffer("csd-0", csd0);
@@ -34,13 +33,20 @@ public class MediaDecoder {
     public void start() {
         mMediaCodec.start();
 
-        mRunning = true;
         mThread = new MediaCodecThread();
         mThread.start();
     }
 
     public void stop() {
-        mRunning = false;
+        if (mThread != null) {
+            try {
+                mThread.interrupt();
+                mThread.join();
+                mThread = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void decode(byte[] codecBuffer, MediaCodec.BufferInfo bufferInfo) {
@@ -64,7 +70,7 @@ public class MediaDecoder {
         public void run() {
             try {
                 MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
-                while (mRunning) {
+                while (!Thread.currentThread().isInterrupted()) {
                     int index = mMediaCodec.dequeueOutputBuffer(info, 10000L);
                     if (index >= 0) {
                         // setting true is telling system to render frame onto Surface
@@ -77,6 +83,7 @@ public class MediaDecoder {
             } finally {
                 mMediaCodec.stop();
                 mMediaCodec.release();
+                mMediaCodec = null;
             }
         }
     }

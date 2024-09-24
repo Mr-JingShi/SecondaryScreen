@@ -10,11 +10,8 @@ import java.net.Socket;
 public final class VideoConnection {
     private static int PORT = 8403;
     private static String HOST = "127.0.0.1";
-    private DisplayInfo mDisplayInfo;
     private Thread mThread;
-    public VideoConnection(DisplayInfo displayInfo) {
-        this.mDisplayInfo = displayInfo;
-    }
+    public VideoConnection() {}
 
     public void start() {
         mThread = new VideoServerThread();
@@ -56,11 +53,11 @@ public final class VideoConnection {
     }
 
     private class VideoSocketThread extends Thread {
-        private Socket socket;
+        private Socket mSocket;
         public VideoSocketThread(Socket socket) {
             super("VideoSocketThread");
             System.out.println("VideoSocketThread");
-            this.socket = socket;
+            this.mSocket = socket;
         }
 
         @Override
@@ -70,16 +67,16 @@ public final class VideoConnection {
             Looper.prepare();
 
             try {
-                Streamer videoStreamer = new Streamer(socket);
-                ScreenCapture screenCapture = new ScreenCapture(mDisplayInfo);
+                Streamer videoStreamer = new Streamer(mSocket);
+                ScreenCapture screenCapture = new ScreenCapture();
                 SurfaceEncoder surfaceEncoder = new SurfaceEncoder(screenCapture, videoStreamer, 8000000, 0, true);
                 surfaceEncoder.streamScreen();
             } catch (Exception e) {
                 System.out.println("video encoding exception:" + e);
             } finally {
                 try {
-                    if (socket != null) {
-                        socket.close();
+                    if (mSocket != null) {
+                        mSocket.close();
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

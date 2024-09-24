@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace 'com.overlaywindow.sample'
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.overlaywindow.sample"
