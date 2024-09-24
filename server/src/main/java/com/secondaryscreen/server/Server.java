@@ -35,18 +35,25 @@ public class Server {
             ServiceManager.getWindowManager().registerRotationWatcher(new IRotationWatcher.Stub() {
                 @Override
                 public void onRotationChanged(int rotation) {
-                    DisplayInfo info = ServiceManager.getDisplayManager().getDisplayInfo(true);
+                    WindowManager wm = ServiceManager.getWindowManager();
 
-                    Size size = info.getSize();
-                    System.out.println("onRotationChanged with:" + size.getWidth() + " heigth:" + size.getHeight());
+                    boolean accelerometerRotation = !wm.isRotationFrozen(displayId);
+                    System.out.println("onRotationChanged accelerometerRotation:" + accelerometerRotation);
 
-                    try {
-                        SurfaceControl.resizeVirtualDisplay(size.getWidth(), size.getHeight(), info.getDensityDpi());
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if (accelerometerRotation) {
+                        DisplayInfo info = ServiceManager.getDisplayManager().getDisplayInfo(true);
+
+                        Size size = info.getSize();
+                        System.out.println("onRotationChanged with:" + size.getWidth() + " heigth:" + size.getHeight());
+
+                        try {
+                            SurfaceControl.resizeVirtualDisplay(size.getWidth(), size.getHeight(), info.getDensityDpi());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        wm.onRotationChanged(rotation, info);
                     }
-
-                    ServiceManager.getWindowManager().onRotationChanged(rotation, info);
                 }
             }, 0);
 
