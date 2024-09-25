@@ -24,17 +24,16 @@ import io.github.muntashirakon.adb.android.AndroidUtils;
 // 部分逻辑参考自：
 // https://github.com/MuntashirAkon/libadb-android/blob/master/app/src/main/java/io/github/muntashirakon/adb/testapp/MainViewModel.java
 
-public class AdbDebug {
-    private static String TAG = "AdbDebug";
-
-    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+public class AdbShell {
+    private static String TAG = "AdbShell";
+    private final ExecutorService mExecutor = Executors.newFixedThreadPool(3);
     private boolean mConnectSatus = false;
     private int mPort = 0;
     @Nullable
     private AdbStream adbShellStream;
     private Handler mHandler;
 
-    public AdbDebug() {
+    public AdbShell() {
         mHandler = new Handler(Looper.getMainLooper());
     }
 
@@ -47,7 +46,7 @@ public class AdbDebug {
     }
 
     public void connect(int port, Runnable runnable) {
-        executor.submit(() -> {
+        mExecutor.submit(() -> {
             boolean connectionStatus =false;
             try {
                 AbsAdbConnectionManager manager = AdbManager.getInstance(DemoApplication.getApp());
@@ -69,7 +68,7 @@ public class AdbDebug {
     }
 
     public void disconnect() {
-        executor.submit(() -> {
+        mExecutor.submit(() -> {
             try {
                 if (adbShellStream != null) {
                     adbShellStream.close();
@@ -83,12 +82,12 @@ public class AdbDebug {
             }
         });
 
-        executor.shutdown();
+        mExecutor.shutdown();
         mHandler = null;
     }
 
     public void getPairingPort(Runnable runnable) {
-        executor.submit(() -> {
+        mExecutor.submit(() -> {
             AtomicInteger atomicPort = new AtomicInteger(-1);
             CountDownLatch resolveHostAndPort = new CountDownLatch(1);
 
@@ -113,7 +112,7 @@ public class AdbDebug {
     }
 
     public void pair(int port, String pairingCode, Runnable runnable) {
-        executor.submit(() -> {
+        mExecutor.submit(() -> {
             boolean connected = false;
             try {
                 AbsAdbConnectionManager manager = AdbManager.getInstance(DemoApplication.getApp());
@@ -137,7 +136,7 @@ public class AdbDebug {
     }
 
     public void execute(String command) {
-        executor.submit(() -> {
+        mExecutor.submit(() -> {
             try {
                 if (adbShellStream == null || adbShellStream.isClosed()) {
                     AbsAdbConnectionManager manager = AdbManager.getInstance(DemoApplication.getApp());

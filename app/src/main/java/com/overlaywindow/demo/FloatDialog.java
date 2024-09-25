@@ -18,10 +18,8 @@ final class FloatDialog {
     private final EditText mPortNumberEditText;
     private final TextView mStatusTextView;
     private final FloatWindow mFloatWindow;
-    private final AdbDebug mAdbDebug;
-    public FloatDialog(FloatWindow floatWindow, AdbDebug adbDebug) {
+    public FloatDialog(FloatWindow floatWindow) {
         mFloatWindow = floatWindow;
-        mAdbDebug = adbDebug;
 
         mDialogView = floatWindow.getWindowContent().findViewById(R.id.overlay_display_window_input);
         mDialogView.setVisibility(View.GONE);
@@ -63,8 +61,8 @@ final class FloatDialog {
             mPortNumberEditText.setText(port);
         }
 
-        mAdbDebug.getPairingPort(() -> {
-            mPortNumberEditText.setText(String.valueOf(mAdbDebug.getPort()));
+        mFloatWindow.getAdbShell().getPairingPort(() -> {
+            mPortNumberEditText.setText(String.valueOf(mFloatWindow.getAdbShell().getPort()));
         });
     }
     private void hide() {
@@ -88,8 +86,8 @@ final class FloatDialog {
                             mStatusTextView.setText(R.string.adb_connecting);
 
                             int port = Integer.parseInt(portNumberString.toString());
-                            mAdbDebug.pair(port, pairingCode.toString(), () -> {
-                                if (mAdbDebug.getConnectStatus()) {
+                            mFloatWindow.getAdbShell().pair(port, pairingCode.toString(), () -> {
+                                if (mFloatWindow.getAdbShell().getConnectStatus()) {
                                     mStatusTextView.setText(R.string.adb_connect_success);
 
                                     hide();
@@ -104,8 +102,8 @@ final class FloatDialog {
                             mStatusTextView.setText(R.string.adb_connecting);
 
                             int port = Integer.parseInt(portNumberString.toString());
-                            mAdbDebug.connect(port, () -> {
-                                if (mAdbDebug.getConnectStatus()) {
+                            mFloatWindow.getAdbShell().connect(port, () -> {
+                                if (mFloatWindow.getAdbShell().getConnectStatus()) {
                                     mStatusTextView.setText(R.string.adb_connect_success);
 
                                     hide();

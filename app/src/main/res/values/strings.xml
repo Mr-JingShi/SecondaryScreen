@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OverlayWindow</string>
+    <string name="app_name">副屏App</string>
     <string name="overlay_window_title">副屏模拟器</string>
     <string name="jar_not_started">jar包未启动，请选择如下任意一种方式启动jiar包：</string>
     <string name="adb_pair_remark">\n--在Android设备上开启无线调试，然后在副屏App进行pair连接。</string>

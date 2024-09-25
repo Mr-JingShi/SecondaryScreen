@@ -65,7 +65,7 @@ final class FloatWindow extends BroadcastReceiver {
     private float mLiveScale = 1.0f;
     private float mRealScale;
     private FloatIcon mFloatIcon;
-    private AdbDebug mAdbDebug;
+    private AdbShell mAdbShell;
     private FloatDialog mFloatDialog;
     private boolean isLocked = false;
     private boolean isFocused = false;
@@ -95,9 +95,13 @@ final class FloatWindow extends BroadcastReceiver {
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
-        mAdbDebug = new AdbDebug();
+        mAdbShell = new AdbShell();
 
-        mFloatDialog = new FloatDialog(this, mAdbDebug);
+        mFloatDialog = new FloatDialog(this);
+    }
+
+    AdbShell getAdbShell() {
+        return mAdbShell;
     }
 
     public void show() {
@@ -485,7 +489,7 @@ final class FloatWindow extends BroadcastReceiver {
             }
 
             if (ready) {
-                mAdbDebug.disconnect();
+                mAdbShell.disconnect();
 
                 if (!USE_SELF_VIRTUALDISPLAY
                         && mVideoClient == null
