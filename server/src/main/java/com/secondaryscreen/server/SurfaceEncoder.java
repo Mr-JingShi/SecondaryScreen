@@ -40,7 +40,7 @@ public class SurfaceEncoder {
         this.mDownsizeOnError = downsizeOnError;
     }
 
-    public void streamScreen() throws IOException {
+    public void streamScreen() throws Exception {
         mCapture.init();
         MediaCodec mediaCodec = createMediaCodec();
         MediaFormat format = createFormat(VIDEO_FORMAT, mVideoBitRate, mMaxFps);
@@ -244,7 +244,7 @@ public class SurfaceEncoder {
             }
             mediaCodec.stop();
             mediaCodec.release();
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("chooseMaxSize IOException:" + e);
         }
 

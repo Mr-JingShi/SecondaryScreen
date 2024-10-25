@@ -81,7 +81,10 @@ final class FloatDialog {
                     if (mIsPair) {
                         CharSequence pairingCode = mPairingCodeEditText.getText();
 
-                        if (pairingCode != null && pairingCode.length() == 6 && portNumberString != null
+                        if (pairingCode != null
+                                && pairingCode.length() == 6
+                                && portNumberString != null
+                                && portNumberString.length() > 0
                                 && TextUtils.isDigitsOnly(portNumberString)) {
                             mStatusTextView.setText(R.string.adb_connecting);
 
@@ -98,6 +101,7 @@ final class FloatDialog {
                         }
                     } else {
                         if (portNumberString != null
+                                && portNumberString.length() > 0
                                 && TextUtils.isDigitsOnly(portNumberString)) {
                             mStatusTextView.setText(R.string.adb_connecting);
 

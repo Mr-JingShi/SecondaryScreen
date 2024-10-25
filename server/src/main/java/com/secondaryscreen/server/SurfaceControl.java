@@ -172,7 +172,7 @@ public final class SurfaceControl {
         // VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS 1 << 9
         // VIRTUAL_DISPLAY_FLAG_TRUSTED 1 << 10
         int flags = (1<<0)|(1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);// (1<<10)|(1<<0)|(1<<3)  ~ (1<<0)|(1<<1)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             flags |= (1<<10);
         }
         return flags;

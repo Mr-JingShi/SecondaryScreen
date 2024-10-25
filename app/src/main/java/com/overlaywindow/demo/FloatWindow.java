@@ -528,17 +528,15 @@ final class FloatWindow extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null) {
-            return;
-        }
-
-        String action = intent.getAction();
-        // 屏幕旋转
-        if (action.equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
-            int rotation = getRotation();
-            if (mRotation != rotation) {
-                mRotation = rotation;
-                onRotationChanged();
+        if (intent != null) {
+            String action = intent.getAction();
+            // 屏幕旋转
+            if (action.equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
+                int rotation = getRotation();
+                if (mRotation != rotation) {
+                    mRotation = rotation;
+                    onRotationChanged();
+                }
             }
         }
     }
