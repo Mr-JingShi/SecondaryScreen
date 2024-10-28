@@ -10,7 +10,7 @@
 * 演示文稿：演示者可以在一个屏幕上播放要演示的文稿，同时在另一个屏幕上显示备注。
 * 多屏协同：多个屏幕连接在一起，每个屏幕可以显示不同的内容，提高多任务处理效率。
 
-通过[AndroidStido模拟器](doc/AndroidStudio模拟器.md)和[模拟辅助显示设备](doc/模拟辅助显示设备.md)可以了解到，overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是触摸屏，无法相应双指、多指触摸事件，同时部分设备无法弹出软键盘等问题。因此此项目旨在解决上述问题。
+通过[AndroidStido模拟器](doc/AndroidStudio模拟器.md)和[模拟辅助显示设备](doc/模拟辅助显示设备.md)可以了解到，overlay方式永远有一个叠加屏遮盖，而且大部分电脑屏幕不是触摸屏，无法响应双指、多指触摸事件，同时部分设备无法弹出软键盘等问题。因此此项目旨在解决上述问题。
 
 # 目标
 
@@ -49,11 +49,13 @@ Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位�
 ## 电脑充当副屏
 
 1. 手动加载server-jar包或OverlayWindow APP连接/配对ADB调试启动server
-2. scrcpy
+2. scrcpy --display-id=?
 
 ## Android设备悬浮窗充当副屏
 
 1. OverlayWindow APP连接/配对ADB调试启动server
+
+![](doc/img/OverlayWindow图示.png)
 
 # 感谢
 

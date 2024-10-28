@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +22,8 @@ public class SampleActivity extends AppCompatActivity {
         Log.i(TAG, "SampleActivity onCreate");
         super.onCreate(savedInstanceState);
 
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_sample);
 
         findViewById(R.id.title).setOnTouchListener((view, event) -> {
