@@ -36,9 +36,8 @@ final class FloatWindow extends BroadcastReceiver {
     private final float WINDOW_ALPHA = 0.95f;
     private final boolean DISABLE_MOVE_AND_RESIZE = false;
     private final boolean ADD_FLAG_SECURE = false;
-    private final boolean USE_SELF_VIRTUALDISPLAY = false;
     private final boolean USE_SURFACE_EVENT = false;
-    private final int mDisplayId;
+    private int mDisplayId = -1;
     private int mWidth;
     private int mHeight;
     private int mDensityDpi;
@@ -81,11 +80,12 @@ final class FloatWindow extends BroadcastReceiver {
 
         Display defaultDisplay = mWindowManager.getDefaultDisplay();
 
-        mDisplayId = defaultDisplay.getDisplayId();
-
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(displayMetrics);
-        
+        int rotation = defaultDisplay.getRotation();
+        Log.d(TAG, "rotation:" + rotation);
+        Log.d(TAG, "displayMetrics.widthPixels:" + displayMetrics.widthPixels + " displayMetrics.heightPixels:" + displayMetrics.heightPixels);
+
         resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
 
         createWindow();
@@ -226,8 +226,15 @@ final class FloatWindow extends BroadcastReceiver {
     }
 
     private void updateWindowParams() {
+        Display defaultDisplay = mWindowManager.getDefaultDisplay();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        defaultDisplay.getRealMetrics(displayMetrics);
+
+
         float scale = mWindowScale * mLiveScale;
-        scale = Math.min(scale, 1.0f);
+        scale = Math.min(scale, (float)displayMetrics.widthPixels / mWidth);
+        scale = Math.min(scale, (float)displayMetrics.heightPixels / mHeight);
+        // scale = Math.min(scale, 1.0f);
         scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
 
         float offsetScale = (scale / mWindowScale - 1.0f) * 0.5f;
@@ -235,8 +242,10 @@ final class FloatWindow extends BroadcastReceiver {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        x = Math.max(0, Math.min(x, mWidth - width));
-        y = Math.max(0, Math.min(y, mHeight - height));
+        x = Math.max(0, Math.min(x, displayMetrics.widthPixels - width));
+        y = Math.max(0, Math.min(y, displayMetrics.heightPixels - height));
+        // x = Math.max(0, Math.min(x, mWidth - width));
+        // y = Math.max(0, Math.min(y, mHeight - height));
 
         mTextureView.setScaleX(scale);
         mTextureView.setScaleY(scale);
@@ -352,6 +361,7 @@ final class FloatWindow extends BroadcastReceiver {
 
                 @Override
                 public void onDisplayChanged(int displayId) {
+                    Log.i(TAG, "onDisplayChanged:" + displayId);
                     if (displayId == mDisplayId) {
                         relayout();
                     }
@@ -370,23 +380,13 @@ final class FloatWindow extends BroadcastReceiver {
                 private VirtualDisplay mVirtualDisplay = null;
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-                    Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
+                    Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
-                    if (USE_SELF_VIRTUALDISPLAY) {
-                        String name = "virtualdisplay";
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                            name = "PC_virtualdisplay";
-                        }
-                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
-                        Display display = mVirtualDisplay.getDisplay();
-                        Log.i(TAG, "FloatWindow display: " + display);
+                    if (View.VISIBLE == mLockImageView.getVisibility()) {
+                        mVideoClient = new VideoClient();
+                        mVideoClient.start(new Surface(surfaceTexture));
                     } else {
-                        if (View.VISIBLE == mLockImageView.getVisibility()) {
-                            mVideoClient = new VideoClient();
-                            mVideoClient.start(new Surface(surfaceTexture));
-                        } else {
-                            mSurfaceTexture = surfaceTexture;
-                        }
+                        mSurfaceTexture = surfaceTexture;
                     }
                 }
 
@@ -398,10 +398,7 @@ final class FloatWindow extends BroadcastReceiver {
 
                 @Override
                 public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
-                    Log.i(TAG, "onSurfaceTextureSizeChanged width:" + width + " height:" + height);
-                    if (USE_SELF_VIRTUALDISPLAY && mVirtualDisplay != null) {
-                        mVirtualDisplay.resize(width, height, mDensityDpi);
-                    }
+                    Log.i(TAG, "onSurfaceTextureSizeChanged surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
                 }
 
                 @Override
@@ -468,6 +465,8 @@ final class FloatWindow extends BroadcastReceiver {
         if (displays.length > 1) {
             for (Display display : displays) {
                 if (display.getName().contains("virtualdisplay")) {
+
+                    mDisplayId = display.getDisplayId();
                     return true;
                 }
             }
@@ -491,9 +490,7 @@ final class FloatWindow extends BroadcastReceiver {
             if (ready) {
                 mAdbShell.disconnect();
 
-                if (!USE_SELF_VIRTUALDISPLAY
-                        && mVideoClient == null
-                        && mSurfaceTexture != null) {
+                if (mVideoClient == null && mSurfaceTexture != null) {
                     mLockImageView.setVisibility(View.VISIBLE);
                     mPairImageView.setVisibility(View.GONE);
                     mTcpipImageView.setVisibility(View.GONE);

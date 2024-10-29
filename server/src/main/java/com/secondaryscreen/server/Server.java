@@ -25,35 +25,28 @@ public class Server {
 
             DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(true);
 
-            Size size = displayInfo.getSize();
-            int displayId = SurfaceControl.createVirtualDisplay(size.getWidth(), size.getHeight(), displayInfo.getDensityDpi());
+            int displayId = SurfaceControl.createVirtualDisplay(displayInfo);
 
             System.out.println("displayId:" + displayId);
 
             DisplayInfo.setMirrorDisplayId(displayId);
 
-            ServiceManager.getWindowManager().registerRotationWatcher(new IRotationWatcher.Stub() {
+            WindowManager windowManager = ServiceManager.getWindowManager();
+            windowManager.freezeRotation(displayId, displayInfo.getRotation());
+
+            windowManager.registerRotationWatcher(new IRotationWatcher.Stub() {
                 @Override
                 public void onRotationChanged(int rotation) {
-                    WindowManager wm = ServiceManager.getWindowManager();
+                System.out.println("onRotationChanged rotation:" + rotation);
 
-                    boolean accelerometerRotation = !wm.isRotationFrozen(displayId);
-                    System.out.println("onRotationChanged accelerometerRotation:" + accelerometerRotation);
+                if (!windowManager.isRotationFrozen(displayId)) {
+                    windowManager.thawRotation(displayId);
+                }
 
-                    if (accelerometerRotation) {
-                        DisplayInfo info = ServiceManager.getDisplayManager().getDisplayInfo(true);
+                windowManager.freezeRotation(displayId, rotation);
 
-                        Size size = info.getSize();
-                        System.out.println("onRotationChanged with:" + size.getWidth() + " heigth:" + size.getHeight());
-
-                        try {
-                            SurfaceControl.resizeVirtualDisplay(size.getWidth(), size.getHeight(), info.getDensityDpi());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                        wm.onRotationChanged(rotation, info);
-                    }
+                ServiceManager.getDisplayManager().getDisplayInfo(true);
+                windowManager.onRotationChanged(rotation);
                 }
             }, 0);
 

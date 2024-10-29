@@ -20,7 +20,7 @@ public final class WindowManager {
     private int thawDisplayRotationMethodVersion;
 
     public interface RotationListener {
-        void onRotationChanged(int rotation, DisplayInfo displayInfo);
+        void onRotationChanged(int rotation);
     }
 
     static WindowManager create() {
@@ -121,7 +121,7 @@ public final class WindowManager {
             Method method = getFreezeDisplayRotationMethod();
             switch (freezeDisplayRotationMethodVersion) {
                 case 0:
-                    method.invoke(manager, displayId, rotation, "scrcpy#freezeRotation");
+                    method.invoke(manager, displayId, rotation, "scondaryscreen#freezeRotation");
                     break;
                 case 1:
                     method.invoke(manager, displayId, rotation);
@@ -163,7 +163,7 @@ public final class WindowManager {
             Method method = getThawDisplayRotationMethod();
             switch (thawDisplayRotationMethodVersion) {
                 case 0:
-                    method.invoke(manager, displayId, "scrcpy#thawRotation");
+                    method.invoke(manager, displayId, "scondaryscreen#thawRotation");
                     break;
                 case 1:
                     method.invoke(manager, displayId);
@@ -201,9 +201,9 @@ public final class WindowManager {
         mRotationWatcher = rotationListener;
     }
 
-    public void onRotationChanged(int rotation, DisplayInfo displayInfo) {
+    public void onRotationChanged(int rotation) {
         if (mRotationWatcher != null) {
-            mRotationWatcher.onRotationChanged(rotation, displayInfo);
+            mRotationWatcher.onRotationChanged(rotation);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.overlaywindow.demo;
 
 import android.media.MediaCodec;
+import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
 
@@ -48,6 +49,7 @@ public class VideoClient {
                 decode();
             } catch (Exception e) {
                 Log.i(TAG, "socket exception:" + e);
+                e.printStackTrace();
             } finally {
                 try {
                     if (mSocket != null) {
@@ -93,15 +95,14 @@ public class VideoClient {
                     ByteBuffer sizeBuffer = ByteBuffer.wrap(headerBuffer, 0, 8);
                     int width = sizeBuffer.getInt();
                     int height = sizeBuffer.getInt();
-                    Log.i(TAG, "sizeBuffer width:" + width);
-                    Log.i(TAG, "sizeBuffer height:" + height);
+                    Log.i(TAG, "sizeBuffer width:" + width + " height:" + height);
 
                     if (mMediaDecoder != null) {
                         mMediaDecoder.stop();
                     }
 
                     ByteBuffer csd0 = ByteBuffer.wrap(codecBuffer, 0, bufferInfo.size);
-                    mMediaDecoder.configure(width, height,  csd0, mSurface);
+                    mMediaDecoder.configure(width, height, csd0, mSurface);
 
                     mMediaDecoder.start();
                 } else {

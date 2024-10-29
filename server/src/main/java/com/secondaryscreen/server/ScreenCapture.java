@@ -17,6 +17,7 @@ public class ScreenCapture implements WindowManager.RotationListener {
     private ScreenInfo mScreenInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
+    private static int mMaxSize = -1;
 
     public ScreenCapture() {}
 
@@ -28,14 +29,16 @@ public class ScreenCapture implements WindowManager.RotationListener {
 
     private void computeScreenInfo() {
         DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
-        int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
+        if (mMaxSize == -1) {
+            mMaxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
+        }
 
-        mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, maxSize, -1);
+        mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, mMaxSize, -1);
     }
 
     @Override
-    public void onRotationChanged(int rotation, DisplayInfo displayInfo) {
-        computeScreenInfo();
+    public void onRotationChanged(int rotation) {
+        mScreenInfo = mScreenInfo.withDeviceRotation(rotation);
 
         requestReset();
     }
@@ -58,16 +61,6 @@ public class ScreenCapture implements WindowManager.RotationListener {
     }
 
     public void start(Surface surface) {
-        Rect contentRect = mScreenInfo.getContentRect();
-        System.out.println("contentRect:" + contentRect);
-
-        // does not include the locked video orientation
-        Rect unlockedVideoRect = mScreenInfo.getUnlockedVideoSize().toRect();
-        System.out.println("unlockedVideoRect:" + unlockedVideoRect);
-        int videoRotation = mScreenInfo.getVideoRotation();
-        System.out.println("videoRotation:" + videoRotation);
-        int mirrorDisplayId = DisplayInfo.getMirrorDisplayId();
-
         if (mDisplay != null) {
             SurfaceControl.destroyDisplay(mDisplay);
             mDisplay = null;
@@ -77,14 +70,26 @@ public class ScreenCapture implements WindowManager.RotationListener {
             mVirtualDisplay = null;
         }
 
+        int mirrorDisplayId = DisplayInfo.getMirrorDisplayId();
+        System.out.println("mirrorDisplayId:" + mirrorDisplayId);
+
         try {
+            Rect contentRect = mScreenInfo.getContentRect();
+            System.out.println("contentRect:" + contentRect);
+            // does not include the locked video orientation
+            Rect unlockedVideoRect = mScreenInfo.getUnlockedVideoSize().toRect();
+            System.out.println("unlockedVideoRect:" + unlockedVideoRect);
+            int videoRotation = mScreenInfo.getVideoRotation();
+            System.out.println("videoRotation:" + videoRotation);
+
             mDisplay = createDisplay();
             setDisplaySurface(mDisplay, surface, videoRotation, contentRect, unlockedVideoRect, mirrorDisplayId);
             System.out.println("Display: using SurfaceControl API");
         } catch (Exception surfaceControlException) {
             System.out.println("surfaceControlException:" + surfaceControlException);
-            Rect videoRect = mScreenInfo.getVideoSize().toRect();
             try {
+                Rect videoRect = mScreenInfo.getVideoSize().toRect();
+                System.out.println("videoRotation:" + videoRect);
                 mVirtualDisplay = ServiceManager.getDisplayManager().createVirtualDisplay(VIRTUALDISPLAY, videoRect.width(), videoRect.height(), mirrorDisplayId, surface);
                 System.out.println("Display: using DisplayManager API");
             } catch (Exception displayManagerException) {

@@ -60,7 +60,10 @@ public class AdbShell {
                 th.printStackTrace();
             }
 
-            connectResult(mConnectSatus = connectionStatus);
+            mConnectSatus = connectionStatus;
+            if (connectionStatus) {
+                success();
+            }
             mHandler.post(runnable);
 
             Log.i(TAG, "connect connectionStatus: " + connectionStatus);
@@ -127,7 +130,10 @@ public class AdbShell {
                 th.printStackTrace();
             }
 
-            connectResult(mConnectSatus = connected);
+            mConnectSatus = connected;
+            if (connected) {
+                success();
+            }
 
             mHandler.post(runnable);
 
@@ -153,29 +159,28 @@ public class AdbShell {
         });
     }
 
-    public void connectResult(boolean success) {
-        if (success) {
-            StringBuilder sb = new StringBuilder();
+    public void success() {
+        StringBuilder sb = new StringBuilder();
 
-            String jarPath = DemoApplication.getApp().getPackageCodePath();
-            Log.i(TAG, "jarPath:" + jarPath);
+        String jarPath = DemoApplication.getApp().getPackageCodePath();
+        Log.i(TAG, "jarPath:" + jarPath);
 
-            sb.append("CLASSPATH=");
-            sb.append(jarPath);
+        sb.append("CLASSPATH=");
+        sb.append(jarPath);
+        sb.append(" ");
+        sb.append("nohup app_process / com.secondaryscreen.server.Server");
+
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
             sb.append(" ");
-            sb.append("nohup app_process / com.secondaryscreen.server.Server ");
-
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
-                sb.append(DemoApplication.getApp().getString(R.string.first_activity));
-                sb.append(" ");
-                sb.append(DemoApplication.getApp().getString(R.string.seoncd_activity));
-                sb.append(" ");
-            }
-            sb.append(">/dev/null 2>&1 &");
-
-            String cmd = sb.toString();
-            Log.i(TAG, "connectResult cmd:" + cmd);
-            execute(sb.toString());
+            sb.append(DemoApplication.getApp().getString(R.string.first_activity));
+            sb.append(" ");
+            sb.append(DemoApplication.getApp().getString(R.string.seoncd_activity));
         }
+        sb.append(" ");
+        sb.append(">/dev/null 2>&1 &");
+
+        String cmd = sb.toString();
+        Log.i(TAG, "connectResult cmd:" + cmd);
+        execute(sb.toString());
     }
 }

@@ -49,9 +49,9 @@ public class SurfaceEncoder {
             boolean alive;
 
             do {
+                mFirstFrameSent = false;
                 Size size = mCapture.getSize();
-                System.out.println("size.getWidth():" + size.getWidth());
-                System.out.println("size.getHeight():" + size.getHeight());
+                System.out.println("size.width:" + size.getWidth() + " size.height:" + size.getHeight());
                 format.setInteger(MediaFormat.KEY_WIDTH, size.getWidth());
                 format.setInteger(MediaFormat.KEY_HEIGHT, size.getHeight());
 
@@ -69,6 +69,7 @@ public class SurfaceEncoder {
                     mediaCodec.stop();
                 } catch (IllegalStateException | IllegalArgumentException e) {
                     System.out.println("Encoding error: " + e.getClass().getName() + ": " + e.getMessage());
+                    e.printStackTrace();
                     if (!prepareRetry(size)) {
                         throw e;
                     }
@@ -175,7 +176,7 @@ public class SurfaceEncoder {
     private static MediaCodec createMediaCodec() throws IOException, IllegalArgumentException {
         try {
             MediaCodec mediaCodec = MediaCodec.createEncoderByType(VIDEO_FORMAT);
-            System.out.println("Using video encoder: '" + mediaCodec.getName() + "'");
+            System.out.println("Using video encoder:" + mediaCodec.getName());
             return mediaCodec;
         } catch (IOException | IllegalArgumentException e) {
             System.out.println("Could not create video encoder for " + VIDEO_FORMAT);
@@ -218,7 +219,7 @@ public class SurfaceEncoder {
                 int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH, 0);
                 int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT, 0);
                 if ((width > height && maxWidth < maxHeight)
-                    || (width < height && maxWidth > maxHeight)) {
+                        || (width < height && maxWidth > maxHeight)) {
                     int tmp = maxWidth;
                     maxWidth = maxHeight;
                     maxHeight = tmp;
