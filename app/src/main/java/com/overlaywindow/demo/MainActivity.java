@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +23,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (mFloatWindow != null) {
             Toast.makeText(this, getString(R.string.make_happy), Toast.LENGTH_SHORT).show();
+
+            mFloatWindow.show();
 
             finish();
         } else if (hasPermission()) {

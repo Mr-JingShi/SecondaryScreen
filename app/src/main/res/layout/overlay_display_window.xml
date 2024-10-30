@@ -41,7 +41,15 @@
         android:orientation="vertical"
         android:layout_gravity="center_vertical|right">
         <ImageView
-            android:id="@+id/overlay_display_window_hide"
+            android:id="@+id/overlay_display_window_close"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/go_close" />
+
+        <ImageView
+            android:id="@+id/overlay_display_window_shrink"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
             android:layout_width="32dp"

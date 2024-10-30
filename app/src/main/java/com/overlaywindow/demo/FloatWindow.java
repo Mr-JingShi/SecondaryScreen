@@ -1,9 +1,7 @@
 package com.overlaywindow.demo;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -47,7 +45,6 @@ final class FloatWindow {
     private ImageView mTcpipImageView;
     private ImageView mPairImageView;
     private TextView  mRemarkTextView;
-    private ImageView mHideImageView;
     private ImageView mLockImageView;
     private ImageView mFocusImageView;
     private WindowManager.LayoutParams mWindowParams;
@@ -66,8 +63,8 @@ final class FloatWindow {
     private FloatIcon mFloatIcon;
     private AdbShell mAdbShell;
     private FloatDialog mFloatDialog;
-    private boolean isLocked = false;
-    private boolean isFocused = false;
+    private boolean mIsLocked = false;
+    private boolean mIsFocused = false;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
     private int mRotation;
@@ -147,19 +144,38 @@ final class FloatWindow {
         mWindowContent.setOnTouchListener(mOnTouchListener);
 
         mTcpipImageView = mWindowContent.findViewById(R.id.overlay_display_window_tcpip);
-        mTcpipImageView.setOnClickListener(mTcpipListener);
+        mTcpipImageView.setOnClickListener((View v) -> {
+            mFloatDialog.show(false);
+            focusImageViewShow(true);
+        });
 
         mPairImageView = mWindowContent.findViewById(R.id.overlay_display_window_pair);
-        mPairImageView.setOnClickListener(mPairListener);
+        mPairImageView.setOnClickListener((View v) -> {
+            Log.i(TAG, "mPairListener");
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            DemoApplication.getApp().startActivity(intent);
 
-        mHideImageView = mWindowContent.findViewById(R.id.overlay_display_window_hide);
-        mHideImageView.setOnClickListener(mHideListener);
+            mFloatDialog.show(true);
+            focusImageViewShow(true);
+        });
+
+        mWindowContent.findViewById(R.id.overlay_display_window_close).setOnClickListener((View v) -> {
+            dismiss();
+        });
+
+        mWindowContent.findViewById(R.id.overlay_display_window_shrink).setOnClickListener((View v) -> {
+            mFloatIcon.show();
+        });
 
         mLockImageView = mWindowContent.findViewById(R.id.overlay_display_window_lock);
         mLockImageView.setOnClickListener(mLockListener);
 
         mFocusImageView = mWindowContent.findViewById(R.id.overlay_display_window_focus);
-        mFocusImageView.setOnClickListener(mFocusListener);
+        mFocusImageView.setOnClickListener((View v) -> {
+            mIsFocused = !mIsFocused;
+            focusImageViewChange(mIsFocused);
+        });
 
         mRemarkTextView = mWindowContent.findViewById(R.id.overlay_display_window_remark);
 
@@ -222,15 +238,8 @@ final class FloatWindow {
     }
 
     private void updateWindowParams() {
-        Display defaultDisplay = mWindowManager.getDefaultDisplay();
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        defaultDisplay.getRealMetrics(displayMetrics);
-
-
         float scale = mWindowScale * mLiveScale;
-        scale = Math.min(scale, (float)displayMetrics.widthPixels / mWidth);
-        scale = Math.min(scale, (float)displayMetrics.heightPixels / mHeight);
-        // scale = Math.min(scale, 1.0f);
+        scale = Math.min(scale, 1.0f);
         scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
 
         float offsetScale = (scale / mWindowScale - 1.0f) * 0.5f;
@@ -238,10 +247,8 @@ final class FloatWindow {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        x = Math.max(0, Math.min(x, displayMetrics.widthPixels - width));
-        y = Math.max(0, Math.min(y, displayMetrics.heightPixels - height));
-        // x = Math.max(0, Math.min(x, mWidth - width));
-        // y = Math.max(0, Math.min(y, mHeight - height));
+        x = Math.max(0, Math.min(x, mWidth - width));
+        y = Math.max(0, Math.min(y, mHeight - height));
 
         mTextureView.setScaleX(scale);
         mTextureView.setScaleY(scale);
@@ -270,56 +277,12 @@ final class FloatWindow {
     public View getWindowContent() {
         return mWindowContent;
     }
-
-    private final View.OnClickListener mTcpipListener =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mFloatDialog.show(false);
-                    focusImageViewShow(true);
-                }
-            };
-
-    private final View.OnClickListener mPairListener =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.i(TAG, "mPairListener");
-                    try {
-                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        DemoApplication.getApp().startActivity(intent);
-
-                        mFloatDialog.show(true);
-                        focusImageViewShow(true);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-
-    private final View.OnClickListener mHideListener =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mFloatIcon.show();
-                }
-            };
-
-    private final View.OnClickListener mFocusListener =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    isFocused = !isFocused;
-                    focusImageViewChange(isFocused);
-                }
-            };
     private final View.OnClickListener mLockListener =
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    isLocked = !isLocked;
-                    if (isLocked) {
+                    mIsLocked = !mIsLocked;
+                    if (mIsLocked) {
                         if (mControlClient == null) {
                             mControlClient = new ControlClient();
                         }
@@ -339,7 +302,7 @@ final class FloatWindow {
                     } else {
                         mLockImageView.setImageResource(R.drawable.go_unlock);
 
-                        isFocused = false;
+                        mIsFocused = false;
                         focusImageViewShow(false);
 
                         if (USE_SURFACE_EVENT) {
@@ -411,7 +374,7 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            if (!USE_SURFACE_EVENT && isLocked) {
+            if (!USE_SURFACE_EVENT && mIsLocked) {
                 if (mControlClient != null) {
                     event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
 

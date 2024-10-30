@@ -12,7 +12,6 @@ import java.net.Socket;
 
 public final class ControlConnection {
     private static int PORT = 8402;
-    private static String HOST = "127.0.0.1";
     private int mDisplayId;
     private Thread mThread;
     public ControlConnection(int displayId) {
@@ -42,7 +41,7 @@ public final class ControlConnection {
             try {
                 try (ServerSocket serverSocket = new ServerSocket()) {
                     serverSocket.setReuseAddress(true);
-                    serverSocket.bind(new InetSocketAddress(HOST, PORT));
+                    serverSocket.bind(new InetSocketAddress(PORT));
                     System.out.println("port:" + PORT);
 
                     while (true) {

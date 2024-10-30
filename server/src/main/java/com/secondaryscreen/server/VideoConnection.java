@@ -9,7 +9,6 @@ import java.net.Socket;
 
 public final class VideoConnection {
     private static int PORT = 8403;
-    private static String HOST = "127.0.0.1";
     private Thread mThread;
     public VideoConnection() {}
 
@@ -25,6 +24,7 @@ public final class VideoConnection {
     }
 
     private class VideoServerThread extends Thread {
+        private Thread mThread;
         public VideoServerThread() {
             super("VideoServerThread");
             System.out.println("VideoServerThread");
@@ -35,15 +35,24 @@ public final class VideoConnection {
             try {
                 try (ServerSocket serverSocket = new ServerSocket()) {
                     serverSocket.setReuseAddress(true);
-                    serverSocket.bind(new InetSocketAddress(HOST, PORT));
+                    serverSocket.bind(new InetSocketAddress(PORT));
                     System.out.println("port:" + PORT);
 
                     while (true) {
                         Socket socket = serverSocket.accept();
-                        System.out.println("VideoSocketThread accept");
+                        System.out.println("VideoServerThread accept");
 
-                        Thread thread = new VideoSocketThread(socket);
-                        thread.start();
+                        if (mThread != null) {
+                            try {
+                                mThread.interrupt();
+                                mThread.join();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        mThread = new VideoSocketThread(socket);
+                        mThread.start();
                     }
                 }
             } catch (IOException e) {
