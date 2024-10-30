@@ -50,13 +50,30 @@ public class MediaDecoder {
     }
 
     public void decode(byte[] codecBuffer, MediaCodec.BufferInfo bufferInfo) {
-        int index = mMediaCodec.dequeueInputBuffer(10000L);
-        if (index >= 0) {
-            ByteBuffer buffer = mMediaCodec.getInputBuffer(index);
-            if (buffer != null) {
-                buffer.clear();
-                buffer.put(codecBuffer, bufferInfo.offset, bufferInfo.size);
-                mMediaCodec.queueInputBuffer(index, 0, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
+        /**
+         * Returns the index of an input buffer to be filled with valid data
+         * or -1 if no such buffer is currently available.
+         * This method will return immediately if timeoutUs == 0, wait indefinitely
+         * for the availability of an input buffer if timeoutUs &lt; 0 or wait up
+         * to "timeoutUs" microseconds if timeoutUs &gt; 0.
+         * @param timeoutUs The timeout in microseconds, a negative timeout indicates "infinite".
+         * @throws IllegalStateException if not in the Executing state,
+         *         or codec is configured in asynchronous mode.
+         * @throws MediaCodec.CodecException upon codec error.
+         */
+        // public final int dequeueInputBuffer(long timeoutUs) {
+        // dequeueInputBuffer有时返回-1，返回-1时如果把buffer丢掉，会导致花屏，这次最大尝试三次
+        for (int i = 0; i < 3; ++i) {
+            int index = mMediaCodec.dequeueInputBuffer(10000L);
+            if (index >= 0) {
+                ByteBuffer buffer = mMediaCodec.getInputBuffer(index);
+                if (buffer != null) {
+                    buffer.clear();
+                    buffer.put(codecBuffer, bufferInfo.offset, bufferInfo.size);
+                    mMediaCodec.queueInputBuffer(index, 0, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
+                }
+
+                break;
             }
         }
     }
