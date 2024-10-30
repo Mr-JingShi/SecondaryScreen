@@ -28,7 +28,7 @@ import android.widget.TextView;
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
 
-final class FloatWindow extends BroadcastReceiver {
+final class FloatWindow {
     private static final String TAG = "FloatWindow";
     private final float INITIAL_SCALE = 0.5f;
     private final float MIN_SCALE = 0.3f;
@@ -82,16 +82,12 @@ final class FloatWindow extends BroadcastReceiver {
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(displayMetrics);
-        int rotation = defaultDisplay.getRotation();
-        Log.d(TAG, "rotation:" + rotation);
-        Log.d(TAG, "displayMetrics.widthPixels:" + displayMetrics.widthPixels + " displayMetrics.heightPixels:" + displayMetrics.heightPixels);
+        mRotation = defaultDisplay.getRotation();
+        Log.d(TAG, "rotation:" + mRotation + " displayMetrics.widthPixels:" + displayMetrics.widthPixels + " displayMetrics.heightPixels:" + displayMetrics.heightPixels);
 
         resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
 
         createWindow();
-
-        mRotation = getRotation();
-        DemoApplication.getApp().registerReceiver(this, new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED));
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
@@ -362,7 +358,13 @@ final class FloatWindow extends BroadcastReceiver {
                 @Override
                 public void onDisplayChanged(int displayId) {
                     Log.i(TAG, "onDisplayChanged:" + displayId);
-                    if (displayId == mDisplayId) {
+                    if (displayId == 0) {
+                        int rotation = getRotation();
+                        if (mRotation != rotation) {
+                            mRotation = rotation;
+                            onRotationChanged();
+                        }
+                    } else if (displayId == mDisplayId) {
                         relayout();
                     }
                 }
@@ -523,24 +525,8 @@ final class FloatWindow extends BroadcastReceiver {
         focusImageViewChange(false);
     }
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        if (intent != null) {
-            String action = intent.getAction();
-            // 屏幕旋转
-            if (action.equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
-                int rotation = getRotation();
-                if (mRotation != rotation) {
-                    mRotation = rotation;
-                    onRotationChanged();
-                }
-            }
-        }
-    }
-
-    public static int getRotation() {
-        WindowManager wm = (WindowManager) DemoApplication.getApp().getSystemService(Context.WINDOW_SERVICE);
-        int rotation = wm.getDefaultDisplay().getRotation();
+    public int getRotation() {
+        int rotation = mWindowManager.getDefaultDisplay().getRotation();
         Log.i(TAG, "rotation:" + rotation);
         return rotation;
     }
