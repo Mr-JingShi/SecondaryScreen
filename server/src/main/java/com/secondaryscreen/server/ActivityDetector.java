@@ -3,15 +3,13 @@ package com.secondaryscreen.server;
 public class ActivityDetector {
     private static int SCAN_INTERVAL = 1000; // 1s
     private static int WAIT_INTERVAL = 2000; // 2s
-    private int mDisplayId = 0;
     private String mFirstActivity;
     private String mSecondActivity;
     private Thread mThread;
 
-    public ActivityDetector(String firstActivity, String secondActivity, int displayId) {
+    public ActivityDetector(String firstActivity, String secondActivity) {
         this.mFirstActivity = firstActivity;
         this.mSecondActivity = secondActivity;
-        this.mDisplayId = displayId;
     }
 
     public void start() {
@@ -25,32 +23,15 @@ public class ActivityDetector {
         }
     }
 
-    private static boolean activityRunning(String activity) {
-        String cmd = "am stack list | grep " + activity;
-        Shell.Result sr = Shell.execCommand(cmd);
-        if (sr.mResult == 0 && sr.mSuccessMsg != null && !sr.mSuccessMsg.isEmpty()) {
-            return true;
-        }
-        return false;
-    }
-
-    private static void startActivity(String activity, int displayId) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("am start -n ");
-        sb.append(activity);
-        sb.append(" --display ");
-        sb.append(displayId);
-
-        String text = sb.toString();
-        Shell.Result sr = Shell.execCommand(text);
-        if (sr.mResult == 0) {
-            System.out.println("am start secondActivity success");
+    private void startSecondActivity() {
+        int displayId = DisplayInfo.getMirrorDisplayId();
+        if (displayId > 0) {
+            Utils.startActivity(mSecondActivity, displayId);
         }
     }
 
     private boolean isReady() {
-        return activityRunning(mFirstActivity) && !activityRunning(mSecondActivity);
+        return Utils.activityRunning(mFirstActivity) && !Utils.activityRunning(mSecondActivity);
     }
 
     class DetectorThread extends Thread {
@@ -66,7 +47,7 @@ public class ActivityDetector {
                         Thread.sleep(WAIT_INTERVAL);
 
                         if (isReady()) {
-                            startActivity(mSecondActivity, mDisplayId);
+                            startSecondActivity();
                         }
                     }
 

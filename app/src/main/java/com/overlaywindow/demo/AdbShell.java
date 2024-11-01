@@ -25,16 +25,22 @@ import io.github.muntashirakon.adb.android.AndroidUtils;
 // https://github.com/MuntashirAkon/libadb-android/blob/master/app/src/main/java/io/github/muntashirakon/adb/testapp/MainViewModel.java
 
 public class AdbShell {
+    private static class Hodler {
+        private static AdbShell hodler = new AdbShell();
+    }
     private static String TAG = "AdbShell";
-    private final ExecutorService mExecutor = Executors.newFixedThreadPool(3);
+    private final ExecutorService mExecutor;
     private boolean mConnectSatus = false;
     private int mPort = 0;
     @Nullable
     private AdbStream adbShellStream;
-    private Handler mHandler;
 
     public AdbShell() {
-        mHandler = new Handler(Looper.getMainLooper());
+        mExecutor = Executors.newFixedThreadPool(3);
+    }
+
+    public static AdbShell getInstance() {
+        return Hodler.hodler;
     }
 
     public boolean getConnectStatus() {
@@ -62,9 +68,9 @@ public class AdbShell {
 
             mConnectSatus = connectionStatus;
             if (connectionStatus) {
-                success();
+                Utils.startJar();
             }
-            mHandler.post(runnable);
+            Utils.runOnUiThread(runnable);
 
             Log.i(TAG, "connect connectionStatus: " + connectionStatus);
         });
@@ -86,7 +92,6 @@ public class AdbShell {
         });
 
         mExecutor.shutdown();
-        mHandler = null;
     }
 
     public void getPairingPort(Runnable runnable) {
@@ -110,7 +115,7 @@ public class AdbShell {
             }
 
             mPort = atomicPort.get();
-            mHandler.post(runnable);
+            Utils.runOnUiThread(runnable);
         });
     }
 
@@ -132,10 +137,10 @@ public class AdbShell {
 
             mConnectSatus = connected;
             if (connected) {
-                success();
+                Utils.startJar();
             }
 
-            mHandler.post(runnable);
+            Utils.runOnUiThread(runnable);
 
             Log.i(TAG, "pair connected: " + connected);
         });
@@ -157,30 +162,5 @@ public class AdbShell {
                 e.printStackTrace();
             }
         });
-    }
-
-    public void success() {
-        StringBuilder sb = new StringBuilder();
-
-        String jarPath = DemoApplication.getApp().getPackageCodePath();
-        Log.i(TAG, "jarPath:" + jarPath);
-
-        sb.append("CLASSPATH=");
-        sb.append(jarPath);
-        sb.append(" ");
-        sb.append("nohup app_process / com.secondaryscreen.server.Server");
-
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
-            sb.append(" ");
-            sb.append(DemoApplication.getApp().getString(R.string.first_activity));
-            sb.append(" ");
-            sb.append(DemoApplication.getApp().getString(R.string.seoncd_activity));
-        }
-        sb.append(" ");
-        sb.append(">/dev/null 2>&1 &");
-
-        String cmd = sb.toString();
-        Log.i(TAG, "connectResult cmd:" + cmd);
-        execute(sb.toString());
     }
 }

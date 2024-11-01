@@ -13,9 +13,9 @@ import java.nio.ByteBuffer;
 
 public class VideoClient {
     private static String TAG = "VideoClient";
-    private static String HOST = "127.0.0.1";
-    private static int PORT = 8403;
-    private static int TIMEOUT = 3000;
+    private String HOST = "127.0.0.1";
+    private int PORT = 8403;
+    private int TIMEOUT = 3000;
     private Thread mThread;
     private MediaDecoder mMediaDecoder;
     private Surface mSurface;
@@ -24,11 +24,29 @@ public class VideoClient {
         mMediaDecoder = new MediaDecoder();
     }
 
+    public void setRemoteHost(String remoteHost) {
+        this.HOST = remoteHost;
+    }
+
     public void start(Surface surface) {
         this.mSurface = surface;
 
         mThread = new VideoClientThread();
         mThread.start();
+    }
+
+    public void shutdown() {
+        try {
+            if (mThread != null
+                && mThread.isAlive()
+                && !mThread.isInterrupted()) {
+                mThread.interrupt();
+                mThread.join();
+                mThread = null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     class VideoClientThread extends Thread {
@@ -43,8 +61,7 @@ public class VideoClient {
             try {
                 mSocket = new Socket();
                 mSocket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
-
-                Log.i(TAG, "VideoClientThread connect");
+                Log.d(TAG, "VideoClientThread connect success");
 
                 decode();
             } catch (Exception e) {
@@ -56,7 +73,7 @@ public class VideoClient {
                         mSocket.close();
                     }
 
-                    mMediaDecoder.stop();
+                    mMediaDecoder.interrupt();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -72,7 +89,7 @@ public class VideoClient {
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
             while (!Thread.currentThread().isInterrupted()) {
-                recv(inputStream, headerBuffer, headerBuffer.length);
+                Utils.recvBuffer(inputStream, headerBuffer, headerBuffer.length);
 
                 ByteBuffer header = ByteBuffer.wrap(headerBuffer, 0, headerBuffer.length);
                 bufferInfo.flags = header.getInt();
@@ -85,21 +102,19 @@ public class VideoClient {
                     codecBuffer = new byte[bufferInfo.size];
                 }
 
-                recv(inputStream, codecBuffer, bufferInfo.size);
+                Utils.recvBuffer(inputStream, codecBuffer, bufferInfo.size);
 
                 if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                     Log.i(TAG, "BUFFER_FLAG_CODEC_CONFIG");
 
-                    recv(inputStream, headerBuffer, 8);
+                    Utils.recvBuffer(inputStream, headerBuffer, 8);
 
                     ByteBuffer sizeBuffer = ByteBuffer.wrap(headerBuffer, 0, 8);
                     int width = sizeBuffer.getInt();
                     int height = sizeBuffer.getInt();
                     Log.i(TAG, "sizeBuffer width:" + width + " height:" + height);
 
-                    if (mMediaDecoder != null) {
-                        mMediaDecoder.stop();
-                    }
+                    mMediaDecoder.interrupt();
 
                     ByteBuffer csd0 = ByteBuffer.wrap(codecBuffer, 0, bufferInfo.size);
                     mMediaDecoder.configure(width, height, csd0, mSurface);
@@ -109,17 +124,6 @@ public class VideoClient {
                     mMediaDecoder.decode(codecBuffer, bufferInfo);
                 }
             }
-        }
-    }
-
-    private static void recv(InputStream inputStream, byte[] buffer, int sum) throws Exception {
-        int read = 0;
-        while (sum - read > 0) {
-            int len = inputStream.read(buffer, read, sum - read);
-            if (len == -1) {
-                throw new RuntimeException("socket closed");
-            }
-            read += len;
         }
     }
 }

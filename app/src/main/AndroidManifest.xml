@@ -21,6 +21,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SecondaryScreenActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:launchMode="standard"
+            android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
+            android:exported="true">
+        </activity>
     </application>
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />

@@ -18,7 +18,7 @@
 
 # 简介
 
-## app -- OverlayWindow APP
+## app -- 副屏APP
 
 模仿Android系统的“模拟辅助显示设备”，可放大缩小悬浮窗，扩展了：锁定悬浮窗（操作内部surface），隐藏（最小化）悬浮窗等功能。发送实时触摸事件给server，接受video编码后的数据，通过MediaCodec将video解码，将video渲染到悬浮窗surface上。
 
@@ -26,11 +26,11 @@
 
 模拟开发项目，主屏幕上显示“主屏”字样，副屏幕上显示“副屏”字样，还提供了触摸拖动文字功能。
 
-## server -- OverlayWindow APP‘s server
+## server -- 副屏APP‘s server
 
-通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。接收实时触摸事件，修改displayId后完成事件注入以响应OverlayWindow APP中触发的触摸事件，通过MediaCodec将video编码，推送给OverlayWindow APP，以完成video渲染。
+通过反射方式创建一个virtualdisplay，此virtualdisplay的surface是一个ImageReader创建的surface，因此主屏上无任何副屏相关的渲染内容。接收实时触摸事件，修改displayId后完成事件注入以响应副屏APP中触发的触摸事件，通过MediaCodec将video编码，推送给副屏APP，以完成video渲染。
 
-目前server已集成到OverlayWindow APP，server也可以独立运行，具体方式参考[jar包操作步骤](doc/jar包操作步骤.md)
+目前server已集成到副屏APP，server也可以独立运行，具体方式参考[jar包操作步骤](doc/jar包操作步骤.md)
 
 # 注意事项
 
@@ -46,16 +46,24 @@ Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位�
 
 # 操作
 
-## 电脑充当副屏
+## 电脑模拟副屏
 
-1. 手动加载server-jar包或OverlayWindow APP连接/配对ADB调试启动server
+1. 手动加载server-jar包或副屏APP连接/配对ADB调试启动server
 2. scrcpy --display-id=?
 
-## Android设备悬浮窗充当副屏
+## 单Android设备悬浮窗模拟副屏
 
-1. OverlayWindow APP连接/配对ADB调试启动server
+1. 副屏APP连接/配对ADB调试启动server
 
 ![](doc/img/OverlayWindow图示.png)
+
+## 另一台Android设备模拟副屏
+
+1. 主设备上副屏APP连接/配对ADB调试启动server
+
+2. 另一台设备上副屏APP连接主设备
+
+![](doc/img/双设备联动图示.png.png)
 
 # 感谢
 

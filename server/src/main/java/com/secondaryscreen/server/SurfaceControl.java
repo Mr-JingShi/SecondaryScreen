@@ -80,18 +80,7 @@ public final class SurfaceControl {
        return (IBinder) CLASS.getMethod("createDisplay", String.class, boolean.class).invoke(null, name, secure);
     }
 
-    public static int createVirtualDisplay(DisplayInfo displayInfo) throws Exception {
-        Size size = displayInfo.getSize();
-        int width = size.getWidth();
-        int height = size.getHeight();
-        int rotation = displayInfo.getRotation();
-        int densityDpi = displayInfo.getDensityDpi();
-        if (rotation % 2 == 1) {
-            int temp = width;
-            width = height;
-            height = temp;
-        }
-
+    public static int createVirtualDisplay(int width, int height, int densityDpi) throws Exception {
         // 通过反射创建virtualdisplay的灵感来源自Android源码
         // https://cs.android.com/android/platform/superproject/+/android-14.0.0_r1:frameworks/base/core/java/android/hardware/display/DisplayManager.java;drc=b3691fab2356133dfc7e11c213732ffef9a85315;l=1567
         IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
@@ -212,7 +201,7 @@ public final class SurfaceControl {
         if (SELF_VIRTUALDISPLAY_TOKEN != null) {
             IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
             Method[] dmMethods = dm.getClass().getDeclaredMethods();
-            Method resize = findMethodAndMakeAccessible(dmMethods,"resizeVirtualDisplay");
+            Method resize = findMethodAndMakeAccessible(dmMethods, "resizeVirtualDisplay");
             resize.invoke(
                     /* this */ dm,
                     /* callback */ SELF_VIRTUALDISPLAY_TOKEN,
@@ -222,18 +211,6 @@ public final class SurfaceControl {
 
             Method setSurface = findMethodAndMakeAccessible(dmMethods, "setVirtualDisplaySurface");
             setSurface.invoke(
-                    /* this */ dm,
-                    /* callback */ SELF_VIRTUALDISPLAY_TOKEN,
-                    /* surface */ getSurface(width, height));
-        }
-    }
-
-    public static void setVirtualDisplaySurface(int width, int height) throws Exception {
-        if (SELF_VIRTUALDISPLAY_TOKEN != null) {
-            IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
-            Method[] dmMethods = dm.getClass().getDeclaredMethods();
-            Method method = findMethodAndMakeAccessible(dmMethods, "setVirtualDisplaySurface");
-            method.invoke(
                     /* this */ dm,
                     /* callback */ SELF_VIRTUALDISPLAY_TOKEN,
                     /* surface */ getSurface(width, height));

@@ -13,7 +13,6 @@ import java.nio.ByteBuffer;
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/SurfaceEncoder.java
 
 public class SurfaceEncoder {
-
     private static final int DEFAULT_I_FRAME_INTERVAL = 10; // seconds
     private static final int REPEAT_FRAME_DELAY_US = 100_000; // repeat after 100ms
     private static final String KEY_MAX_FPS_TO_ENCODER = "max-fps-to-encoder";
@@ -51,7 +50,7 @@ public class SurfaceEncoder {
             do {
                 mFirstFrameSent = false;
                 Size size = mCapture.getSize();
-                System.out.println("size.width:" + size.getWidth() + " size.height:" + size.getHeight());
+                System.out.println("streamScreen size width:" + size.getWidth() + " height:" + size.getHeight());
                 format.setInteger(MediaFormat.KEY_WIDTH, size.getWidth());
                 format.setInteger(MediaFormat.KEY_HEIGHT, size.getHeight());
 

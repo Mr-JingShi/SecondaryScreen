@@ -30,6 +30,7 @@ public final class ScreenInfo {
     private final int mLockedVideoOrientation;
 
     public ScreenInfo(Rect contentRect, Size unlockedVideoSize, int deviceRotation, int lockedVideoOrientation) {
+        System.out.println("deviceRotation:" + deviceRotation);
         this.mContentRect = contentRect;
         this.mUnlockedVideoSize = unlockedVideoSize;
         this.mDeviceRotation = deviceRotation;
@@ -67,6 +68,7 @@ public final class ScreenInfo {
     }
 
     public ScreenInfo withDeviceRotation(int newDeviceRotation) {
+        System.out.println("newDeviceRotation:" + newDeviceRotation + " oldDeviceRotation:" + mDeviceRotation);
         if (newDeviceRotation == mDeviceRotation) {
             return this;
         }

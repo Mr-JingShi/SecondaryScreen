@@ -25,45 +25,43 @@ public class Server {
 
             DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(true);
 
-            int displayId = SurfaceControl.createVirtualDisplay(displayInfo);
+            Size size = displayInfo.getSize();
+            int width = size.getWidth();
+            int height = size.getHeight();
+            int rotation = displayInfo.getRotation();
+            int densityDpi = displayInfo.getDensityDpi();
+            if (rotation % 2 == 1) {
+                int temp = width;
+                width = height;
+                height = temp;
+            }
+
+            int displayId = SurfaceControl.createVirtualDisplay(width, height, densityDpi);
 
             System.out.println("displayId:" + displayId);
 
             DisplayInfo.setMirrorDisplayId(displayId);
 
-            WindowManager windowManager = ServiceManager.getWindowManager();
-            windowManager.freezeRotation(displayId, displayInfo.getRotation());
-
-            windowManager.registerRotationWatcher(new IRotationWatcher.Stub() {
-                @Override
-                public void onRotationChanged(int rotation) {
-                System.out.println("onRotationChanged rotation:" + rotation);
-
-                if (!windowManager.isRotationFrozen(displayId)) {
-                    windowManager.thawRotation(displayId);
-                }
-
-                windowManager.freezeRotation(displayId, rotation);
-
-                ServiceManager.getDisplayManager().getDisplayInfo(true);
-                windowManager.onRotationChanged(rotation);
-                }
-            }, 0);
+            ServiceManager.getWindowManager().freezeRotation(displayId, rotation);
 
             ActivityDetector activityDetector =  null;
             if (firstActivity != null && secondActivity != null) {
-                activityDetector = new ActivityDetector(firstActivity, secondActivity, displayId);
+                activityDetector = new ActivityDetector(firstActivity, secondActivity);
                 activityDetector.start();
             }
 
-            ControlConnection controlConnection = new ControlConnection(displayId);
+            DisplayConnection displayConnection = new DisplayConnection(width, height, rotation, densityDpi);
+            displayConnection.start();
+
+            ControlConnection controlConnection = new ControlConnection();
             controlConnection.start();
 
             VideoConnection videoConnection = new VideoConnection();
             videoConnection.start();
 
-            controlConnection.join();
             videoConnection.join();
+            controlConnection.join();
+            displayConnection.join();
             if (activityDetector != null) {
                 activityDetector.join();
             }

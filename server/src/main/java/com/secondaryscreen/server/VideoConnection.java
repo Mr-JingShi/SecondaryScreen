@@ -10,6 +10,7 @@ import java.net.Socket;
 public final class VideoConnection {
     private static int PORT = 8403;
     private Thread mThread;
+    private Socket mSocket;
     public VideoConnection() {}
 
     public void start() {
@@ -36,22 +37,25 @@ public final class VideoConnection {
                 try (ServerSocket serverSocket = new ServerSocket()) {
                     serverSocket.setReuseAddress(true);
                     serverSocket.bind(new InetSocketAddress(PORT));
-                    System.out.println("port:" + PORT);
 
                     while (true) {
                         Socket socket = serverSocket.accept();
                         System.out.println("VideoServerThread accept");
 
-                        if (mThread != null) {
-                            try {
+                        try {
+                            if (mSocket != null && !mSocket.isClosed()) {
+                                mSocket.close();
+                            }
+                            if (mThread != null && !mThread.isInterrupted()) {
                                 mThread.interrupt();
                                 mThread.join();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
                             }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
 
-                        mThread = new VideoSocketThread(socket);
+                        mSocket = socket;
+                        mThread = new VideoSocketThread();
                         mThread.start();
                     }
                 }
@@ -62,11 +66,9 @@ public final class VideoConnection {
     }
 
     private class VideoSocketThread extends Thread {
-        private Socket mSocket;
-        public VideoSocketThread(Socket socket) {
+        public VideoSocketThread() {
             super("VideoSocketThread");
             System.out.println("VideoSocketThread");
-            this.mSocket = socket;
         }
 
         @Override
@@ -81,6 +83,7 @@ public final class VideoConnection {
                 SurfaceEncoder surfaceEncoder = new SurfaceEncoder(screenCapture, videoStreamer, 8000000, 0, true);
                 surfaceEncoder.streamScreen();
             } catch (Exception e) {
+                e.printStackTrace();
                 System.out.println("video encoding exception:" + e);
             } finally {
                 try {

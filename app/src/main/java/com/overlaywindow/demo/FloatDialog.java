@@ -61,8 +61,8 @@ final class FloatDialog {
             mPortNumberEditText.setText(port);
         }
 
-        mFloatWindow.getAdbShell().getPairingPort(() -> {
-            mPortNumberEditText.setText(String.valueOf(mFloatWindow.getAdbShell().getPort()));
+        AdbShell.getInstance().getPairingPort(() -> {
+            mPortNumberEditText.setText(String.valueOf(AdbShell.getInstance().getPort()));
         });
     }
     private void hide() {
@@ -89,8 +89,8 @@ final class FloatDialog {
                             mStatusTextView.setText(R.string.adb_connecting);
 
                             int port = Integer.parseInt(portNumberString.toString());
-                            mFloatWindow.getAdbShell().pair(port, pairingCode.toString(), () -> {
-                                if (mFloatWindow.getAdbShell().getConnectStatus()) {
+                            AdbShell.getInstance().pair(port, pairingCode.toString(), () -> {
+                                if (AdbShell.getInstance().getConnectStatus()) {
                                     mStatusTextView.setText(R.string.adb_connect_success);
 
                                     hide();
@@ -106,8 +106,8 @@ final class FloatDialog {
                             mStatusTextView.setText(R.string.adb_connecting);
 
                             int port = Integer.parseInt(portNumberString.toString());
-                            mFloatWindow.getAdbShell().connect(port, () -> {
-                                if (mFloatWindow.getAdbShell().getConnectStatus()) {
+                            AdbShell.getInstance().connect(port, () -> {
+                                if (AdbShell.getInstance().getConnectStatus()) {
                                     mStatusTextView.setText(R.string.adb_connect_success);
 
                                     hide();

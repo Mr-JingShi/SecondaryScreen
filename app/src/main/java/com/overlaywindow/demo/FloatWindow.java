@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
@@ -35,7 +34,6 @@ final class FloatWindow {
     private final boolean DISABLE_MOVE_AND_RESIZE = false;
     private final boolean ADD_FLAG_SECURE = false;
     private final boolean USE_SURFACE_EVENT = false;
-    private int mDisplayId = -1;
     private int mWidth;
     private int mHeight;
     private int mDensityDpi;
@@ -61,12 +59,12 @@ final class FloatWindow {
     private float mLiveScale = 1.0f;
     private float mRealScale;
     private FloatIcon mFloatIcon;
-    private AdbShell mAdbShell;
     private FloatDialog mFloatDialog;
     private boolean mIsLocked = false;
     private boolean mIsFocused = false;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
+    private DisplayClient mDisplayClient;
     private int mRotation;
 
     public FloatWindow() {
@@ -80,7 +78,7 @@ final class FloatWindow {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(displayMetrics);
         mRotation = defaultDisplay.getRotation();
-        Log.d(TAG, "rotation:" + mRotation + " displayMetrics.widthPixels:" + displayMetrics.widthPixels + " displayMetrics.heightPixels:" + displayMetrics.heightPixels);
+        Log.d(TAG, "rotation:" + mRotation + " displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
 
         resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
 
@@ -88,13 +86,16 @@ final class FloatWindow {
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
-        mAdbShell = new AdbShell();
-
         mFloatDialog = new FloatDialog(this);
-    }
 
-    AdbShell getAdbShell() {
-        return mAdbShell;
+        mVideoClient = new VideoClient();
+
+        mDisplayClient = new DisplayClient();
+        if (mRotation % 2 == 1) {
+            mDisplayClient.setScreenInfo(0, displayMetrics.heightPixels, displayMetrics.widthPixels, mRotation, displayMetrics.densityDpi);
+        } else {
+            mDisplayClient.setScreenInfo(0, displayMetrics.widthPixels, displayMetrics.heightPixels, mRotation, displayMetrics.densityDpi);
+        }
     }
 
     public void show() {
@@ -113,6 +114,8 @@ final class FloatWindow {
             mDisplayManager.unregisterDisplayListener(mDisplayListener);
             mWindowManager.removeView(mWindowContent);
             mWindowVisible = false;
+
+            System.exit(0);
         }
     }
 
@@ -179,8 +182,7 @@ final class FloatWindow {
 
         mRemarkTextView = mWindowContent.findViewById(R.id.overlay_display_window_remark);
 
-        if (secondaryVirtualDisplayReady()) {
-            Log.i(TAG, "secondaryVirtualDisplayReady");
+        if (Utils.checkVirtualDisplayReady()) {
             mTcpipImageView.setVisibility(View.GONE);
             mPairImageView.setVisibility(View.GONE);
             mRemarkTextView.setVisibility(View.GONE);
@@ -197,6 +199,13 @@ final class FloatWindow {
                 Log.i(TAG, "adbWifiEnabled: " + adbWifiEnabled);
             }
             sb.append(DemoApplication.getApp().getString(R.string.adb_tcpip_remark));
+
+            if (!Utils.isSingleMachineMode()) {
+                String ip = Utils.getHostAddress();
+                TextView textView = mWindowContent.findViewById(R.id.overlay_display_window_title);
+                textView.append("--");
+                textView.append(ip);
+            }
 
             String remark = sb.toString();
             Log.i(TAG, "remark: " + remark);
@@ -281,32 +290,35 @@ final class FloatWindow {
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mIsLocked = !mIsLocked;
-                    if (mIsLocked) {
-                        if (mControlClient == null) {
-                            mControlClient = new ControlClient();
-                        }
+                    if (Utils.getVirtualDisplayId() >= 1) {
+                        mIsLocked = !mIsLocked;
+                        if (mIsLocked) {
+                            if (mControlClient == null) {
+                                mControlClient = new ControlClient();
+                                mControlClient.start();
+                            }
 
-                        mLockImageView.setImageResource(R.drawable.go_lock);
+                            mLockImageView.setImageResource(R.drawable.go_lock);
 
-                        focusImageViewShow(true);
+                            focusImageViewShow(true);
 
-                        if (USE_SURFACE_EVENT) {
-                            mTextureView.setOnTouchListener((view, event) -> {
-                                    if (mControlClient !=  null) {
-                                        ControlClient.offerEvent(event);
+                            if (USE_SURFACE_EVENT) {
+                                mTextureView.setOnTouchListener((view, event) -> {
+                                    if (mIsLocked && mControlClient.getConnected()) {
+                                        Utils.offerEvent(event);
                                     }
                                     return true;
-                            });
-                        }
-                    } else {
-                        mLockImageView.setImageResource(R.drawable.go_unlock);
+                                });
+                            }
+                        } else {
+                            mLockImageView.setImageResource(R.drawable.go_unlock);
 
-                        mIsFocused = false;
-                        focusImageViewShow(false);
+                            mIsFocused = false;
+                            focusImageViewShow(false);
 
-                        if (USE_SURFACE_EVENT) {
-                            mTextureView.setOnTouchListener(null);
+                            if (USE_SURFACE_EVENT) {
+                                mTextureView.setOnTouchListener(null);
+                            }
                         }
                     }
                 }
@@ -322,19 +334,19 @@ final class FloatWindow {
                 public void onDisplayChanged(int displayId) {
                     Log.i(TAG, "onDisplayChanged:" + displayId);
                     if (displayId == 0) {
-                        int rotation = getRotation();
+                        int rotation = Utils.getRotation();
                         if (mRotation != rotation) {
                             mRotation = rotation;
                             onRotationChanged();
                         }
-                    } else if (displayId == mDisplayId) {
+                    } else if (displayId == Utils.getVirtualDisplayId()) {
                         relayout();
                     }
                 }
 
                 @Override
                 public void onDisplayRemoved(int displayId) {
-                    if (displayId == mDisplayId) {
+                    if (displayId == Utils.getVirtualDisplayId()) {
                         dismiss();
                     }
                 }
@@ -342,14 +354,16 @@ final class FloatWindow {
 
     private final SurfaceTextureListener mSurfaceTextureListener =
             new SurfaceTextureListener() {
-                private VirtualDisplay mVirtualDisplay = null;
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
                     if (View.VISIBLE == mLockImageView.getVisibility()) {
-                        mVideoClient = new VideoClient();
-                        mVideoClient.start(new Surface(surfaceTexture));
+                        mDisplayClient.start();
+                        Utils.runOnOtherThread(() -> {
+                            Utils.sleep(1000);
+                            mVideoClient.start(new Surface(surfaceTexture));
+                        });
                     } else {
                         mSurfaceTexture = surfaceTexture;
                     }
@@ -374,12 +388,10 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            if (!USE_SURFACE_EVENT && mIsLocked) {
-                if (mControlClient != null) {
-                    event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
+            if (!USE_SURFACE_EVENT && mIsLocked && mControlClient.getConnected()) {
+                event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
 
-                    ControlClient.offerEvent(event);
-                }
+                Utils.offerEvent(event);
                 return true;
             }
 
@@ -425,48 +437,32 @@ final class FloatWindow {
                 }
             };
 
-    private boolean secondaryVirtualDisplayReady() {
-        Display[] displays = mDisplayManager.getDisplays();
-        if (displays.length > 1) {
-            for (Display display : displays) {
-                if (display.getName().contains("virtualdisplay")) {
-
-                    mDisplayId = display.getDisplayId();
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     public void serverReady() {
-        Log.i(TAG, "serverReady");
-        try {
-            boolean ready = false;
-            for (int i = 0; i < 3; i++) {
-                ready = secondaryVirtualDisplayReady();
-                if (ready || i == 2) {
-                    break;
-                }
-                Log.i(TAG, "serverReady wait 1s");
-                Thread.sleep(1000);
-            }
+        if (Utils.waitVirtualDisplayReady(3)) {
+            AdbShell.getInstance().disconnect();
 
-            if (ready) {
-                mAdbShell.disconnect();
-
-                if (mVideoClient == null && mSurfaceTexture != null) {
+            if (Utils.isSingleMachineMode()) {
+                if (mSurfaceTexture != null) {
                     mLockImageView.setVisibility(View.VISIBLE);
                     mPairImageView.setVisibility(View.GONE);
                     mTcpipImageView.setVisibility(View.GONE);
                     mRemarkTextView.setVisibility(View.GONE);
 
-                    mVideoClient = new VideoClient();
-                    mVideoClient.start(new Surface(mSurfaceTexture));
+                    mDisplayClient.start();
+                    Utils.runOnOtherThread(() -> {
+                        Utils.sleep(1000);
+                        mVideoClient.start(new Surface(mSurfaceTexture));
+                    });
                 }
+            } else {
+                mRemarkTextView.setText("主设备已准备就绪，即将关闭悬浮窗。");
+                Utils.runOnOtherThread(() -> {
+                    Utils.sleep(2000);
+                    Utils.runOnUiThread(() -> {
+                        dismiss();
+                    });
+                });
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -486,12 +482,6 @@ final class FloatWindow {
     public void focusImageViewShow(boolean show) {
         mFocusImageView.setVisibility(show ? View.VISIBLE : View.GONE);
         focusImageViewChange(false);
-    }
-
-    public int getRotation() {
-        int rotation = mWindowManager.getDefaultDisplay().getRotation();
-        Log.i(TAG, "rotation:" + rotation);
-        return rotation;
     }
 
     private void onRotationChanged() {

@@ -37,15 +37,17 @@ public class MediaDecoder {
         mThread.start();
     }
 
-    public void stop() {
-        if (mThread != null) {
-            try {
+    public void interrupt() {
+        try {
+            if (mThread != null
+                && mThread.isAlive()
+                && !mThread.isInterrupted()) {
                 mThread.interrupt();
                 mThread.join();
                 mThread = null;
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -97,10 +99,16 @@ public class MediaDecoder {
                         }
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             } finally {
-                mMediaCodec.stop();
-                mMediaCodec.release();
-                mMediaCodec = null;
+                try {
+                    mMediaCodec.stop();
+                    mMediaCodec.release();
+                    mMediaCodec = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

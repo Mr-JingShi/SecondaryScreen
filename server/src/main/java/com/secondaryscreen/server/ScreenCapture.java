@@ -17,23 +17,16 @@ public class ScreenCapture implements WindowManager.RotationListener {
     private ScreenInfo mScreenInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
-    private static int mMaxSize = -1;
 
     public ScreenCapture() {}
 
     public void init() {
         ServiceManager.getWindowManager().setRotationListener(this);
 
-        computeScreenInfo();
-    }
-
-    private void computeScreenInfo() {
         DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
-        if (mMaxSize == -1) {
-            mMaxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
-        }
+        int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
 
-        mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, mMaxSize, -1);
+        mScreenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), displayInfo.getSize(), null, maxSize, -1);
     }
 
     @Override
@@ -117,7 +110,7 @@ public class ScreenCapture implements WindowManager.RotationListener {
 
     public boolean setMaxSize(int maxSize) {
         DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
-        mScreenInfo = ScreenInfo.computeScreenInfo(mScreenInfo.getReverseVideoRotation(), displayInfo.getSize(), null, maxSize, -1);
+        mScreenInfo = ScreenInfo.computeScreenInfo(mScreenInfo.getDeviceRotation(), displayInfo.getSize(), null, maxSize, -1);
         return true;
     }
 

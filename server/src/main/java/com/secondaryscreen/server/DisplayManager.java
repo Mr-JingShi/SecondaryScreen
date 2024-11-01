@@ -37,6 +37,11 @@ public final class DisplayManager {
         return mDisplayInfo;
     }
 
+    public void forceDisplayInfo(int width, int height, int rotation, int densityDpi) {
+        System.out.println("forceDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+        mDisplayInfo = new DisplayInfo(new Size(width, height), rotation, densityDpi);;
+    }
+
     private DisplayInfo getDisplayInfo() {
         try {
             Object displayInfo = mManager.getClass().getMethod("getDisplayInfo", int.class).invoke(mManager, 0);
@@ -47,7 +52,7 @@ public final class DisplayManager {
             int rotation = cls.getDeclaredField("rotation").getInt(displayInfo);
             int densityDpi = cls.getDeclaredField("logicalDensityDpi").getInt(displayInfo);
 
-            System.out.println("width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+            System.out.println("getDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
             return new DisplayInfo(new Size(width, height), rotation, densityDpi);
         } catch (ReflectiveOperationException e) {

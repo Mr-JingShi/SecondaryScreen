@@ -26,6 +26,8 @@ public class DemoApplication extends Application {
 
         Log.i(TAG, "attachBaseContext");
         mApp = this;
+
+        Utils.setContext(this);
     }
 
     public static DemoApplication getApp() {
