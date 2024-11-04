@@ -6,7 +6,6 @@ import android.util.Log;
 
 public class DemoApplication extends Application {
     private static String TAG = "DemoApplication";
-    private static DemoApplication mApp;
     public DemoApplication() {
         super();
 
@@ -25,12 +24,7 @@ public class DemoApplication extends Application {
         super.attachBaseContext(base);
 
         Log.i(TAG, "attachBaseContext");
-        mApp = this;
 
         Utils.setContext(this);
-    }
-
-    public static DemoApplication getApp() {
-        return mApp;
     }
 }

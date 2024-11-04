@@ -170,7 +170,7 @@ public class Utils {
     static void startJar() {
         StringBuilder sb = new StringBuilder();
 
-        String jarPath = DemoApplication.getApp().getPackageCodePath();
+        String jarPath = mContext.getPackageCodePath();
         Log.i(TAG, "jarPath:" + jarPath);
 
         sb.append("CLASSPATH=");
@@ -180,9 +180,9 @@ public class Utils {
 
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
             sb.append(" ");
-            sb.append(DemoApplication.getApp().getString(R.string.first_activity));
+            sb.append(Utils.getContext().getString(R.string.first_activity));
             sb.append(" ");
-            sb.append(DemoApplication.getApp().getString(R.string.seoncd_activity));
+            sb.append(Utils.getContext().getString(R.string.seoncd_activity));
         }
         sb.append(" ");
         sb.append(">/dev/null 2>&1 &");

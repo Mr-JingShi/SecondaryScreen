@@ -68,9 +68,9 @@ final class FloatWindow {
     private int mRotation;
 
     public FloatWindow() {
-        mDisplayManager = (DisplayManager)DemoApplication.getApp().getSystemService(
+        mDisplayManager = (DisplayManager)Utils.getContext().getSystemService(
                 Context.DISPLAY_SERVICE);
-        mWindowManager = (WindowManager)DemoApplication.getApp().getSystemService(
+        mWindowManager = (WindowManager)Utils.getContext().getSystemService(
                 Context.WINDOW_SERVICE);
 
         Display defaultDisplay = mWindowManager.getDefaultDisplay();
@@ -141,7 +141,7 @@ final class FloatWindow {
     }
 
     private void createWindow() {
-        LayoutInflater inflater = LayoutInflater.from(DemoApplication.getApp());
+        LayoutInflater inflater = LayoutInflater.from(Utils.getContext());
 
         mWindowContent = inflater.inflate(R.layout.overlay_display_window, null);
         mWindowContent.setOnTouchListener(mOnTouchListener);
@@ -157,7 +157,7 @@ final class FloatWindow {
             Log.i(TAG, "mPairListener");
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            DemoApplication.getApp().startActivity(intent);
+            Utils.getContext().startActivity(intent);
 
             mFloatDialog.show(true);
             focusImageViewShow(true);
@@ -189,16 +189,16 @@ final class FloatWindow {
             mLockImageView.setVisibility(View.VISIBLE);
         } else {
             StringBuilder sb = new StringBuilder();
-            sb.append(DemoApplication.getApp().getString(R.string.jar_not_started));
+            sb.append(Utils.getContext().getString(R.string.jar_not_started));
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
                 mPairImageView.setVisibility(View.GONE);
             } else {
-                sb.append(DemoApplication.getApp().getString(R.string.adb_pair_remark));
+                sb.append(Utils.getContext().getString(R.string.adb_pair_remark));
 
-                int adbWifiEnabled = Settings.Global.getInt(DemoApplication.getApp().getContentResolver(), "adb_wifi_enabled", 0);
+                int adbWifiEnabled = Settings.Global.getInt(Utils.getContext().getContentResolver(), "adb_wifi_enabled", 0);
                 Log.i(TAG, "adbWifiEnabled: " + adbWifiEnabled);
             }
-            sb.append(DemoApplication.getApp().getString(R.string.adb_tcpip_remark));
+            sb.append(Utils.getContext().getString(R.string.adb_tcpip_remark));
 
             if (!Utils.isSingleMachineMode()) {
                 String ip = Utils.getHostAddress();
@@ -238,8 +238,8 @@ final class FloatWindow {
         mWindowParams.alpha = WINDOW_ALPHA;
         mWindowParams.gravity = Gravity.TOP | Gravity.LEFT;
 
-        mGestureDetector = new GestureDetector(DemoApplication.getApp(), mOnGestureListener);
-        mScaleGestureDetector = new ScaleGestureDetector(DemoApplication.getApp(), mOnScaleGestureListener);
+        mGestureDetector = new GestureDetector(Utils.getContext(), mOnGestureListener);
+        mScaleGestureDetector = new ScaleGestureDetector(Utils.getContext(), mOnScaleGestureListener);
 
         mWindowX = 0;
         mWindowY = 0;

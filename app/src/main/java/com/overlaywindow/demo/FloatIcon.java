@@ -21,7 +21,7 @@ final class FloatIcon {
     public FloatIcon(View windowContent) {
         mWindowContent = windowContent;
 
-        mShowImageView = new ImageView(DemoApplication.getApp());
+        mShowImageView = new ImageView(Utils.getContext());
         mShowImageView.setImageResource(R.drawable.go_left);
         mShowImageView.setOnClickListener(mShowListener);
         mShowImageView.setVisibility(View.GONE);
@@ -42,7 +42,7 @@ final class FloatIcon {
         windowParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
         windowParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
 
-        WindowManager windowManager = (WindowManager)DemoApplication.getApp().getSystemService(Context.WINDOW_SERVICE);
+        WindowManager windowManager = (WindowManager)Utils.getContext().getSystemService(Context.WINDOW_SERVICE);
         windowManager.addView(mShowImageView, windowParams);
     }
 
