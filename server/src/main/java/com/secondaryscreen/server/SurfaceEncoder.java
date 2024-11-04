@@ -140,8 +140,11 @@ public class SurfaceEncoder {
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
         while (!mCapture.consumeReset() && !eof) {
-            int outputBufferId = codec.dequeueOutputBuffer(bufferInfo, -1);
+            int outputBufferId = codec.dequeueOutputBuffer(bufferInfo, 10000L);
             try {
+                if (Thread.currentThread().isInterrupted()) {
+                    return false;
+                }
                 if (mCapture.consumeReset()) {
                     // must restart encoding with new size
                     break;

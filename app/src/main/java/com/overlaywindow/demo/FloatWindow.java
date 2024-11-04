@@ -305,7 +305,7 @@ final class FloatWindow {
                             if (USE_SURFACE_EVENT) {
                                 mTextureView.setOnTouchListener((view, event) -> {
                                     if (mIsLocked && mControlClient.getConnected()) {
-                                        Utils.offerEvent(event);
+                                        Utils.offerMotionEvent(event);
                                     }
                                     return true;
                                 });
@@ -391,7 +391,7 @@ final class FloatWindow {
             if (!USE_SURFACE_EVENT && mIsLocked && mControlClient.getConnected()) {
                 event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
 
-                Utils.offerEvent(event);
+                Utils.offerMotionEvent(event);
                 return true;
             }
 

@@ -16,11 +16,10 @@ public final class ControlConnection {
     private Thread mThread;
     private Socket mSocket;
     public ControlConnection() {
-
+        mThread = new ControlServerThread();
     }
 
     public void start() {
-        mThread = new ControlServerThread();
         mThread.start();
     }
 
@@ -39,31 +38,29 @@ public final class ControlConnection {
 
         @Override
         public void run() {
-            try {
-                try (ServerSocket serverSocket = new ServerSocket()) {
-                    serverSocket.setReuseAddress(true);
-                    serverSocket.bind(new InetSocketAddress(PORT));
+            try (ServerSocket serverSocket = new ServerSocket()) {
+                serverSocket.setReuseAddress(true);
+                serverSocket.bind(new InetSocketAddress(PORT));
 
-                    while (true) {
-                        Socket socket = serverSocket.accept();
-                        System.out.println("ControlServerThread accept");
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    System.out.println("ControlServerThread accept");
 
-                        try {
-                            if (mSocket != null && !mSocket.isClosed()) {
-                                mSocket.close();
-                            }
-                            if (mThread != null && !mThread.isInterrupted()) {
-                                mThread.interrupt();
-                                mThread.join();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    try {
+                        if (mSocket != null && !mSocket.isClosed()) {
+                            mSocket.close();
                         }
-
-                        mSocket = socket;
-                        mThread = new ControlSocketThread(socket);
-                        mThread.start();
+                        if (mThread != null && !mThread.isInterrupted()) {
+                            mThread.interrupt();
+                            mThread.join();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+
+                    mSocket = socket;
+                    mThread = new ControlSocketThread(socket);
+                    mThread.start();
                 }
             } catch (IOException e) {
                 System.out.println("VideoServerThread IOException:" + e);

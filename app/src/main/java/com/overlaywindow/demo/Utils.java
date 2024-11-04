@@ -35,7 +35,8 @@ public class Utils {
     private static int mVirtualDisplayId = -1;
     private static ExecutorService mExecutor  = Executors.newSingleThreadExecutor();
     private static final Handler mHandler = new Handler(Looper.getMainLooper());
-    private static final BlockingQueue<byte[]> mMotionBytesQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<byte[]> mMotioneventBytesQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<byte[]> mDisplayInfoBytesQueue = new LinkedBlockingQueue<>();
 
     static void setContext(Context context) {
         mContext = context;
@@ -210,7 +211,7 @@ public class Utils {
         return targets;
     }
 
-     static void offerEvent(MotionEvent event) {
+     static void offerMotionEvent(MotionEvent event) {
         byte[] bytes = null;
         if (mIsSingleMachineMode) {
             Parcel parcel = Parcel.obtain();
@@ -237,19 +238,28 @@ public class Utils {
         }
 
         if (bytes != null) {
-            offerBytes(bytes);
+            offerMotionEventBytes(bytes);
         }
     }
 
-    static void offerBytes(byte[] bytes) {
-        if (!mMotionBytesQueue.offer(bytes)) {
-            Log.d(TAG, "offer error");
+    static void offerMotionEventBytes(byte[] bytes) {
+        if (!mMotioneventBytesQueue.offer(bytes)) {
+            Log.w(TAG, "offerMotionEventBytes error");
         }
     }
 
-    static byte[] takeBytes() throws InterruptedException {
-        Log.d(TAG, "takeBytes");
-        return mMotionBytesQueue.take();
+    static byte[] takeMotionEventBytes() throws InterruptedException {
+        return mMotioneventBytesQueue.take();
+    }
+
+    static void offerDislayInfoBytes(byte[] bytes) {
+        if (!mDisplayInfoBytesQueue.offer(bytes)) {
+            Log.w(TAG, "offerDislayInfoBytes error");
+        }
+    }
+
+    static byte[] takeDislayInfoBytes() throws InterruptedException {
+        return mDisplayInfoBytesQueue.take();
     }
 
     static boolean waitVirtualDisplayReady(int count) {

@@ -4,7 +4,8 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF">
 
-    <TextureView android:id="@+id/overlay_display_window_texture"
+    <TextureView
+        android:id="@+id/overlay_display_window_texture"
         android:layout_width="0px"
         android:layout_height="0px" />
 
@@ -75,7 +76,8 @@
             android:src="@drawable/focus_weak" />
     </LinearLayout>
 
-    <TextView android:id="@+id/overlay_display_window_title"
+    <TextView
+        android:id="@+id/overlay_display_window_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"
@@ -83,7 +85,8 @@
         android:layout_gravity="center|top"
         android:text="@string/overlay_window_title" />
 
-    <TextView android:id="@+id/overlay_display_window_remark"
+    <TextView
+        android:id="@+id/overlay_display_window_remark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"

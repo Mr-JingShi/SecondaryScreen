@@ -12,6 +12,7 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -20,7 +21,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
     private TextureView mTextureView;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
-    private DisplayClient mVirtualDisplayClient;
+    private DisplayClient mDisplayClient;
     private int mRotation;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
         mVideoClient = new VideoClient();
         mControlClient = new ControlClient();
-        mVirtualDisplayClient = new DisplayClient();
+        mDisplayClient = new DisplayClient();
 
         Intent intent = getIntent();
         if (intent != null) {
@@ -51,7 +52,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
             if (remoteHost != null && !remoteHost.isEmpty()) {
                 mVideoClient.setRemoteHost(remoteHost);
                 mControlClient.setRemoteHost(remoteHost);
-                mVirtualDisplayClient.setRemoteHost(remoteHost);
+                mDisplayClient.setRemoteHost(remoteHost);
             } else {
                 throw new RuntimeException("remoteHost error");
             }
@@ -67,7 +68,8 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(displayMetrics);
 
-        int rotation = defaultDisplay.getRotation();
+        TextView textView = findViewById(R.id.secondaryscreen_title);
+        textView.bringToFront();
 
         mTextureView = findViewById(R.id.secondaryscreen_texture);
         mTextureView.setPivotX(0);
@@ -78,11 +80,22 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         Log.i(TAG, "displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
 
-        if (rotation % 2 == 1) {
-            mVirtualDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
+        if (mRotation % 2 == 1) {
+            mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, mRotation, displayMetrics.densityDpi);
         } else {
-            mVirtualDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
+            mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, mRotation, displayMetrics.densityDpi);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.i(TAG, "onDestroy");
+        super.onDestroy();
+        mDisplayClient.shutdown();
+        mVideoClient.shutdown();
+        mControlClient.shutdown();
+        DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
+        dm.unregisterDisplayListener(mDisplayListener);
     }
 
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener =
@@ -90,7 +103,8 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
-                    mVirtualDisplayClient.start();
+
+                    mDisplayClient.start();
 
                     Utils.runOnOtherThread(() -> {
                         Utils.sleep(1000);
@@ -102,7 +116,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             if (mControlClient.getConnected()) {
                                 mTextureView.setOnTouchListener((view, event) -> {
-                                    Utils.offerEvent(event);
+                                    Utils.offerMotionEvent(event);
                                     return true;
                                 });
                             } else {
@@ -142,7 +156,6 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
                 @Override
                 public void onDisplayChanged(int displayId) {
-                    Log.i(TAG, "onDisplayChanged:" + displayId);
                     if (displayId == 0) {
                         int rotation = Utils.getRotation();
                         if (mRotation != rotation) {
@@ -155,15 +168,15 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
                             mTextureView.getLayoutParams().width = displayMetrics.widthPixels;
                             mTextureView.getLayoutParams().height = displayMetrics.heightPixels;
+                            mTextureView.requestLayout();
+
                             Log.i(TAG, "displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
 
                             if (rotation % 2 == 1) {
-                                mVirtualDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
+                                mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
                             } else {
-                                mVirtualDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
+                                mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
                             }
-
-                            mVirtualDisplayClient.start();
                         }
                     }
                 }

@@ -75,31 +75,29 @@ public final class DisplayConnection {
 
         @Override
         public void run() {
-            try {
-                try (ServerSocket serverSocket = new ServerSocket()) {
-                    serverSocket.setReuseAddress(true);
-                    serverSocket.bind(new InetSocketAddress(PORT));
+            try (ServerSocket serverSocket = new ServerSocket()) {
+                serverSocket.setReuseAddress(true);
+                serverSocket.bind(new InetSocketAddress(PORT));
 
-                    while (true) {
-                        Socket socket = serverSocket.accept();
-                        System.out.println("DisplayServerThread accept");
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    System.out.println("DisplayServerThread accept");
 
-                        try {
-                            if (mSocket != null && !mSocket.isClosed()) {
-                                mSocket.close();
-                            }
-                            if (mThread != null && !mThread.isInterrupted()) {
-                                mThread.interrupt();
-                                mThread.join();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    try {
+                        if (mSocket != null && !mSocket.isClosed()) {
+                            mSocket.close();
                         }
-
-                        mSocket = socket;
-                        mThread = new DisplaySocketThread();
-                        mThread.start();
+                        if (mThread != null && !mThread.isInterrupted()) {
+                            mThread.interrupt();
+                            mThread.join();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+
+                    mSocket = socket;
+                    mThread = new DisplaySocketThread();
+                    mThread.start();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -121,57 +119,59 @@ public final class DisplayConnection {
                 byte[] lengthBuffer = new byte[4];
                 int len = 0;
                 InputStream inputStream = mSocket.getInputStream();
-                Utils.recv(inputStream, lengthBuffer, lengthBuffer.length);
+                while (!Thread.currentThread().isInterrupted()) {
+                    Utils.recv(inputStream, lengthBuffer, lengthBuffer.length);
 
-                len = Utils.byte4ToInt(lengthBuffer);
-                if (eventBuffer.length < len) {
-                    System.out.println("eventBuffer.length:" + eventBuffer.length + " < len:" + len);
-                    eventBuffer = new byte[len];
-                }
-                Utils.recv(inputStream, eventBuffer, len);
+                    len = Utils.byte4ToInt(lengthBuffer);
+                    if (eventBuffer.length < len) {
+                        System.out.println("eventBuffer.length:" + eventBuffer.length + " < len:" + len);
+                        eventBuffer = new byte[len];
+                    }
+                    Utils.recv(inputStream, eventBuffer, len);
 
-                // 1200,1920,240
-                String buffer = new String(eventBuffer);
-                System.out.println("buffer:" + buffer);
-                String[] split = buffer.split(",");
-                int flag = Integer.parseInt(split[0]);
-                int width = Integer.parseInt(split[1]);
-                int height = Integer.parseInt(split[2]);
-                int rotation = Integer.parseInt(split[3]);
-                int densityDpi = Integer.parseInt(split[4]);
+                    // 1200,1920,240
+                    String buffer = new String(eventBuffer);
+                    System.out.println("buffer:" + buffer);
+                    String[] split = buffer.split(",");
+                    int flag = Integer.parseInt(split[0]);
+                    int width = Integer.parseInt(split[1]);
+                    int height = Integer.parseInt(split[2]);
+                    int rotation = Integer.parseInt(split[3]);
+                    int densityDpi = Integer.parseInt(split[4]);
 
-                // 0:Local 1:Remote
-                Utils.setSingleMachineMode(flag == 0);
+                    // 0:Local 1:Remote
+                    Utils.setSingleMachineMode(flag == 0);
 
-                System.out.println("old width:" + mWidth + " height:" + mHeight + " rotation:" + mRotation + " densityDpi:" + mDensityDpi);
-                System.out.println("new width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+                    System.out.println("old width:" + mWidth + " height:" + mHeight + " rotation:" + mRotation + " densityDpi:" + mDensityDpi);
+                    System.out.println("new width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
-                boolean changed = false;
-                if (mWidth != width || mHeight != height || mDensityDpi != densityDpi) {
-                    mWidth = width;
-                    mHeight = height;
-                    mDensityDpi = densityDpi;
+                    boolean changed = false;
+                    if (mWidth != width || mHeight != height || mDensityDpi != densityDpi) {
+                        mWidth = width;
+                        mHeight = height;
+                        mDensityDpi = densityDpi;
 
-                    resizeVirtualDisplay(width, height, densityDpi);
-                    changed = true;
-                }
-                if (mRotation != rotation) {
-                    mRotation = rotation;
+                        resizeVirtualDisplay(width, height, densityDpi);
+                        changed = true;
+                    }
+                    if (mRotation != rotation) {
+                        mRotation = rotation;
 
-                    changeVirtualDisplayRotation(rotation);
-                    changed = true;
-                }
-                if (changed) {
-                    if (mRotation % 2 == 1) {
-                        ServiceManager.getDisplayManager().forceDisplayInfo(mHeight, mWidth, mRotation, mDensityDpi);
-                    } else {
-                        ServiceManager.getDisplayManager().forceDisplayInfo(mWidth, mHeight, mRotation, mDensityDpi);
+                        changeVirtualDisplayRotation(rotation);
+                        changed = true;
+                    }
+                    if (changed) {
+                        if (mRotation % 2 == 1) {
+                            ServiceManager.getDisplayManager().forceDisplayInfo(mHeight, mWidth, mRotation, mDensityDpi);
+                        } else {
+                            ServiceManager.getDisplayManager().forceDisplayInfo(mWidth, mHeight, mRotation, mDensityDpi);
+                        }
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("DisplaySocketThread exception:" + e);
-            }  finally {
+            } finally {
                 try {
                     if (mSocket != null) {
                         mSocket.close();

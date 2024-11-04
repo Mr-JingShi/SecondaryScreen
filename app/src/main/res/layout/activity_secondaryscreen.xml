@@ -7,16 +7,16 @@
     tools:context=".SecondaryScreenActivity">
 
     <TextView
+        android:id="@+id/secondaryscreen_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center"
-        android:textSize="25dip"
-        android:textStyle="bold"
+        android:textSize="20dp"
         android:textColor="#FFA500"
-        android:text="SecondaryScreen"/>
+        android:layout_gravity="center|top"
+        android:text="@string/overlay_window_title" />
 
     <TextureView android:id="@+id/secondaryscreen_texture"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_width="0px"
+        android:layout_height="0px" />
 
 </FrameLayout>

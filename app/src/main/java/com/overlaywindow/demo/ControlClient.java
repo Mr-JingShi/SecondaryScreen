@@ -63,7 +63,7 @@ public class ControlClient {
                 byte[] length = new byte[4];
                 byte[] bytes = null;
                 while (!Thread.currentThread().isInterrupted()) {
-                    bytes = Utils.takeBytes();
+                    bytes = Utils.takeMotionEventBytes();
                     if (bytes != null) {
                         mSocket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
                         mSocket.getOutputStream().write(bytes);

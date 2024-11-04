@@ -33,31 +33,29 @@ public final class VideoConnection {
 
         @Override
         public void run() {
-            try {
-                try (ServerSocket serverSocket = new ServerSocket()) {
-                    serverSocket.setReuseAddress(true);
-                    serverSocket.bind(new InetSocketAddress(PORT));
+            try (ServerSocket serverSocket = new ServerSocket()) {
+                serverSocket.setReuseAddress(true);
+                serverSocket.bind(new InetSocketAddress(PORT));
 
-                    while (true) {
-                        Socket socket = serverSocket.accept();
-                        System.out.println("VideoServerThread accept");
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    System.out.println("VideoServerThread accept");
 
-                        try {
-                            if (mSocket != null && !mSocket.isClosed()) {
-                                mSocket.close();
-                            }
-                            if (mThread != null && !mThread.isInterrupted()) {
-                                mThread.interrupt();
-                                mThread.join();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    try {
+                        if (mSocket != null && !mSocket.isClosed()) {
+                            mSocket.close();
                         }
-
-                        mSocket = socket;
-                        mThread = new VideoSocketThread();
-                        mThread.start();
+                        if (mThread != null && !mThread.isInterrupted()) {
+                            mThread.interrupt();
+                            mThread.join();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+
+                    mSocket = socket;
+                    mThread = new VideoSocketThread();
+                    mThread.start();
                 }
             } catch (IOException e) {
                 System.out.println("VideoServerThread IOException:" + e);

@@ -2,6 +2,7 @@ package com.overlaywindow.demo;
 
 import android.util.Log;
 
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -11,8 +12,9 @@ public class DisplayClient {
     private int PORT = 8404;
     private int TIMEOUT = 3000;
     private Thread mThread;
-    private String mSendMessage;
-    public DisplayClient() { }
+    public DisplayClient() {
+        mThread = new DisplayClientThread();
+    }
 
     public void setRemoteHost(String remoteHost) {
         this.HOST = remoteHost;
@@ -28,11 +30,11 @@ public class DisplayClient {
         sb.append(rotation);
         sb.append(",");
         sb.append(densityDpi);
-        mSendMessage = sb.toString();
+
+        Utils.offerDislayInfoBytes(sb.toString().getBytes());
     }
 
     public void start() {
-        mThread = new DisplayClientThread();
         mThread.start();
     }
 
@@ -51,31 +53,29 @@ public class DisplayClient {
     }
 
     class DisplayClientThread extends Thread {
-        private Socket mSocket;
         DisplayClientThread() {
             super("DisplayClientThread");
             Log.d(TAG, "DisplayClientThread");
         }
         @Override
         public void run() {
-            try {
-                mSocket = new Socket();
-                mSocket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
-
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
                 Log.d(TAG, "DisplayClientThread connect success");
 
+                OutputStream outputStream = socket.getOutputStream();
                 byte[] length = new byte[4];
-                byte[] bytes = mSendMessage.getBytes();
-                Log.i(TAG, "message:" + mSendMessage);
-
-                mSocket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
-                mSocket.getOutputStream().write(bytes);
-                mSocket.getOutputStream().flush();
-                mSocket.close();
-                mSocket = null;
+                while (!Thread.currentThread().isInterrupted()) {
+                    byte[] bytes = Utils.takeDislayInfoBytes();
+                    if (bytes != null) {
+                        outputStream.write(Utils.intToByte4(bytes.length, length));
+                        outputStream.write(bytes);
+                        outputStream.flush();
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("socket exception:" + e);
+                System.out.println("DisplayClientThread exception:" + e);
             }
         }
     }
