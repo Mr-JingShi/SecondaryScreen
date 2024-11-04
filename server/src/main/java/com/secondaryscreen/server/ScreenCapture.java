@@ -11,17 +11,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenCapture.java
 
-public class ScreenCapture implements WindowManager.RotationListener {
+public class ScreenCapture implements WindowManager.RotationListener, DisplayManager.DisplayListener {
     private final AtomicBoolean mResetCapture = new AtomicBoolean();
     private static String VIRTUALDISPLAY = "virtualdisplay";
     private ScreenInfo mScreenInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
+    private String mDisplayScoket;
 
     public ScreenCapture() {}
 
     public void init() {
         ServiceManager.getWindowManager().setRotationListener(this);
+        ServiceManager.getDisplayManager().setDisplayListener(this);
 
         DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
         int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
@@ -33,6 +35,12 @@ public class ScreenCapture implements WindowManager.RotationListener {
     public void onRotationChanged(int rotation) {
         mScreenInfo = mScreenInfo.withDeviceRotation(rotation);
 
+        requestReset();
+    }
+
+    @Override
+    public void onDisplayChanged(String displayScoket) {
+        mDisplayScoket = displayScoket;
         requestReset();
     }
 
@@ -93,6 +101,7 @@ public class ScreenCapture implements WindowManager.RotationListener {
     }
 
     public void release() {
+        ServiceManager.getDisplayManager().setDisplayListener(null);
         ServiceManager.getWindowManager().setRotationListener(null);
         if (mDisplay != null) {
             SurfaceControl.destroyDisplay(mDisplay);

@@ -11,10 +11,11 @@ public final class VideoConnection {
     private static int PORT = 8403;
     private Thread mThread;
     private Socket mSocket;
-    public VideoConnection() {}
+    public VideoConnection() {
+        mThread = new VideoServerThread();
+    }
 
     public void start() {
-        mThread = new VideoServerThread();
         mThread.start();
     }
 

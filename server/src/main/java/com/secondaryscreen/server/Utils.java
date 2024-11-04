@@ -1,6 +1,8 @@
 package com.secondaryscreen.server;
 
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 public class Utils {
     private static String TAG = "Utils";
@@ -24,6 +26,18 @@ public class Utils {
             }
             read += len;
         }
+    }
+
+    static void recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
+        buffer.clear();
+        buffer.limit(length);
+        while (buffer.position() != length) {
+            int len = socketChannel.read(buffer);
+            if (len == -1) {
+                throw new RuntimeException("socket closed");
+            }
+        }
+        buffer.flip();
     }
 
     static int byte4ToInt(byte[] bytes) {

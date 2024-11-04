@@ -14,6 +14,11 @@ public final class DisplayManager {
     private final Object mManager; // instance of hidden class android.hardware.display.DisplayManagerGlobal
     private Method mCreateVirtualDisplayMethod;
     private DisplayInfo mDisplayInfo;
+    private DisplayListener mDisplayListener;
+
+    public interface DisplayListener {
+        void onDisplayChanged(String displayScoket);
+    }
 
     static DisplayManager create() {
         try {
@@ -71,5 +76,15 @@ public final class DisplayManager {
     public VirtualDisplay createVirtualDisplay(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
         Method method = getCreateVirtualDisplayMethod();
         return (VirtualDisplay) method.invoke(null, name, width, height, displayIdToMirror, surface);
+    }
+
+    public void setDisplayListener(DisplayListener displayListener) {
+        mDisplayListener = displayListener;
+    }
+
+    public void onDisplayChanged(String remoteAddress) {
+        if (mDisplayListener != null) {
+            mDisplayListener.onDisplayChanged(remoteAddress);
+        }
     }
 }
