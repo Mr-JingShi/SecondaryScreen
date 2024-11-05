@@ -482,9 +482,9 @@ final class FloatWindow {
         defaultDisplay.getRealMetrics(displayMetrics);
 
         if (rotation % 2 == 1) {
-            mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
+            mDisplayClient.setScreenInfo(0, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
         } else {
-            mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
+            mDisplayClient.setScreenInfo(0, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
         }
 
         mWidth = displayMetrics.widthPixels;

@@ -14,8 +14,6 @@ public abstract class ServerChannel {
     private Thread mThread;
     private int mPort;
     public ServerChannel(int port) {
-        System.out.println("ServerChannel");
-
         mPort = port;
         mThread = new ServerChannelThread();
     }
@@ -40,10 +38,8 @@ public abstract class ServerChannel {
         }
         @Override
         public void run() {
-            try {
-                Selector selector = Selector.open();
-                ServerSocketChannel serverSocket = ServerSocketChannel.open();
-
+            try (Selector selector = Selector.open();
+                 ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
                 serverSocket.socket().bind(new InetSocketAddress(mPort));
                 serverSocket.socket().setReuseAddress(true);
                 serverSocket.configureBlocking(false);
@@ -77,8 +73,6 @@ public abstract class ServerChannel {
                                 }
                                 currentSocketChannel = socketChannel;
 
-                                System.out.println("accept socketChannel:" + socketChannel);
-
                                 SocketAddress socketAddress = socketChannel.socket().getRemoteSocketAddress();
                                 if (socketAddress instanceof InetSocketAddress) {
                                     InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
@@ -90,8 +84,6 @@ public abstract class ServerChannel {
                                 }
                             } else if (key.isReadable()) {
                                 SocketChannel socketChannel = (SocketChannel) key.channel();
-
-                                System.out.println("readable socketChannel:" + socketChannel);
 
                                 try {
                                     if (needRecvHeader) {
@@ -113,7 +105,7 @@ public abstract class ServerChannel {
                                 } catch (Exception e) {
                                     socketChannel.close();
 
-                                    System.out.println("ServerChannelThread exception:" + e);
+                                    System.out.println("ServerChannelThread recv exception:" + e);
                                     e.printStackTrace();
                                 }
                             }
@@ -131,7 +123,6 @@ public abstract class ServerChannel {
             buffer.limit(length);
             int len = socketChannel.read(buffer);
             buffer.flip();
-            System.out.println("recv len:" + len);
             if (len == -1) {
                 throw new RuntimeException("socket closed");
             }

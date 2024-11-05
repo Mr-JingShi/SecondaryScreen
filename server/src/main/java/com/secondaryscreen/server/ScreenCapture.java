@@ -104,8 +104,6 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
         }
 
         int mirrorDisplayId = DisplayInfo.getMirrorDisplayId();
-        System.out.println("mirrorDisplayId:" + mirrorDisplayId);
-
         try {
             Rect contentRect = mScreenInfo.getContentRect();
             System.out.println("contentRect:" + contentRect);

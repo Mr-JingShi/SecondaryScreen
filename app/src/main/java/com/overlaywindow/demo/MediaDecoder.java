@@ -64,7 +64,7 @@ public class MediaDecoder {
          * @throws MediaCodec.CodecException upon codec error.
          */
         // public final int dequeueInputBuffer(long timeoutUs) {
-        // dequeueInputBuffer有时返回-1，返回-1时如果把buffer丢掉，会导致花屏，这次最大尝试三次
+        // dequeueInputBuffer有时返回-1，返回-1时如果把buffer丢掉，会导致花屏，这里最大尝试三次
         for (int i = 0; i < 3; ++i) {
             int index = mMediaCodec.dequeueInputBuffer(10000L);
             if (index >= 0) {

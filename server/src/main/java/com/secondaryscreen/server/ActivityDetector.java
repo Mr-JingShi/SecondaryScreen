@@ -54,7 +54,7 @@ public class ActivityDetector {
                     Thread.sleep(SCAN_INTERVAL);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    System.out.println("detector exception：" + e);
+                    System.out.println("DetectorThread exception：" + e);
                 }
             }
         }
