@@ -5,13 +5,19 @@ import android.util.Log;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DisplayClient {
-    private static String TAG = "VirtualDisplayClient";
+    private static String TAG = "DisplayClient";
     private String HOST = "127.0.0.1";
     private int PORT = 8404;
     private int TIMEOUT = 3000;
     private Thread mThread;
+    private Lock mLock = new ReentrantLock();
+    private Condition mCondition = mLock.newCondition();
+    private String mDisplayInfo;
     public DisplayClient() {
         mThread = new DisplayClientThread();
     }
@@ -31,7 +37,13 @@ public class DisplayClient {
         sb.append(",");
         sb.append(densityDpi);
 
-        Utils.offerDislayInfoBytes(sb.toString().getBytes());
+        mLock.lock();
+        try {
+            mDisplayInfo = sb.toString();
+            mCondition.signal();
+        } finally {
+            mLock.unlock();
+        }
     }
 
     public void start() {
@@ -63,14 +75,26 @@ public class DisplayClient {
                 socket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
                 Log.d(TAG, "DisplayClientThread connect success");
 
-                OutputStream outputStream = socket.getOutputStream();
                 byte[] length = new byte[4];
                 while (!Thread.currentThread().isInterrupted()) {
-                    byte[] bytes = Utils.takeDislayInfoBytes();
+                    String displayInfo = null;
+                    mLock.lock();
+                    try {
+                        while (mDisplayInfo == null) {
+                            mCondition.await();
+                        }
+                        displayInfo = mDisplayInfo;
+                        mDisplayInfo = null;
+                    } finally {
+                        mLock.unlock();
+                    }
+
+                    Log.d(TAG, "displayInfo:" + displayInfo);
+                    byte[] bytes = displayInfo.getBytes("UTF-8");
                     if (bytes != null) {
-                        outputStream.write(Utils.intToByte4(bytes.length, length));
-                        outputStream.write(bytes);
-                        outputStream.flush();
+                        socket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
+                        socket.getOutputStream().write(bytes);
+                        socket.getOutputStream().flush();
                     }
                 }
             } catch (Exception e) {

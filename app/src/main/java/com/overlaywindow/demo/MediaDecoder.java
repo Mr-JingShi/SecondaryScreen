@@ -51,7 +51,7 @@ public class MediaDecoder {
         }
     }
 
-    public void decode(byte[] codecBuffer, MediaCodec.BufferInfo bufferInfo) {
+    public void decode(ByteBuffer codecBuffer, MediaCodec.BufferInfo bufferInfo) {
         /**
          * Returns the index of an input buffer to be filled with valid data
          * or -1 if no such buffer is currently available.
@@ -71,7 +71,7 @@ public class MediaDecoder {
                 ByteBuffer buffer = mMediaCodec.getInputBuffer(index);
                 if (buffer != null) {
                     buffer.clear();
-                    buffer.put(codecBuffer, bufferInfo.offset, bufferInfo.size);
+                    buffer.put(codecBuffer);
                     mMediaCodec.queueInputBuffer(index, 0, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
                 }
 

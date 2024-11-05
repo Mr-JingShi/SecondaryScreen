@@ -1,39 +1,19 @@
 package com.secondaryscreen.server;
 
-import android.view.IRotationWatcher;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-
 public final class DisplayConnection extends ServerChannel {
     private static String TAG = "DisplayConnection";
-    private static int PORT = 8404;
     private int mWidth;
     private int mHeight;
     private int mRotation;
     private int mDensityDpi;
+    private String mRemoteAddress;
     public DisplayConnection(int width, int height, int rotation, int densityDpi) {
-       super(PORT);
+       super(Utils.DISPLAY_CHANNEL_PORT);
 
         mWidth = width;
         mHeight = height;
         mRotation = rotation;
         mDensityDpi = densityDpi;
-
-        ServiceManager.getWindowManager().registerRotationWatcher(new IRotationWatcher.Stub() {
-            @Override
-            public void onRotationChanged(int rotation) {
-                System.out.println("onRotationChanged rotation:" + rotation);
-
-                synchronized (Utils.class) {
-                    if (Utils.isSingleMachineMode()) {
-                        ServiceManager.getDisplayManager().getDisplayInfo(true);
-
-                        changeVirtualDisplayRotation(rotation);
-                    }
-                }
-            }
-        }, 0);
     }
 
     private void changeVirtualDisplayRotation(int rotation) {
@@ -75,41 +55,41 @@ public final class DisplayConnection extends ServerChannel {
         System.out.println("old width:" + mWidth + " height:" + mHeight + " rotation:" + mRotation + " densityDpi:" + mDensityDpi);
         System.out.println("new width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
-        boolean changed = false;
+        boolean needResize = false;
+        boolean needRotate = false;
         if (mWidth != width || mHeight != height || mDensityDpi != densityDpi) {
             mWidth = width;
             mHeight = height;
             mDensityDpi = densityDpi;
-
-            resizeVirtualDisplay(width, height, densityDpi);
-            changed = true;
+            needResize = true;
         }
         if (mRotation != rotation) {
             mRotation = rotation;
-
-            changeVirtualDisplayRotation(rotation);
-            changed = true;
+            needRotate = true;
         }
-        if (changed) {
+        if (needResize || needRotate) {
             if (mRotation % 2 == 1) {
                 ServiceManager.getDisplayManager().forceDisplayInfo(mHeight, mWidth, mRotation, mDensityDpi);
             } else {
                 ServiceManager.getDisplayManager().forceDisplayInfo(mWidth, mHeight, mRotation, mDensityDpi);
             }
+
+            if (needResize) {
+                resizeVirtualDisplay(width, height, densityDpi);
+            }
+            if (needRotate) {
+                changeVirtualDisplayRotation(rotation);
+            }
+        }
+
+        if (mRemoteAddress != null) {
+            ServiceManager.getDisplayManager().onDisplayChanged(mRemoteAddress);
+            mRemoteAddress = null;
         }
     }
 
     @Override
-    public void accept(SocketAddress socketAddress) {
-        System.out.println("socketAddress:" + socketAddress);
-        if (socketAddress instanceof InetSocketAddress) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-
-            String remoteAddress = inetSocketAddress.getHostName();
-            System.out.println("remoteAddress:" + remoteAddress);
-            ServiceManager.getDisplayManager().onDisplayChanged(remoteAddress);
-        } else {
-            System.out.println("socketAddress is not InetSocketAddress");
-        }
+    public void accept(String remoteAddress) {
+        mRemoteAddress = remoteAddress;
     }
 }

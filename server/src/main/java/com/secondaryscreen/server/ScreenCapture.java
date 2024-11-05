@@ -6,25 +6,32 @@ import android.os.Build;
 import android.os.IBinder;
 import android.view.Surface;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenCapture.java
 
 public class ScreenCapture implements WindowManager.RotationListener, DisplayManager.DisplayListener {
     private final AtomicBoolean mResetCapture = new AtomicBoolean();
+    private final AtomicBoolean mRestartCapture = new AtomicBoolean();
     private static String VIRTUALDISPLAY = "virtualdisplay";
     private ScreenInfo mScreenInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
-    private String mDisplayScoket;
+    private String mRemoteAddress;
+    private Lock mLock = new ReentrantLock();
+    private Condition mCondition = mLock.newCondition();
 
-    public ScreenCapture() {}
-
-    public void init() {
+    public ScreenCapture() {
         ServiceManager.getWindowManager().setRotationListener(this);
         ServiceManager.getDisplayManager().setDisplayListener(this);
+    }
 
+    public void computeScreenInfo() {
         DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(false);
         int maxSize = SurfaceEncoder.chooseMaxSize(displayInfo.getSize());
 
@@ -33,32 +40,57 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
 
     @Override
     public void onRotationChanged(int rotation) {
-        mScreenInfo = mScreenInfo.withDeviceRotation(rotation);
+        if (mScreenInfo != null) {
+            mScreenInfo = mScreenInfo.withDeviceRotation(rotation);
+        }
 
         requestReset();
     }
 
     @Override
-    public void onDisplayChanged(String displayScoket) {
-        mDisplayScoket = displayScoket;
-        requestReset();
+    public void onDisplayChanged(String remoteAddress) {
+        mLock.lock();
+        try {
+            System.out.println("onDisplayChanged remoteAddress:" + remoteAddress);
+            mRemoteAddress = remoteAddress;
+            mCondition.signal();
+        } finally {
+            mLock.unlock();
+        }
+
+        requestRestart();
     }
 
-    /**
-     * Request the encoding session to be restarted, for example if the capture implementation detects that the video source size has changed (on
-     * device rotation for example).
-     */
     protected void requestReset() {
         mResetCapture.set(true);
     }
 
-    /**
-     * Consume the reset request (intended to be called by the encoder).
-     *
-     * @return {@code true} if a reset request was pending, {@code false} otherwise.
-     */
     public boolean consumeReset() {
         return mResetCapture.getAndSet(false);
+    }
+
+    protected void requestRestart() {
+        mRestartCapture.set(true);
+    }
+
+    public boolean restartReset() {
+        return mRestartCapture.getAndSet(false);
+    }
+
+    public String getRemoteAddress() throws InterruptedException {
+        String remoteAddress = null;
+        mLock.lock();
+        try {
+            while (mRemoteAddress == null) {
+                mCondition.await();
+            }
+            remoteAddress = mRemoteAddress;
+            mRemoteAddress = null;
+            System.out.println("getRemoteAddress remoteAddress:" + remoteAddress);
+        } finally {
+            mLock.unlock();
+        }
+        return remoteAddress;
     }
 
     public void start(Surface surface) {

@@ -50,7 +50,6 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
             Log.i(TAG, "remoteHost:" + remoteHost);
             if (remoteHost != null && !remoteHost.isEmpty()) {
-                mVideoClient.setRemoteHost(remoteHost);
                 mControlClient.setRemoteHost(remoteHost);
                 mDisplayClient.setRemoteHost(remoteHost);
             } else {
@@ -78,6 +77,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         mTextureView.getLayoutParams().height = displayMetrics.heightPixels;
         mTextureView.setOpaque(false);
         mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        mTextureView.requestLayout();
         Log.i(TAG, "displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
 
         if (mRotation % 2 == 1) {
@@ -104,30 +104,13 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
 
+                    mVideoClient.start(new Surface(surfaceTexture));
                     mDisplayClient.start();
+                    mControlClient.start();
 
-                    Utils.runOnOtherThread(() -> {
-                        Utils.sleep(1000);
-                        mVideoClient.start(new Surface(surfaceTexture));
-                        mControlClient.start();
-
-                        Utils.sleep(1000);
-
-                        runOnUiThread(() -> {
-                            if (mControlClient.getConnected()) {
-                                mTextureView.setOnTouchListener((view, event) -> {
-                                    Utils.offerMotionEvent(event);
-                                    return true;
-                                });
-                            } else {
-                                Utils.toast("connect failed");
-
-                                SecondaryScreenActivity.this.finish();
-
-                                Intent intent = new Intent(SecondaryScreenActivity.this, MainActivity.class);
-                                startActivity(intent);
-                            }
-                        });
+                    mTextureView.setOnTouchListener((view, event) -> {
+                        Utils.offerMotionEvent(event);
+                        return true;
                     });
                 }
 

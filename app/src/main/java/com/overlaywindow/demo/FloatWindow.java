@@ -89,7 +89,7 @@ final class FloatWindow {
         mFloatDialog = new FloatDialog(this);
 
         mVideoClient = new VideoClient();
-
+        mControlClient = new ControlClient();
         mDisplayClient = new DisplayClient();
         if (mRotation % 2 == 1) {
             mDisplayClient.setScreenInfo(0, displayMetrics.heightPixels, displayMetrics.widthPixels, mRotation, displayMetrics.densityDpi);
@@ -293,18 +293,13 @@ final class FloatWindow {
                     if (Utils.getVirtualDisplayId() >= 1) {
                         mIsLocked = !mIsLocked;
                         if (mIsLocked) {
-                            if (mControlClient == null) {
-                                mControlClient = new ControlClient();
-                                mControlClient.start();
-                            }
-
                             mLockImageView.setImageResource(R.drawable.go_lock);
 
                             focusImageViewShow(true);
 
                             if (USE_SURFACE_EVENT) {
                                 mTextureView.setOnTouchListener((view, event) -> {
-                                    if (mIsLocked && mControlClient.getConnected()) {
+                                    if (mIsLocked) {
                                         Utils.offerMotionEvent(event);
                                     }
                                     return true;
@@ -336,8 +331,7 @@ final class FloatWindow {
                     if (displayId == 0) {
                         int rotation = Utils.getRotation();
                         if (mRotation != rotation) {
-                            mRotation = rotation;
-                            onRotationChanged();
+                            onRotationChanged(rotation);
                         }
                     } else if (displayId == Utils.getVirtualDisplayId()) {
                         relayout();
@@ -359,11 +353,9 @@ final class FloatWindow {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
                     if (View.VISIBLE == mLockImageView.getVisibility()) {
+                        mVideoClient.start(new Surface(surfaceTexture));
                         mDisplayClient.start();
-                        Utils.runOnOtherThread(() -> {
-                            Utils.sleep(1000);
-                            mVideoClient.start(new Surface(surfaceTexture));
-                        });
+                        mControlClient.start();
                     } else {
                         mSurfaceTexture = surfaceTexture;
                     }
@@ -388,7 +380,7 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            if (!USE_SURFACE_EVENT && mIsLocked && mControlClient.getConnected()) {
+            if (!USE_SURFACE_EVENT && mIsLocked) {
                 event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
 
                 Utils.offerMotionEvent(event);
@@ -448,11 +440,9 @@ final class FloatWindow {
                     mTcpipImageView.setVisibility(View.GONE);
                     mRemarkTextView.setVisibility(View.GONE);
 
+                    mVideoClient.start(new Surface(mSurfaceTexture));
                     mDisplayClient.start();
-                    Utils.runOnOtherThread(() -> {
-                        Utils.sleep(1000);
-                        mVideoClient.start(new Surface(mSurfaceTexture));
-                    });
+                    mControlClient.start();
                 }
             } else {
                 mRemarkTextView.setText("主设备已准备就绪，即将关闭悬浮窗。");
@@ -484,10 +474,18 @@ final class FloatWindow {
         focusImageViewChange(false);
     }
 
-    private void onRotationChanged() {
+    private void onRotationChanged(int rotation) {
+        mRotation = rotation;
+
         Display defaultDisplay = mWindowManager.getDefaultDisplay();
         DisplayMetrics displayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(displayMetrics);
+
+        if (rotation % 2 == 1) {
+            mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
+        } else {
+            mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
+        }
 
         mWidth = displayMetrics.widthPixels;
         mHeight = displayMetrics.heightPixels;

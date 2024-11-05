@@ -1,7 +1,6 @@
 package com.secondaryscreen.server;
 
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -32,7 +31,7 @@ public abstract class ServerChannel {
     }
 
     public abstract void work(byte[] buffer, int length);
-    public void accept(SocketAddress remoteAddress) { }
+    public void accept(String remoteAddress) { }
 
     private class ServerChannelThread extends Thread {
         public ServerChannelThread() {
@@ -53,7 +52,9 @@ public abstract class ServerChannel {
                 ByteBuffer headerBuffer = ByteBuffer.allocate(4);
                 ByteBuffer eventBuffer = ByteBuffer.allocate(0);
 
-                SocketChannel oldSocketChannel = null;
+                SocketChannel currentSocketChannel = null;
+
+                boolean needRecvHeader = true;
 
                 while (!Thread.currentThread().isInterrupted()) {
                     if (selector.select() != 0) {
@@ -70,32 +71,50 @@ public abstract class ServerChannel {
                                 socketChannel.configureBlocking(false);
                                 socketChannel.register(selector, SelectionKey.OP_READ);
 
-                                if (oldSocketChannel != null) {
-                                    oldSocketChannel.close();
+                                if (currentSocketChannel != null) {
+                                    currentSocketChannel.close();
+                                    System.out.println("close old sockectChannel");
                                 }
-                                oldSocketChannel = socketChannel;
+                                currentSocketChannel = socketChannel;
 
-                                accept(socketChannel.socket().getRemoteSocketAddress());
+                                System.out.println("accept socketChannel:" + socketChannel);
 
-                                System.out.println("accept loacal:" + socketChannel.socket().getLocalSocketAddress() + " remote:" + socketChannel.socket().getRemoteSocketAddress());
+                                SocketAddress socketAddress = socketChannel.socket().getRemoteSocketAddress();
+                                if (socketAddress instanceof InetSocketAddress) {
+                                    InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+
+                                    String remoteAddress = inetSocketAddress.getHostName();
+                                    accept(remoteAddress);
+                                } else {
+                                    System.out.println("socketAddress is not InetSocketAddress");
+                                }
                             } else if (key.isReadable()) {
                                 SocketChannel socketChannel = (SocketChannel) key.channel();
 
-                                try {
-                                    Utils.recv(socketChannel, headerBuffer, 4);
-                                    int len = headerBuffer.getInt();
-                                    if (eventBuffer.capacity() < len) {
-                                        System.out.println("need bigger len:" + len);
-                                        eventBuffer = ByteBuffer.allocate(len);
-                                    }
-                                    Utils.recv(socketChannel, eventBuffer, len);
+                                System.out.println("readable socketChannel:" + socketChannel);
 
-                                    work(eventBuffer.array(), len);
+                                try {
+                                    if (needRecvHeader) {
+                                        if (4 == recv(socketChannel, headerBuffer, 4)) {
+                                            needRecvHeader = false;
+                                        }
+                                    } else {
+                                        int len = headerBuffer.getInt();
+                                        if (eventBuffer.capacity() < len) {
+                                            System.out.println("need bigger len:" + len);
+                                            eventBuffer = ByteBuffer.allocate(len);
+                                        }
+                                        if (len == recv(socketChannel, eventBuffer, len)) {
+                                            needRecvHeader = true;
+
+                                            work(eventBuffer.array(), len);
+                                        }
+                                    }
                                 } catch (Exception e) {
                                     socketChannel.close();
 
-                                    e.printStackTrace();
                                     System.out.println("ServerChannelThread exception:" + e);
+                                    e.printStackTrace();
                                 }
                             }
                         }
@@ -105,6 +124,19 @@ public abstract class ServerChannel {
                 e.printStackTrace();
                 System.out.println("ServerChannelThread exception:" + e);
             }
+        }
+
+        private int recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
+            buffer.clear();
+            buffer.limit(length);
+            int len = socketChannel.read(buffer);
+            buffer.flip();
+            System.out.println("recv len:" + len);
+            if (len == -1) {
+                throw new RuntimeException("socket closed");
+            }
+
+            return len;
         }
     }
 }

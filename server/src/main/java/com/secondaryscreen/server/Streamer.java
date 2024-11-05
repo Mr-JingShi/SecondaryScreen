@@ -11,11 +11,17 @@ import java.nio.ByteBuffer;
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/Streamer.java
 
 public final class Streamer {
-    private final OutputStream mOutputStream;
-    private final ByteBuffer mHeaderBuffer = ByteBuffer.allocate(20);
-    private final byte[] mHeader = new byte[20];
-    private byte[] mCodec = new byte[0];
-    public Streamer(Socket socket) throws IOException {
+    private OutputStream mOutputStream;
+    private final ByteBuffer mHeaderBuffer;
+    private final byte[] mHeader;
+    private byte[] mCodec;
+    public Streamer() {
+        mHeaderBuffer = ByteBuffer.allocate(20);
+        mHeader = new byte[20];
+        mCodec = new byte[0];
+    }
+
+    public void setSocket(Socket socket) throws IOException {
         this.mOutputStream = socket.getOutputStream();
     }
 

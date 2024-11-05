@@ -6,12 +6,11 @@ import android.view.InputDevice;
 import android.view.MotionEvent;
 
 public final class ControlConnection extends ServerChannel {
-    private static int PORT = 8402;
     private long lastTouchDown;
     private MotionEvent.PointerProperties[] pointerProperties;
     private MotionEvent.PointerCoords[] pointerCoords;
     public ControlConnection() {
-        super(PORT);
+        super(Utils.CONTROL_CHANNEL_PORT);
     }
 
     @Override
@@ -53,7 +52,6 @@ public final class ControlConnection extends ServerChannel {
     }
 
     private MotionEvent createMotionEvent(String eventMessage) {
-        System.out.println("eventMessage:" + eventMessage);
         String[] splited = eventMessage.split(";");
         int action = Integer.parseInt(splited[0]);
         int pointerCount = Integer.parseInt(splited[1]);

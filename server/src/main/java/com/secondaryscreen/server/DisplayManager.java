@@ -17,7 +17,7 @@ public final class DisplayManager {
     private DisplayListener mDisplayListener;
 
     public interface DisplayListener {
-        void onDisplayChanged(String displayScoket);
+        void onDisplayChanged(String remoteAddress);
     }
 
     static DisplayManager create() {

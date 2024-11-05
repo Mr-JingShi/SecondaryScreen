@@ -1,7 +1,6 @@
 package com.secondaryscreen.server;
 
 import android.os.Build;
-import android.view.IRotationWatcher;
 
 public class Server {
     public static void main(String[] args) {

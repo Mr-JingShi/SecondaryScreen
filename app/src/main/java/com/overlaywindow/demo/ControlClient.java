@@ -11,7 +11,6 @@ public class ControlClient {
     private int PORT = 8402;
     private int TIMEOUT = 3000;
     private Thread mThread;
-    private boolean mConnected = false;
 
     public ControlClient() {
         mThread = new ControlClientThread();
@@ -19,10 +18,6 @@ public class ControlClient {
 
     public void setRemoteHost(String remoteHost) {
         this.HOST = remoteHost;
-    }
-
-    public boolean getConnected() {
-        return mConnected;
     }
 
     public void start() {
@@ -44,8 +39,6 @@ public class ControlClient {
     }
 
     class ControlClientThread extends Thread {
-        private Socket mSocket;
-
         ControlClientThread() {
             super("ControlClientThread");
             Log.d(TAG, "ControlClientThread");
@@ -53,10 +46,8 @@ public class ControlClient {
 
         @Override
         public void run() {
-            try {
-                mSocket = new Socket();
-                mSocket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
-                mConnected = true;
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
 
                 Log.d(TAG, "ControlClientThread connect success");
 
@@ -65,23 +56,14 @@ public class ControlClient {
                 while (!Thread.currentThread().isInterrupted()) {
                     bytes = Utils.takeMotionEventBytes();
                     if (bytes != null) {
-                        mSocket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
-                        mSocket.getOutputStream().write(bytes);
-                        mSocket.getOutputStream().flush();
+                        socket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
+                        socket.getOutputStream().write(bytes);
+                        socket.getOutputStream().flush();
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("socket exception:" + e);
-            } finally {
-                try {
-                    if (mSocket != null) {
-                        mSocket.close();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.d(TAG, "socket close exception:" + e);
-                }
+                System.out.println("ControlClientThread socket exception:" + e);
             }
         }
     }

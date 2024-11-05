@@ -16,7 +16,6 @@ import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -36,8 +35,6 @@ public class Utils {
     private static ExecutorService mExecutor  = Executors.newSingleThreadExecutor();
     private static final Handler mHandler = new Handler(Looper.getMainLooper());
     private static final BlockingQueue<byte[]> mMotioneventBytesQueue = new LinkedBlockingQueue<>();
-    private static final BlockingQueue<byte[]> mDisplayInfoBytesQueue = new LinkedBlockingQueue<>();
-
     static void setContext(Context context) {
         mContext = context;
     }
@@ -192,17 +189,6 @@ public class Utils {
         AdbShell.getInstance().execute(sb.toString());
     }
 
-    static void recvBuffer(InputStream inputStream, byte[] buffer, int sum) throws Exception {
-        int read = 0;
-        while (sum - read > 0) {
-            int len = inputStream.read(buffer, read, sum - read);
-            if (len == -1) {
-                throw new RuntimeException("socket closed");
-            }
-            read += len;
-        }
-    }
-
     static byte[] intToByte4(int i, byte[] targets) {
         targets[3] = (byte) (i & 0xFF);
         targets[2] = (byte) (i >> 8 & 0xFF);
@@ -250,16 +236,6 @@ public class Utils {
 
     static byte[] takeMotionEventBytes() throws InterruptedException {
         return mMotioneventBytesQueue.take();
-    }
-
-    static void offerDislayInfoBytes(byte[] bytes) {
-        if (!mDisplayInfoBytesQueue.offer(bytes)) {
-            Log.w(TAG, "offerDislayInfoBytes error");
-        }
-    }
-
-    static byte[] takeDislayInfoBytes() throws InterruptedException {
-        return mDisplayInfoBytesQueue.take();
     }
 
     static boolean waitVirtualDisplayReady(int count) {

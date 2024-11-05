@@ -7,6 +7,8 @@ import android.os.SystemClock;
 import android.view.Surface;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 // 部分逻辑参考自：
@@ -21,73 +23,91 @@ public class SurfaceEncoder {
     // Keep the values in descending order
     private static final int[] MAX_SIZE_FALLBACK = {2560, 1920, 1600, 1280, 1024, 800};
     private static final int MAX_CONSECUTIVE_ERRORS = 3;
-
-    private final ScreenCapture mCapture;
-    private final Streamer mStreamer;
     private final int mVideoBitRate;
     private final int mMaxFps;
     private final boolean mDownsizeOnError;
-
     private boolean mFirstFrameSent = false;
     private int mConsecutiveErrors;
 
-    public SurfaceEncoder(ScreenCapture capture, Streamer streamer, int videoBitRate, int maxFps, boolean downsizeOnError) {
-        this.mCapture = capture;
-        this.mStreamer = streamer;
+    public SurfaceEncoder(int videoBitRate, int maxFps, boolean downsizeOnError) {
         this.mVideoBitRate = videoBitRate;
         this.mMaxFps = maxFps;
         this.mDownsizeOnError = downsizeOnError;
     }
 
-    public void streamScreen() throws Exception {
-        mCapture.init();
-        MediaCodec mediaCodec = createMediaCodec();
-        MediaFormat format = createFormat(VIDEO_FORMAT, mVideoBitRate, mMaxFps);
-
+    public void streamScreen() {
         try {
-            boolean alive;
+            ScreenCapture screenCapture = new ScreenCapture();
 
-            do {
-                mFirstFrameSent = false;
-                Size size = mCapture.getSize();
-                System.out.println("streamScreen size width:" + size.getWidth() + " height:" + size.getHeight());
-                format.setInteger(MediaFormat.KEY_WIDTH, size.getWidth());
-                format.setInteger(MediaFormat.KEY_HEIGHT, size.getHeight());
+            Streamer streamer = new Streamer();
 
-                Surface surface = null;
-                try {
-                    mediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-                    surface = mediaCodec.createInputSurface();
+            MediaCodec mediaCodec = createMediaCodec();
+            MediaFormat format = createFormat(VIDEO_FORMAT, mVideoBitRate, mMaxFps);
 
-                    mCapture.start(surface);
+            while (!Thread.currentThread().isInterrupted()) {
+                String remoteAddress = screenCapture.getRemoteAddress();
 
-                    mediaCodec.start();
+                try (Socket socket = new Socket()) {
+                    socket.connect(new InetSocketAddress(remoteAddress, Utils.VIDEO_CHANNEL_PORT), 3000);
+                    System.out.println("VideoChannel socket connect success");
 
-                    alive = encode(mediaCodec);
-                    // do not call stop() on exception, it would trigger an IllegalStateException
-                    mediaCodec.stop();
-                } catch (IllegalStateException | IllegalArgumentException e) {
-                    System.out.println("Encoding error: " + e.getClass().getName() + ": " + e.getMessage());
+                    screenCapture.computeScreenInfo();
+                    streamer.setSocket(socket);
+
+                    streamScreen(screenCapture, streamer, mediaCodec, format);
+                } catch (Exception e) {
+                    System.out.println("VideoChannel socket exception:" + e);
                     e.printStackTrace();
-                    if (!prepareRetry(size)) {
-                        throw e;
-                    }
-                    System.out.println("Retrying...");
-                    alive = true;
-                } finally {
-                    mediaCodec.reset();
-                    if (surface != null) {
-                        surface.release();
-                    }
                 }
-            } while (alive);
-        } finally {
+            }
+
             mediaCodec.release();
-            mCapture.release();
+            screenCapture.release();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private boolean prepareRetry(Size currentSize) {
+    private void streamScreen(ScreenCapture screenCapture, Streamer streamer, MediaCodec mediaCodec, MediaFormat format) throws Exception {
+        boolean alive;
+
+        do {
+            mFirstFrameSent = false;
+            Size size = screenCapture.getSize();
+            System.out.println("streamScreen size width:" + size.getWidth() + " height:" + size.getHeight());
+            format.setInteger(MediaFormat.KEY_WIDTH, size.getWidth());
+            format.setInteger(MediaFormat.KEY_HEIGHT, size.getHeight());
+
+            Surface surface = null;
+            try {
+                mediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                surface = mediaCodec.createInputSurface();
+
+                screenCapture.start(surface);
+
+                mediaCodec.start();
+
+                alive = encode(screenCapture, streamer, mediaCodec);
+                // do not call stop() on exception, it would trigger an IllegalStateException
+                mediaCodec.stop();
+            } catch (IllegalStateException | IllegalArgumentException e) {
+                System.out.println("Encoding error: " + e.getClass().getName() + ": " + e.getMessage());
+                e.printStackTrace();
+                if (!prepareRetry(screenCapture, size)) {
+                    throw e;
+                }
+                System.out.println("Retrying...");
+                alive = true;
+            } finally {
+                mediaCodec.reset();
+                if (surface != null) {
+                    surface.release();
+                }
+            }
+        } while (alive);
+    }
+
+    private boolean prepareRetry(ScreenCapture screenCapture, Size currentSize) {
         if (mFirstFrameSent) {
             ++mConsecutiveErrors;
             if (mConsecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
@@ -113,7 +133,7 @@ public class SurfaceEncoder {
             return false;
         }
 
-        boolean accepted = mCapture.setMaxSize(newMaxSize);
+        boolean accepted = screenCapture.setMaxSize(newMaxSize);
         if (!accepted) {
             return false;
         }
@@ -135,26 +155,35 @@ public class SurfaceEncoder {
         return 0;
     }
 
-    private boolean encode(MediaCodec codec) throws IOException {
+    private boolean encode(ScreenCapture screenCapture, Streamer streamer, MediaCodec codec) throws IOException {
         boolean eof = false;
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+        screenCapture.consumeReset();
+        screenCapture.restartReset();
 
-        while (!mCapture.consumeReset() && !eof) {
+        while (!screenCapture.consumeReset() && !eof) {
+            if (screenCapture.restartReset()) {
+                eof = true;
+                break;
+            }
             int outputBufferId = codec.dequeueOutputBuffer(bufferInfo, 10000L);
-            try {
-                if (Thread.currentThread().isInterrupted()) {
-                    return false;
-                }
-                if (mCapture.consumeReset()) {
-                    // must restart encoding with new size
-                    break;
-                }
 
-                eof = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
+            if (screenCapture.restartReset()) {
+                eof = true;
+                break;
+            }
+            if (screenCapture.consumeReset()) {
+                // must restart encoding with new size
+                break;
+            }
+
+            try {
                 if (outputBufferId >= 0) {
+                    eof = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
+
                     ByteBuffer codecBuffer = codec.getOutputBuffer(outputBufferId);
 
-                    mStreamer.writePacket(codecBuffer, bufferInfo);
+                    streamer.writePacket(codecBuffer, bufferInfo);
 
                     boolean isConfig = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
                     if (!isConfig) {
@@ -162,7 +191,7 @@ public class SurfaceEncoder {
                         mFirstFrameSent = true;
                         mConsecutiveErrors = 0;
                     } else {
-                        mStreamer.writeVideoHeader(mCapture.getSize());
+                        streamer.writeVideoHeader(screenCapture.getSize());
                     }
                 }
             } finally {

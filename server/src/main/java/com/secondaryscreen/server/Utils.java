@@ -1,11 +1,13 @@
 package com.secondaryscreen.server;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 public class Utils {
     private static String TAG = "Utils";
+    public static int CONTROL_CHANNEL_PORT = 8402;
+    public static int VIDEO_CHANNEL_PORT = 8403;
+    public static int DISPLAY_CHANNEL_PORT = 8404;
     private static boolean mIsSingleMachineMode = true;
 
     static boolean isSingleMachineMode() {
@@ -15,37 +17,6 @@ public class Utils {
         synchronized (Utils.class) {
             mIsSingleMachineMode = isSingleMachineMode;
         }
-    }
-
-    static void recv(InputStream inputStream, byte[] buffer, int sum) throws Exception {
-        int read = 0;
-        while (sum - read > 0) {
-            int len = inputStream.read(buffer, read, sum - read);
-            if (len == -1) {
-                throw new RuntimeException("socket closed");
-            }
-            read += len;
-        }
-    }
-
-    static void recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
-        buffer.clear();
-        buffer.limit(length);
-        while (buffer.position() != length) {
-            int len = socketChannel.read(buffer);
-            if (len == -1) {
-                throw new RuntimeException("socket closed");
-            }
-        }
-        buffer.flip();
-    }
-
-    static int byte4ToInt(byte[] bytes) {
-        int b0 = bytes[0] & 0xFF;
-        int b1 = bytes[1] & 0xFF;
-        int b2 = bytes[2] & 0xFF;
-        int b3 = bytes[3] & 0xFF;
-        return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
     }
 
     static boolean activityRunning(String activity) {

@@ -1,37 +1,33 @@
 package com.overlaywindow.demo;
 
 import android.media.MediaCodec;
-import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
 
-import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
 
 
 public class VideoClient {
     private static String TAG = "VideoClient";
-    private String HOST = "127.0.0.1";
     private int PORT = 8403;
-    private int TIMEOUT = 3000;
     private Thread mThread;
     private MediaDecoder mMediaDecoder;
     private Surface mSurface;
 
     public VideoClient() {
         mMediaDecoder = new MediaDecoder();
-    }
-
-    public void setRemoteHost(String remoteHost) {
-        this.HOST = remoteHost;
+        mThread = new ServerChannelThread();
     }
 
     public void start(Surface surface) {
         this.mSurface = surface;
-
-        mThread = new VideoClientThread();
         mThread.start();
     }
 
@@ -49,81 +45,98 @@ public class VideoClient {
         }
     }
 
-    class VideoClientThread extends Thread {
-        private Socket mSocket;
-        public VideoClientThread() {
-            super("VideoClientThread");
-            Log.i(TAG, "VideoClientThread");
+    private class ServerChannelThread extends Thread {
+        public ServerChannelThread() {
+            super("ServerChannelThread");
+            Log.i(TAG, "ServerChannelThread");
         }
-
         @Override
         public void run() {
-            try {
-                mSocket = new Socket();
-                mSocket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
-                Log.d(TAG, "VideoClientThread connect success");
+            try (Selector selector = Selector.open();
+                 ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
+                serverSocket.socket().bind(new InetSocketAddress(PORT));
+                serverSocket.socket().setReuseAddress(true);
+                serverSocket.configureBlocking(false);
+                serverSocket.register(selector, SelectionKey.OP_ACCEPT);
 
-                decode();
-            } catch (Exception e) {
-                Log.i(TAG, "socket exception:" + e);
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (mSocket != null) {
-                        mSocket.close();
+                ByteBuffer headerBuffer = ByteBuffer.allocate(20);
+                ByteBuffer eventBuffer = ByteBuffer.allocate(0);
+
+                MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+
+                while (!Thread.currentThread().isInterrupted()) {
+                    if (selector.select() != 0) {
+                        Set keys = selector.selectedKeys();
+                        Iterator iterator = keys.iterator();
+
+                        while (iterator.hasNext()) {
+                            SelectionKey key = (SelectionKey) iterator.next();
+                            iterator.remove();
+
+                            if (key.isAcceptable()) {
+                                ServerSocketChannel server = (ServerSocketChannel) key.channel();
+                                SocketChannel socketChannel = server.accept();
+                                socketChannel.configureBlocking(false);
+                                socketChannel.register(selector, SelectionKey.OP_READ);
+
+                                Log.i(TAG, "accept socketChannel:" + socketChannel);
+                            } else if (key.isReadable()) {
+                                SocketChannel socketChannel = (SocketChannel) key.channel();
+
+                                recv(socketChannel, headerBuffer, 20);
+
+                                bufferInfo.flags = headerBuffer.getInt();
+                                bufferInfo.offset = headerBuffer.getInt();
+                                bufferInfo.presentationTimeUs = headerBuffer.getLong();
+                                bufferInfo.size = headerBuffer.getInt();
+
+                                if (eventBuffer.capacity() < bufferInfo.size) {
+                                    Log.i(TAG, "need bigger len:" + bufferInfo.size);
+                                    eventBuffer = ByteBuffer.allocate(bufferInfo.size);
+                                }
+
+                                recv(socketChannel, eventBuffer, bufferInfo.size);
+
+                                if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                                    Log.i(TAG, "BUFFER_FLAG_CODEC_CONFIG");
+
+                                    recv(socketChannel, headerBuffer, 8);
+
+                                    int width = headerBuffer.getInt();
+                                    int height = headerBuffer.getInt();
+                                    Log.i(TAG, "sizeBuffer width:" + width + " height:" + height);
+
+                                    mMediaDecoder.interrupt();
+
+                                    mMediaDecoder.configure(width, height, eventBuffer, mSurface);
+
+                                    mMediaDecoder.start();
+                                } else {
+                                    mMediaDecoder.decode(eventBuffer, bufferInfo);
+                                }
+                            }
+                        }
                     }
-
-                    mMediaDecoder.interrupt();
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.i(TAG, "ServerChannelThread exception:" + e);
+
+                // 临时判断socket是否断联，如果断联则退出APP
+                System.exit(0);
             }
         }
 
-        private void decode() throws Exception {
-            byte[] codecBuffer = new byte[0];
-            byte[] headerBuffer = new byte[20];
-
-            InputStream inputStream = mSocket.getInputStream();
-
-            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-
-            while (!Thread.currentThread().isInterrupted()) {
-                Utils.recvBuffer(inputStream, headerBuffer, headerBuffer.length);
-
-                ByteBuffer header = ByteBuffer.wrap(headerBuffer, 0, headerBuffer.length);
-                bufferInfo.flags = header.getInt();
-                bufferInfo.offset = header.getInt();
-                bufferInfo.presentationTimeUs = header.getLong();
-                bufferInfo.size = header.getInt();
-
-                if (codecBuffer.length < bufferInfo.size) {
-                    Log.i(TAG, "codecBuffer.length:" + codecBuffer.length + " < bufferInfo.size:" + bufferInfo.size);
-                    codecBuffer = new byte[bufferInfo.size];
-                }
-
-                Utils.recvBuffer(inputStream, codecBuffer, bufferInfo.size);
-
-                if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    Log.i(TAG, "BUFFER_FLAG_CODEC_CONFIG");
-
-                    Utils.recvBuffer(inputStream, headerBuffer, 8);
-
-                    ByteBuffer sizeBuffer = ByteBuffer.wrap(headerBuffer, 0, 8);
-                    int width = sizeBuffer.getInt();
-                    int height = sizeBuffer.getInt();
-                    Log.i(TAG, "sizeBuffer width:" + width + " height:" + height);
-
-                    mMediaDecoder.interrupt();
-
-                    ByteBuffer csd0 = ByteBuffer.wrap(codecBuffer, 0, bufferInfo.size);
-                    mMediaDecoder.configure(width, height, csd0, mSurface);
-
-                    mMediaDecoder.start();
-                } else {
-                    mMediaDecoder.decode(codecBuffer, bufferInfo);
+        private void recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
+            buffer.clear();
+            buffer.limit(length);
+            while (buffer.position() != length) {
+                int len = socketChannel.read(buffer);
+                if (len == -1) {
+                    throw new RuntimeException("socket closed");
                 }
             }
+            buffer.flip();
         }
     }
 }
