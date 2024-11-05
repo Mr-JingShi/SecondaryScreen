@@ -78,8 +78,6 @@ public class VideoClient {
                                 SocketChannel socketChannel = server.accept();
                                 socketChannel.configureBlocking(false);
                                 socketChannel.register(selector, SelectionKey.OP_READ);
-
-                                Log.i(TAG, "accept socketChannel:" + socketChannel);
                             } else if (key.isReadable()) {
                                 SocketChannel socketChannel = (SocketChannel) key.channel();
 

@@ -1,5 +1,6 @@
 package com.secondaryscreen.server;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -50,8 +51,6 @@ public abstract class ServerChannel {
 
                 SocketChannel currentSocketChannel = null;
 
-                boolean needRecvHeader = true;
-
                 while (!Thread.currentThread().isInterrupted()) {
                     if (selector.select() != 0) {
                         Set keys = selector.selectedKeys();
@@ -76,32 +75,25 @@ public abstract class ServerChannel {
                                 SocketAddress socketAddress = socketChannel.socket().getRemoteSocketAddress();
                                 if (socketAddress instanceof InetSocketAddress) {
                                     InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-
-                                    String remoteAddress = inetSocketAddress.getHostName();
-                                    accept(remoteAddress);
+                                    // getHostName有时会查询NDS，8～10秒才会退出，所以改用getHostAddress
+                                    // accept(inetSocketAddress.getHostName());
+                                    accept(inetSocketAddress.getAddress().getHostAddress());
                                 } else {
                                     System.out.println("socketAddress is not InetSocketAddress");
                                 }
-                            } else if (key.isReadable()) {
+                            }
+                            if (key.isReadable()) {
                                 SocketChannel socketChannel = (SocketChannel) key.channel();
 
                                 try {
-                                    if (needRecvHeader) {
-                                        if (4 == recv(socketChannel, headerBuffer, 4)) {
-                                            needRecvHeader = false;
-                                        }
-                                    } else {
-                                        int len = headerBuffer.getInt();
-                                        if (eventBuffer.capacity() < len) {
-                                            System.out.println("need bigger len:" + len);
-                                            eventBuffer = ByteBuffer.allocate(len);
-                                        }
-                                        if (len == recv(socketChannel, eventBuffer, len)) {
-                                            needRecvHeader = true;
-
-                                            work(eventBuffer.array(), len);
-                                        }
+                                    recv(socketChannel, headerBuffer, 4);
+                                    int len = headerBuffer.getInt();
+                                    if (eventBuffer.capacity() < len) {
+                                        System.out.println("need bigger len:" + len);
+                                        eventBuffer = ByteBuffer.allocate(len);
                                     }
+                                    recv(socketChannel, eventBuffer, len);
+                                    work(eventBuffer.array(), len);
                                 } catch (Exception e) {
                                     socketChannel.close();
 
@@ -118,16 +110,16 @@ public abstract class ServerChannel {
             }
         }
 
-        private int recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
+        private void recv(SocketChannel socketChannel, ByteBuffer buffer, int length) throws Exception {
             buffer.clear();
             buffer.limit(length);
-            int len = socketChannel.read(buffer);
-            buffer.flip();
-            if (len == -1) {
-                throw new RuntimeException("socket closed");
+            while (buffer.position() != length) {
+                int len = socketChannel.read(buffer);
+                if (len == -1) {
+                    throw new RuntimeException("socket closed");
+                }
             }
-
-            return len;
+            buffer.flip();
         }
     }
 }
