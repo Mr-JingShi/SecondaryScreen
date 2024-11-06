@@ -42,20 +42,15 @@ public class ActivityDetector {
         @Override
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
-                try {
+                if (isReady()) {
+                    Utils.sleep(WAIT_INTERVAL);
+
                     if (isReady()) {
-                        Thread.sleep(WAIT_INTERVAL);
-
-                        if (isReady()) {
-                            startSecondActivity();
-                        }
+                        startSecondActivity();
                     }
-
-                    Thread.sleep(SCAN_INTERVAL);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("DetectorThread exception：" + e);
                 }
+
+                Utils.sleep(SCAN_INTERVAL);
             }
         }
     }

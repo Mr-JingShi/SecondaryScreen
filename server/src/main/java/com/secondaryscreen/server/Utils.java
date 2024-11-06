@@ -1,8 +1,5 @@
 package com.secondaryscreen.server;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-
 public class Utils {
     private static String TAG = "Utils";
     public static int CONTROL_CHANNEL_PORT = 8402;
@@ -20,10 +17,13 @@ public class Utils {
     }
 
     static boolean activityRunning(String activity) {
-        String cmd = "am stack list | grep " + activity;
-        Shell.Result sr = Shell.execCommand(cmd);
-        if (sr.mResult == 0 && sr.mSuccessMsg != null && !sr.mSuccessMsg.isEmpty()) {
-            return true;
+        try {
+            String cmd = "am stack list | grep " + activity + " | wc -l";
+            String result = Shell.execReadOutput("sh", "-c", cmd);
+            int count = Integer.parseInt(result.trim());
+            return count > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return false;
     }
@@ -37,9 +37,27 @@ public class Utils {
         sb.append(displayId);
 
         String text = sb.toString();
-        Shell.Result sr = Shell.execCommand(text);
-        if (sr.mResult == 0) {
-            System.out.println("am start secondActivity success");
+        try {
+            Shell.exec("sh", "-c", text);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+    static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (IllegalArgumentException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static String prettifyActivity(String activity) {
+        int index = activity.indexOf ("/.");
+        if (index > 0) {
+            String prefix = activity.substring(0, index);
+            activity = activity.replace("/", "/" + prefix);
+        }
+        return activity;
     }
 }

@@ -177,9 +177,9 @@ public class Utils {
 
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
             sb.append(" ");
-            sb.append(Utils.getContext().getString(R.string.first_activity));
+            sb.append(mContext.getString(R.string.first_activity));
             sb.append(" ");
-            sb.append(Utils.getContext().getString(R.string.seoncd_activity));
+            sb.append(mContext.getString(R.string.seoncd_activity));
         }
         sb.append(" ");
         sb.append(">/dev/null 2>&1 &");
@@ -283,7 +283,7 @@ public class Utils {
     static void sleep(long millis) {
         try {
             Thread.sleep(millis);
-        } catch (InterruptedException e) {
+        } catch (IllegalArgumentException | InterruptedException e) {
             e.printStackTrace();
         }
     }

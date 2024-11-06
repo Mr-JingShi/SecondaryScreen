@@ -1,5 +1,9 @@
 package com.secondaryscreen.server;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.channels.SocketChannel;
+
 public final class DisplayConnection extends ServerChannel {
     private static String TAG = "DisplayConnection";
     private int mWidth;
@@ -89,7 +93,17 @@ public final class DisplayConnection extends ServerChannel {
     }
 
     @Override
-    public void accept(String remoteAddress) {
-        mRemoteAddress = remoteAddress;
+    public void accept(SocketChannel socketChannel) {
+        super.accept(socketChannel);
+
+        SocketAddress socketAddress = socketChannel.socket().getRemoteSocketAddress();
+        if (socketAddress instanceof InetSocketAddress) {
+            InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+            // getHostName有时会查询NDS，8～10秒才会退出，所以改用getHostAddress
+            // mRemoteAddress = inetSocketAddress.getHostName();
+            mRemoteAddress = inetSocketAddress.getAddress().getHostAddress();
+        } else {
+            System.out.println("socketAddress is not InetSocketAddress");
+        }
     }
 }

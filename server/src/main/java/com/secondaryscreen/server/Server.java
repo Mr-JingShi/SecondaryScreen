@@ -13,8 +13,8 @@ public class Server {
             String secondActivity = null;
 
             if (args.length >= 2) {
-                firstActivity = args[0];
-                secondActivity = args[1];
+                firstActivity = Utils.prettifyActivity(args[0]);
+                secondActivity = Utils.prettifyActivity(args[1]);
                 System.out.println("firstActivity:" + firstActivity);
                 System.out.println("secondActivity:" + secondActivity);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

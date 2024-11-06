@@ -1,8 +1,6 @@
 package com.secondaryscreen.server;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -14,6 +12,7 @@ import java.util.Set;
 public abstract class ServerChannel {
     private Thread mThread;
     private int mPort;
+    private String mRemoteAddress;
     public ServerChannel(int port) {
         mPort = port;
         mThread = new ServerChannelThread();
@@ -30,8 +29,7 @@ public abstract class ServerChannel {
     }
 
     public abstract void work(byte[] buffer, int length);
-    public void accept(String remoteAddress) { }
-
+    public void accept(SocketChannel socketChannel) {}
     private class ServerChannelThread extends Thread {
         public ServerChannelThread() {
             super("ServerChannelThread");
@@ -72,15 +70,7 @@ public abstract class ServerChannel {
                                 }
                                 currentSocketChannel = socketChannel;
 
-                                SocketAddress socketAddress = socketChannel.socket().getRemoteSocketAddress();
-                                if (socketAddress instanceof InetSocketAddress) {
-                                    InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
-                                    // getHostName有时会查询NDS，8～10秒才会退出，所以改用getHostAddress
-                                    // accept(inetSocketAddress.getHostName());
-                                    accept(inetSocketAddress.getAddress().getHostAddress());
-                                } else {
-                                    System.out.println("socketAddress is not InetSocketAddress");
-                                }
+                                accept(socketChannel);
                             }
                             if (key.isReadable()) {
                                 SocketChannel socketChannel = (SocketChannel) key.channel();
