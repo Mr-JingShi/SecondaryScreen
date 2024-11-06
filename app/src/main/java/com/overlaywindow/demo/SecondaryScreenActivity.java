@@ -22,7 +22,9 @@ public class SecondaryScreenActivity extends AppCompatActivity {
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
     private DisplayClient mDisplayClient;
-    private int mRotation;
+    private int mRotation = -1;
+    private float mRealScaleX;
+    private float mRealScaleY;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "SecondaryScreenSlaveActivity onCreate");
@@ -59,31 +61,24 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         dm.registerDisplayListener(mDisplayListener, null);
 
-        WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-        Display defaultDisplay = wm.getDefaultDisplay();
-        mRotation = defaultDisplay.getRotation();
-
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        defaultDisplay.getRealMetrics(displayMetrics);
-
         TextView textView = findViewById(R.id.secondaryscreen_title);
         textView.bringToFront();
 
         mTextureView = findViewById(R.id.secondaryscreen_texture);
         mTextureView.setPivotX(0);
         mTextureView.setPivotY(0);
-        mTextureView.getLayoutParams().width = displayMetrics.widthPixels;
-        mTextureView.getLayoutParams().height = displayMetrics.heightPixels;
         mTextureView.setOpaque(false);
         mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
-        mTextureView.requestLayout();
-        Log.i(TAG, "displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
+        mTextureView.setOnTouchListener((view, event) -> {
+            Log.i(TAG, "onTouch:" + event);
 
-        if (mRotation % 2 == 1) {
-            mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, mRotation, displayMetrics.densityDpi);
-        } else {
-            mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, mRotation, displayMetrics.densityDpi);
-        }
+            event.setLocation(event.getX()/mRealScaleX, event.getY()/mRealScaleY);
+
+            Utils.offerMotionEvent(event);
+            return true;
+        });
+
+        setRect();
     }
 
     @Override
@@ -106,11 +101,6 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                     mVideoClient.start(new Surface(surfaceTexture));
                     mDisplayClient.start();
                     mControlClient.start();
-
-                    mTextureView.setOnTouchListener((view, event) -> {
-                        Utils.offerMotionEvent(event);
-                        return true;
-                    });
                 }
 
                 @Override
@@ -139,27 +129,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 @Override
                 public void onDisplayChanged(int displayId) {
                     if (displayId == 0) {
-                        int rotation = Utils.getRotation();
-                        if (mRotation != rotation) {
-                            mRotation = rotation;
-
-                            WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-                            Display defaultDisplay = wm.getDefaultDisplay();
-                            DisplayMetrics displayMetrics = new DisplayMetrics();
-                            defaultDisplay.getRealMetrics(displayMetrics);
-
-                            mTextureView.getLayoutParams().width = displayMetrics.widthPixels;
-                            mTextureView.getLayoutParams().height = displayMetrics.heightPixels;
-                            mTextureView.requestLayout();
-
-                            Log.i(TAG, "displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
-
-                            if (rotation % 2 == 1) {
-                                mDisplayClient.setScreenInfo(1, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
-                            } else {
-                                mDisplayClient.setScreenInfo(1, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
-                            }
-                        }
+                        setRect();
                     }
                 }
 
@@ -167,4 +137,51 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 public void onDisplayRemoved(int displayId) {
                 }
             };
+
+    private void setRect() {
+        WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+
+        int rotation = display.getRotation();
+        if (rotation != mRotation) {
+            mRotation = rotation;
+
+            DisplayMetrics metrics = new DisplayMetrics();
+            display.getMetrics(metrics);
+            DisplayMetrics realMetrics = new DisplayMetrics();
+            display.getRealMetrics(realMetrics);
+
+            if (mRotation % 2 == 1) {
+                mDisplayClient.setScreenInfo(1, realMetrics.heightPixels, realMetrics.widthPixels, mRotation, realMetrics.densityDpi);
+            } else {
+                mDisplayClient.setScreenInfo(1, realMetrics.widthPixels, realMetrics.heightPixels, mRotation, realMetrics.densityDpi);
+            }
+
+            if (realMetrics.widthPixels > realMetrics.heightPixels) {
+                if (metrics.widthPixels > metrics.heightPixels) {
+                    mTextureView.getLayoutParams().width = metrics.widthPixels;
+                    mTextureView.getLayoutParams().height = metrics.heightPixels;
+                } else {
+                    mTextureView.getLayoutParams().width = metrics.heightPixels;
+                    mTextureView.getLayoutParams().height = metrics.widthPixels;
+                }
+            } else {
+                if (metrics.widthPixels <= metrics.heightPixels) {
+                    mTextureView.getLayoutParams().width = metrics.widthPixels;
+                    mTextureView.getLayoutParams().height = metrics.heightPixels;
+                } else {
+                    mTextureView.getLayoutParams().width = metrics.heightPixels;
+                    mTextureView.getLayoutParams().height = metrics.widthPixels;
+                }
+            }
+            mTextureView.requestLayout();
+            Log.i(TAG, "rotation:" + mRotation);
+            Log.i(TAG, "TextureView width:" + mTextureView.getLayoutParams().width + " height:" + mTextureView.getLayoutParams().height);
+            Log.i(TAG, "realMetrics widthPixels:" + realMetrics.widthPixels + " heightPixels:" + realMetrics.heightPixels);
+
+            mRealScaleX = (float)mTextureView.getLayoutParams().width / realMetrics.widthPixels;
+            mRealScaleY = (float)mTextureView.getLayoutParams().height / realMetrics.heightPixels;
+            Log.i(TAG, "mRealScaleX:" + mRealScaleX + " mRealScaleY:" + mRealScaleY);
+        }
+    }
 }
