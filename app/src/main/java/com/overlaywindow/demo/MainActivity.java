@@ -109,10 +109,11 @@ public class MainActivity extends AppCompatActivity {
 
                     Utils.hideKeyboard(view);
 
+                    Utils.setRemoteHost(wlanAddress);
+
                     finish();
 
                     Intent intent = new Intent(this, SecondaryScreenActivity.class);
-                    intent.putExtra("remoteHost", wlanAddress);
                     startActivity(intent);
                 }
             }

@@ -46,18 +46,6 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         mControlClient = new ControlClient();
         mDisplayClient = new DisplayClient();
 
-        Intent intent = getIntent();
-        if (intent != null) {
-            String remoteHost = intent.getStringExtra("remoteHost");
-
-            Log.i(TAG, "remoteHost:" + remoteHost);
-            if (remoteHost != null && !remoteHost.isEmpty()) {
-                Utils.setRemoteHost(remoteHost);
-            } else {
-                throw new RuntimeException("remoteHost error");
-            }
-        }
-
         DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         dm.registerDisplayListener(mDisplayListener, null);
 
