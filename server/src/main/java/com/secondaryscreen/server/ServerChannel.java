@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 public abstract class ServerChannel {
+    private static String TAG = "ServerChannel";
     private Thread mThread;
     private int mPort;
     private String mRemoteAddress;
@@ -33,7 +34,7 @@ public abstract class ServerChannel {
     private class ServerChannelThread extends Thread {
         public ServerChannelThread() {
             super("ServerChannelThread");
-            System.out.println("ServerChannelThread");
+            Ln.d(TAG, "ServerChannelThread");
         }
         @Override
         public void run() {
@@ -66,7 +67,7 @@ public abstract class ServerChannel {
 
                                 if (currentSocketChannel != null) {
                                     currentSocketChannel.close();
-                                    System.out.println("close old sockectChannel");
+                                    Ln.i(TAG, "close old sockectChannel");
                                 }
                                 currentSocketChannel = socketChannel;
 
@@ -79,7 +80,7 @@ public abstract class ServerChannel {
                                     recv(socketChannel, headerBuffer, 4);
                                     int len = headerBuffer.getInt();
                                     if (eventBuffer.capacity() < len) {
-                                        System.out.println("need bigger len:" + len);
+                                        Ln.i(TAG, "need bigger len:" + len);
                                         eventBuffer = ByteBuffer.allocate(len);
                                     }
                                     recv(socketChannel, eventBuffer, len);
@@ -87,16 +88,14 @@ public abstract class ServerChannel {
                                 } catch (Exception e) {
                                     socketChannel.close();
 
-                                    System.out.println("ServerChannelThread recv exception:" + e);
-                                    e.printStackTrace();
+                                    Ln.w(TAG, "ServerChannelThread recv exception", e);
                                 }
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("ServerChannelThread exception:" + e);
+                Ln.w(TAG, "ServerChannelThread exception", e);
             }
         }
 

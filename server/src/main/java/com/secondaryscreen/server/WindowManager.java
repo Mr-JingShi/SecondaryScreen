@@ -5,6 +5,7 @@ import android.os.IInterface;
 import java.lang.reflect.Method;
 
 public final class WindowManager {
+    private static String TAG = "WindowManager";
     private final IInterface manager;
     private Method getRotationMethod;
     private RotationListener mRotationWatcher;
@@ -110,7 +111,7 @@ public final class WindowManager {
             Method method = getGetRotationMethod();
             return (int) method.invoke(manager);
         } catch (ReflectiveOperationException e) {
-            System.out.println("Could not invoke method" + e);
+            Ln.w(TAG, "Could not invoke method", e);
             return 0;
         }
     }
@@ -127,14 +128,14 @@ public final class WindowManager {
                     break;
                 default:
                     if (displayId != 0) {
-                        System.out.println("Secondary display rotation not supported on this device");
+                        Ln.w(TAG, "Secondary display rotation not supported on this device");
                         return;
                     }
                     method.invoke(manager, rotation);
                     break;
             }
         } catch (ReflectiveOperationException e) {
-            System.out.println("Could not invoke method" + e);
+            Ln.w(TAG, "Could not invoke method", e);
         }
     }
 
@@ -146,13 +147,13 @@ public final class WindowManager {
                     return (boolean) method.invoke(manager, displayId);
                 default:
                     if (displayId != 0) {
-                        System.out.println("Secondary display rotation not supported on this device");
+                        Ln.w(TAG, "Secondary display rotation not supported on this device");
                         return false;
                     }
                     return (boolean) method.invoke(manager);
             }
         } catch (ReflectiveOperationException e) {
-            System.out.println("Could not invoke method" + e);
+            Ln.w(TAG, "Could not invoke method", e);
             return false;
         }
     }
@@ -169,7 +170,7 @@ public final class WindowManager {
                     break;
                 default:
                     if (displayId != 0) {
-                        System.out.println("Secondary display rotation not supported on this device");
+                        Ln.w(TAG, "Secondary display rotation not supported on this device");
                         return;
                     }
                     method.invoke(manager);

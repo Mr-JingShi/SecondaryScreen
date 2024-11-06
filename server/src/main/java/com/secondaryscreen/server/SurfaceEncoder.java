@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/SurfaceEncoder.java
 
 public class SurfaceEncoder {
+    private static final String TAG = "SurfaceEncoder";
     private static final int DEFAULT_I_FRAME_INTERVAL = 10; // seconds
     private static final int REPEAT_FRAME_DELAY_US = 100_000; // repeat after 100ms
     private static final String KEY_MAX_FPS_TO_ENCODER = "max-fps-to-encoder";
@@ -49,15 +50,14 @@ public class SurfaceEncoder {
 
                 try (Socket socket = new Socket()) {
                     socket.connect(new InetSocketAddress(remoteAddress, Utils.VIDEO_CHANNEL_PORT), 3000);
-                    System.out.println("VideoChannel socket connect success");
+                    Ln.d(TAG, "VideoChannel socket connect success");
 
                     screenCapture.computeScreenInfo();
                     streamer.setSocket(socket);
 
                     streamScreen(screenCapture, streamer, mediaCodec, format);
                 } catch (Exception e) {
-                    System.out.println("VideoChannel socket exception:" + e);
-                    e.printStackTrace();
+                    Ln.w(TAG, "VideoChannel socket exception", e);
                 }
             }
 
@@ -74,7 +74,7 @@ public class SurfaceEncoder {
         do {
             mFirstFrameSent = false;
             Size size = screenCapture.getSize();
-            System.out.println("streamScreen size width:" + size.getWidth() + " height:" + size.getHeight());
+            Ln.d(TAG, "streamScreen size width:" + size.getWidth() + " height:" + size.getHeight());
             format.setInteger(MediaFormat.KEY_WIDTH, size.getWidth());
             format.setInteger(MediaFormat.KEY_HEIGHT, size.getHeight());
 
@@ -91,12 +91,11 @@ public class SurfaceEncoder {
                 // do not call stop() on exception, it would trigger an IllegalStateException
                 mediaCodec.stop();
             } catch (IllegalStateException | IllegalArgumentException e) {
-                System.out.println("Encoding error: " + e.getClass().getName() + ": " + e.getMessage());
-                e.printStackTrace();
+                Ln.w(TAG, "Encoding error", e);
                 if (!prepareRetry(screenCapture, size)) {
                     throw e;
                 }
-                System.out.println("Retrying...");
+                Ln.w(TAG, "Retrying...");
                 alive = true;
             } finally {
                 mediaCodec.reset();
@@ -139,7 +138,7 @@ public class SurfaceEncoder {
         }
 
         // Retry with a smaller size
-        System.out.println("Retrying with -m" + newMaxSize + "...");
+        Ln.i(TAG, "Retrying with -m" + newMaxSize + "...");
         return true;
     }
 
@@ -207,10 +206,10 @@ public class SurfaceEncoder {
     private static MediaCodec createMediaCodec() throws IOException, IllegalArgumentException {
         try {
             MediaCodec mediaCodec = MediaCodec.createEncoderByType(VIDEO_FORMAT);
-            System.out.println("Using video encoder:" + mediaCodec.getName());
+            Ln.i(TAG, "Using video encoder:" + mediaCodec.getName());
             return mediaCodec;
         } catch (IOException | IllegalArgumentException e) {
-            System.out.println("Could not create video encoder for " + VIDEO_FORMAT);
+            Ln.w(TAG, "Could not create video encoder for " + VIDEO_FORMAT);
             throw e;
         }
     }
@@ -245,7 +244,7 @@ public class SurfaceEncoder {
             mediaCodec.configure(mediaFormat, null, null, 0);
 
             MediaFormat outputFormat = mediaCodec.getOutputFormat();
-            System.out.println("outputFormat:" + outputFormat);
+            Ln.d(TAG, "outputFormat:" + outputFormat);
             if (outputFormat != null) {
                 int maxWidth = outputFormat.getInteger(MediaFormat.KEY_MAX_WIDTH, 0);
                 int maxHeight = outputFormat.getInteger(MediaFormat.KEY_MAX_HEIGHT, 0);
@@ -255,11 +254,11 @@ public class SurfaceEncoder {
                     maxWidth = maxHeight;
                     maxHeight = tmp;
                 }
-                System.out.println("KEY_MAX_WIDTH:" + maxWidth + " KEY_MAX_HEIGHT:" + maxHeight);
+                Ln.d(TAG, "KEY_MAX_WIDTH:" + maxWidth + " KEY_MAX_HEIGHT:" + maxHeight);
 
                 if (maxWidth != 0 && maxHeight != 0) {
                     for (int i = 0; i < MAX_CONSECUTIVE_ERRORS; ++i) {
-                        System.out.println("size.width:" + size.getWidth() + ", size.height:" + size.getHeight());
+                        Ln.d(TAG, "size.width:" + size.getWidth() + ", size.height:" + size.getHeight());
 
                         if (maxWidth < size.getWidth() || maxHeight < size.getHeight()) {
                             maxSize = chooseMaxSizeFallback(size);
@@ -277,7 +276,7 @@ public class SurfaceEncoder {
             mediaCodec.stop();
             mediaCodec.release();
         } catch (Exception e) {
-            System.out.println("chooseMaxSize IOException:" + e);
+            Ln.w(TAG, "chooseMaxSize IOException", e);
         }
 
         return maxSize;

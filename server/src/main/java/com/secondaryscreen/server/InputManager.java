@@ -11,7 +11,7 @@ import java.lang.reflect.Method;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
 public final class InputManager {
-
+    private static final String TAG = "InputManager";
     public static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
 
     private final Object mManager;
@@ -55,7 +55,7 @@ public final class InputManager {
             Method method = getInjectInputEventMethod();
             return (boolean) method.invoke(mManager, inputEvent, INJECT_INPUT_EVENT_MODE_ASYNC);
         } catch (ReflectiveOperationException e) {
-            System.out.println("Could not invoke method:" + e);
+            Ln.w(TAG, "Could not invoke method", e);
             return false;
         }
     }
@@ -73,7 +73,7 @@ public final class InputManager {
             method.invoke(inputEvent, displayId);
             return true;
         } catch (ReflectiveOperationException e) {
-            System.out.println("Cannot associate a display id to the input event:" + e);
+            Ln.w(TAG, "Cannot associate a display id to the input event", e);
             return false;
         }
     }

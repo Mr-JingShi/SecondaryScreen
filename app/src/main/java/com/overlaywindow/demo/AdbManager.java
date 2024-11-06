@@ -87,7 +87,7 @@ public class AdbManager extends AbsAdbConnectionManager {
             PublicKey publicKey = generateKeyPair.getPublic();
             mPrivateKey = generateKeyPair.getPrivate();
             // Generate a new certificate
-            String subject = "CN=OverlayWindow App";
+            String subject = "CN=SecondaryScreen App";
             String algorithmName = "SHA512withRSA";
             long expiryDate = System.currentTimeMillis() + 86400000;
             CertificateExtensions certificateExtensions = new CertificateExtensions();
@@ -131,7 +131,7 @@ public class AdbManager extends AbsAdbConnectionManager {
     @NonNull
     @Override
     protected String getDeviceName() {
-        return "OverlayWindow App";
+        return "SecondaryScreen App";
     }
 
     @Nullable

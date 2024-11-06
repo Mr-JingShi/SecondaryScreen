@@ -7,17 +7,10 @@ import java.net.Socket;
 
 public class ControlClient {
     private static String TAG = "ControlClient";
-    private String HOST = "127.0.0.1";
-    private int PORT = 8402;
-    private int TIMEOUT = 3000;
     private Thread mThread;
 
     public ControlClient() {
         mThread = new ControlClientThread();
-    }
-
-    public void setRemoteHost(String remoteHost) {
-        this.HOST = remoteHost;
     }
 
     public void start() {
@@ -47,7 +40,7 @@ public class ControlClient {
         @Override
         public void run() {
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
+                socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.CONTROL_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
 
                 Log.d(TAG, "ControlClientThread connect success");
 
@@ -63,7 +56,7 @@ public class ControlClient {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("ControlClientThread socket exception:" + e);
+                Log.w(TAG, "ControlClientThread socket exception:" + e);
             }
         }
     }

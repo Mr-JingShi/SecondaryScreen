@@ -1,6 +1,7 @@
 package com.secondaryscreen.server;
 
 public class ActivityDetector {
+    private static String TAG = "ActivityDetector";
     private static int SCAN_INTERVAL = 1000; // 1s
     private static int WAIT_INTERVAL = 2000; // 2s
     private String mFirstActivity;
@@ -37,7 +38,7 @@ public class ActivityDetector {
     class DetectorThread extends Thread {
         DetectorThread() {
             super("DetectorThread");
-            System.out.println("DetectorThread");
+            Ln.i(TAG, "DetectorThread");
         }
         @Override
         public void run() {

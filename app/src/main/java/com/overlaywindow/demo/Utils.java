@@ -29,6 +29,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Utils {
     private static String TAG = "Utils";
+    public static int CONTROL_CHANNEL_PORT = 8402;
+    public static int VIDEO_CHANNEL_PORT = 8403;
+    public static int DISPLAY_CHANNEL_PORT = 8404;
+    public static int SOCKET_TIMEOUT = 3000;
+    public static String REMOTE_HOST = "127.0.0.1";
     private static Context mContext = null;
     private static boolean mIsSingleMachineMode = true;
     private static int mVirtualDisplayId = -1;
@@ -103,8 +108,7 @@ public class Utils {
                 }
             }
         } catch (SocketException e) {
-            e.printStackTrace();
-            Log.e(TAG, "getLocalInetAddress exception:" + e.getMessage(), e);
+            Log.w(TAG, "getLocalInetAddress exception", e);
         }
 
         if (ip == null) {
@@ -286,5 +290,12 @@ public class Utils {
         } catch (IllegalArgumentException | InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    static void setRemoteHost(String remoteHost) {
+        REMOTE_HOST = remoteHost;
+    }
+    static String getRemoteHost() {
+        return REMOTE_HOST;
     }
 }

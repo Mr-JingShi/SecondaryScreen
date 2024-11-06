@@ -6,6 +6,7 @@ import android.graphics.Rect;
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenInfo.java
 
 public final class ScreenInfo {
+    private static final String TAG = "ScreenInfo";
     private static final int LOCK_VIDEO_ORIENTATION_INITIAL = -2;
     /**
      * Device (physical) size, possibly cropped
@@ -30,7 +31,7 @@ public final class ScreenInfo {
     private final int mLockedVideoOrientation;
 
     public ScreenInfo(Rect contentRect, Size unlockedVideoSize, int deviceRotation, int lockedVideoOrientation) {
-        System.out.println("deviceRotation:" + deviceRotation);
+        Ln.d(TAG, "deviceRotation:" + deviceRotation);
         this.mContentRect = contentRect;
         this.mUnlockedVideoSize = unlockedVideoSize;
         this.mDeviceRotation = deviceRotation;
@@ -68,7 +69,7 @@ public final class ScreenInfo {
     }
 
     public ScreenInfo withDeviceRotation(int newDeviceRotation) {
-        System.out.println("newDeviceRotation:" + newDeviceRotation + " oldDeviceRotation:" + mDeviceRotation);
+        Ln.d(TAG, "newDeviceRotation:" + newDeviceRotation + " oldDeviceRotation:" + mDeviceRotation);
         if (newDeviceRotation == mDeviceRotation) {
             return this;
         }
@@ -100,7 +101,7 @@ public final class ScreenInfo {
             }
             if (!contentRect.intersect(crop)) {
                 // intersect() changes contentRect so that it is intersected with crop
-                System.out.println("Crop rectangle (" + formatCrop(crop) + ") does not intersect device screen (" + formatCrop(deviceSize.toRect()) + ")");
+                Ln.d(TAG, "Crop rectangle (" + formatCrop(crop) + ") does not intersect device screen (" + formatCrop(deviceSize.toRect()) + ")");
                 contentRect = new Rect(); // empty
             }
         }

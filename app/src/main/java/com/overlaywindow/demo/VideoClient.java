@@ -16,7 +16,6 @@ import java.util.Set;
 
 public class VideoClient {
     private static String TAG = "VideoClient";
-    private int PORT = 8403;
     private Thread mThread;
     private MediaDecoder mMediaDecoder;
     private Surface mSurface;
@@ -54,7 +53,7 @@ public class VideoClient {
         public void run() {
             try (Selector selector = Selector.open();
                  ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
-                serverSocket.socket().bind(new InetSocketAddress(PORT));
+                serverSocket.socket().bind(new InetSocketAddress(Utils.VIDEO_CHANNEL_PORT));
                 serverSocket.socket().setReuseAddress(true);
                 serverSocket.configureBlocking(false);
                 serverSocket.register(selector, SelectionKey.OP_ACCEPT);

@@ -2,7 +2,6 @@ package com.overlaywindow.demo;
 
 import android.util.Log;
 
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.Condition;
@@ -11,9 +10,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class DisplayClient {
     private static String TAG = "DisplayClient";
-    private String HOST = "127.0.0.1";
-    private int PORT = 8404;
-    private int TIMEOUT = 3000;
     private Thread mThread;
     private Lock mLock = new ReentrantLock();
     private Condition mCondition = mLock.newCondition();
@@ -22,9 +18,6 @@ public class DisplayClient {
         mThread = new DisplayClientThread();
     }
 
-    public void setRemoteHost(String remoteHost) {
-        this.HOST = remoteHost;
-    }
     public void setScreenInfo(int flag, int width, int height, int rotation, int densityDpi) {
         StringBuilder sb = new StringBuilder();
         sb.append(flag);
@@ -37,13 +30,33 @@ public class DisplayClient {
         sb.append(",");
         sb.append(densityDpi);
 
+        setDisplayInfo(sb.toString());
+    }
+
+    private void setDisplayInfo(String displayInfo) {
         mLock.lock();
         try {
-            mDisplayInfo = sb.toString();
+            mDisplayInfo = displayInfo;
             mCondition.signal();
         } finally {
             mLock.unlock();
         }
+
+    }
+
+    private String getDisplayInfo() throws InterruptedException {
+        String displayInfo = null;
+        mLock.lock();
+        try {
+            while (mDisplayInfo == null) {
+                mCondition.await();
+            }
+            displayInfo = mDisplayInfo;
+            mDisplayInfo = null;
+        } finally {
+            mLock.unlock();
+        }
+        return displayInfo;
     }
 
     public void start() {
@@ -72,22 +85,12 @@ public class DisplayClient {
         @Override
         public void run() {
             try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(HOST, PORT), TIMEOUT);
+                socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.DISPLAY_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
                 Log.d(TAG, "DisplayClientThread connect success");
 
                 byte[] length = new byte[4];
                 while (!Thread.currentThread().isInterrupted()) {
-                    String displayInfo = null;
-                    mLock.lock();
-                    try {
-                        while (mDisplayInfo == null) {
-                            mCondition.await();
-                        }
-                        displayInfo = mDisplayInfo;
-                        mDisplayInfo = null;
-                    } finally {
-                        mLock.unlock();
-                    }
+                    String displayInfo = getDisplayInfo();
 
                     Log.d(TAG, "displayInfo:" + displayInfo);
                     byte[] bytes = displayInfo.getBytes("UTF-8");
@@ -99,7 +102,7 @@ public class DisplayClient {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("DisplayClientThread exception:" + e);
+                Log.d(TAG, "DisplayClientThread exception:" + e);
             }
         }
     }

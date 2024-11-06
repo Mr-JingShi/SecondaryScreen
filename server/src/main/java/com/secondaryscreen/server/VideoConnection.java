@@ -2,12 +2,8 @@ package com.secondaryscreen.server;
 
 import android.os.Looper;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-
 public final class VideoConnection {
+    private static String TAG = "VideoConnection";
     private Thread mThread;
     public VideoConnection() {
         mThread = new VideoChannelThread();
@@ -26,7 +22,7 @@ public final class VideoConnection {
     private class VideoChannelThread extends Thread {
         public VideoChannelThread() {
             super("VideoChannelThread");
-            System.out.println("VideoChannelThread");
+            Ln.d(TAG, "VideoChannelThread");
         }
 
         @Override

@@ -50,8 +50,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
             Log.i(TAG, "remoteHost:" + remoteHost);
             if (remoteHost != null && !remoteHost.isEmpty()) {
-                mControlClient.setRemoteHost(remoteHost);
-                mDisplayClient.setRemoteHost(remoteHost);
+                Utils.setRemoteHost(remoteHost);
             } else {
                 throw new RuntimeException("remoteHost error");
             }

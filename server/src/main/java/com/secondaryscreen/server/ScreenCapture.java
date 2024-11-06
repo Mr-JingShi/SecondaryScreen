@@ -6,7 +6,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.view.Surface;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -16,6 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ScreenCapture.java
 
 public class ScreenCapture implements WindowManager.RotationListener, DisplayManager.DisplayListener {
+    private static final String TAG = "ScreenCapture";
     private final AtomicBoolean mResetCapture = new AtomicBoolean();
     private final AtomicBoolean mRestartCapture = new AtomicBoolean();
     private static String VIRTUALDISPLAY = "virtualdisplay";
@@ -49,14 +49,7 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
 
     @Override
     public void onDisplayChanged(String remoteAddress) {
-        mLock.lock();
-        try {
-            System.out.println("onDisplayChanged remoteAddress:" + remoteAddress);
-            mRemoteAddress = remoteAddress;
-            mCondition.signal();
-        } finally {
-            mLock.unlock();
-        }
+        setRemoteAddress(remoteAddress);
 
         requestRestart();
     }
@@ -77,6 +70,16 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
         return mRestartCapture.getAndSet(false);
     }
 
+    private void setRemoteAddress(String remoteAddress) {
+        mLock.lock();
+        try {
+            mRemoteAddress = remoteAddress;
+            mCondition.signal();
+        } finally {
+            mLock.unlock();
+        }
+    }
+
     public String getRemoteAddress() throws InterruptedException {
         String remoteAddress = null;
         mLock.lock();
@@ -86,7 +89,6 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
             }
             remoteAddress = mRemoteAddress;
             mRemoteAddress = null;
-            System.out.println("getRemoteAddress remoteAddress:" + remoteAddress);
         } finally {
             mLock.unlock();
         }
@@ -106,25 +108,25 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
         int mirrorDisplayId = DisplayInfo.getMirrorDisplayId();
         try {
             Rect contentRect = mScreenInfo.getContentRect();
-            System.out.println("contentRect:" + contentRect);
+            Ln.d(TAG, "contentRect:" + contentRect);
             // does not include the locked video orientation
             Rect unlockedVideoRect = mScreenInfo.getUnlockedVideoSize().toRect();
-            System.out.println("unlockedVideoRect:" + unlockedVideoRect);
+            Ln.d(TAG, "unlockedVideoRect:" + unlockedVideoRect);
             int videoRotation = mScreenInfo.getVideoRotation();
-            System.out.println("videoRotation:" + videoRotation);
+            Ln.d(TAG, "videoRotation:" + videoRotation);
 
             mDisplay = createDisplay();
             setDisplaySurface(mDisplay, surface, videoRotation, contentRect, unlockedVideoRect, mirrorDisplayId);
-            System.out.println("Display: using SurfaceControl API");
+            Ln.i(TAG, "Display: using SurfaceControl API");
         } catch (Exception surfaceControlException) {
-            System.out.println("surfaceControlException:" + surfaceControlException);
+            Ln.w(TAG, "surfaceControlException", surfaceControlException);
             try {
                 Rect videoRect = mScreenInfo.getVideoSize().toRect();
-                System.out.println("videoRotation:" + videoRect);
+                Ln.d(TAG, "videoRotation:" + videoRect);
                 mVirtualDisplay = ServiceManager.getDisplayManager().createVirtualDisplay(VIRTUALDISPLAY, videoRect.width(), videoRect.height(), mirrorDisplayId, surface);
-                System.out.println("Display: using DisplayManager API");
+                Ln.i(TAG, "Display: using DisplayManager API");
             } catch (Exception displayManagerException) {
-                System.out.println("Could not create display using DisplayManager" + displayManagerException);
+                Ln.w(TAG, "Could not create display using DisplayManager", displayManagerException);
                 throw new AssertionError("Could not create display");
             }
         }

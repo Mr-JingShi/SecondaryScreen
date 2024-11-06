@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
 public final class DisplayManager {
+    private static final String TAG = "DisplayManager";
     private final Object mManager; // instance of hidden class android.hardware.display.DisplayManagerGlobal
     private Method mCreateVirtualDisplayMethod;
     private DisplayInfo mDisplayInfo;
@@ -43,7 +44,7 @@ public final class DisplayManager {
     }
 
     public void forceDisplayInfo(int width, int height, int rotation, int densityDpi) {
-        System.out.println("forceDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+        Ln.d(TAG, "forceDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
         mDisplayInfo = new DisplayInfo(new Size(width, height), rotation, densityDpi);;
     }
 
@@ -57,7 +58,7 @@ public final class DisplayManager {
             int rotation = cls.getDeclaredField("rotation").getInt(displayInfo);
             int densityDpi = cls.getDeclaredField("logicalDensityDpi").getInt(displayInfo);
 
-            System.out.println("getDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+            Ln.d(TAG, "getDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
             return new DisplayInfo(new Size(width, height), rotation, densityDpi);
         } catch (ReflectiveOperationException e) {

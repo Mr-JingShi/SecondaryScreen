@@ -1,5 +1,7 @@
 package com.secondaryscreen.server;
 
+import android.util.Log;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
@@ -36,8 +38,7 @@ public final class DisplayConnection extends ServerChannel {
         try {
             SurfaceControl.resizeVirtualDisplay(width, height, densityDpi);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("resizeVirtualDisplay exception:" + e);
+            Ln.w(TAG, "resizeVirtualDisplay exception", e);
         }
     }
 
@@ -45,7 +46,7 @@ public final class DisplayConnection extends ServerChannel {
     public void work(byte[] buffer, int length) {
         // 1200,1920,240
         String displayInfo = new String(buffer, 0, length);
-        System.out.println("displayInfo:" + displayInfo);
+        Ln.d(TAG, "displayInfo:" + displayInfo);
         String[] split = displayInfo.split(",");
         int flag = Integer.parseInt(split[0]);
         int width = Integer.parseInt(split[1]);
@@ -56,8 +57,8 @@ public final class DisplayConnection extends ServerChannel {
         // 0:Local 1:Remote
         Utils.setSingleMachineMode(flag == 0);
 
-        System.out.println("old width:" + mWidth + " height:" + mHeight + " rotation:" + mRotation + " densityDpi:" + mDensityDpi);
-        System.out.println("new width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
+        Ln.d(TAG, "old width:" + mWidth + " height:" + mHeight + " rotation:" + mRotation + " densityDpi:" + mDensityDpi);
+        Ln.d(TAG, "new width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
 
         boolean needResize = false;
         boolean needRotate = false;
@@ -103,7 +104,7 @@ public final class DisplayConnection extends ServerChannel {
             // mRemoteAddress = inetSocketAddress.getHostName();
             mRemoteAddress = inetSocketAddress.getAddress().getHostAddress();
         } else {
-            System.out.println("socketAddress is not InetSocketAddress");
+            Ln.w(TAG, "socketAddress is not InetSocketAddress");
         }
     }
 }

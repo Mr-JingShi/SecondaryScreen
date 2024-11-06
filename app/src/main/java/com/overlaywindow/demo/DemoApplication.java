@@ -8,8 +8,6 @@ public class DemoApplication extends Application {
     private static String TAG = "DemoApplication";
     public DemoApplication() {
         super();
-
-        Log.i(TAG, "DemoApplication");
     }
 
     @Override
