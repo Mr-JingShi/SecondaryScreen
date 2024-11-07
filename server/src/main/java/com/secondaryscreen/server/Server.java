@@ -14,12 +14,12 @@ public class Server {
             String secondActivity = null;
 
             if (args.length >= 2) {
-                firstActivity = Utils.prettifyActivity(args[0]);
-                secondActivity = Utils.prettifyActivity(args[1]);
-                Ln.i(TAG, "firstActivity:" + firstActivity + " secondActivity:" + secondActivity);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     throw new RuntimeException(">= Android 13时，无需指定activity！！！");
                 }
+                firstActivity = Utils.prettifyActivity(args[0]);
+                secondActivity = Utils.prettifyActivity(args[1]);
+                Ln.i(TAG, "firstActivity:" + firstActivity + " secondActivity:" + secondActivity);
             }
 
             DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(true);

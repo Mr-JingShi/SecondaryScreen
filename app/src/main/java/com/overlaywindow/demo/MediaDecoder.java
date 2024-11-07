@@ -13,6 +13,8 @@ public class MediaDecoder {
     private static String VIDEO_FORMAT = "video/avc";
     private Thread mThread;
     private MediaCodec mMediaCodec;
+    private ByteBuffer mCodecBuffer;
+    private MediaCodec.BufferInfo mBufferInfo;
 
     public MediaDecoder() {}
 
@@ -52,6 +54,24 @@ public class MediaDecoder {
     }
 
     public void decode(ByteBuffer codecBuffer, MediaCodec.BufferInfo bufferInfo) {
+        if (mCodecBuffer != null && mBufferInfo != null) {
+            if (tryDecode(mCodecBuffer, mBufferInfo)) {
+                Log.w(TAG, "decode failed again");
+            }
+            mCodecBuffer = null;
+            mBufferInfo = null;
+        }
+        if (tryDecode(codecBuffer, bufferInfo)) {
+            Log.w(TAG, "decode failed");
+            mCodecBuffer = ByteBuffer.allocate(bufferInfo.size);
+            mCodecBuffer.put(codecBuffer);
+
+            mBufferInfo = new MediaCodec.BufferInfo();
+            mBufferInfo.set(bufferInfo.offset, mBufferInfo.size, mBufferInfo.presentationTimeUs, mBufferInfo.flags);
+        }
+    }
+
+    public boolean tryDecode(ByteBuffer codecBuffer, MediaCodec.BufferInfo bufferInfo) {
         /**
          * Returns the index of an input buffer to be filled with valid data
          * or -1 if no such buffer is currently available.
@@ -65,8 +85,8 @@ public class MediaDecoder {
          */
         // public final int dequeueInputBuffer(long timeoutUs) {
         // dequeueInputBuffer有时返回-1，返回-1时如果把buffer丢掉，会导致花屏，这里最大尝试三次
-        for (int i = 0; i < 3; ++i) {
-            int index = mMediaCodec.dequeueInputBuffer(10000L);
+        for (int i = 1; i <= 3 ; ++i) {
+            int index = mMediaCodec.dequeueInputBuffer(i * 10000L);
             if (index >= 0) {
                 ByteBuffer buffer = mMediaCodec.getInputBuffer(index);
                 if (buffer != null) {
@@ -75,9 +95,10 @@ public class MediaDecoder {
                     mMediaCodec.queueInputBuffer(index, 0, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
                 }
 
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     class MediaCodecThread extends Thread {
