@@ -1,16 +1,23 @@
 package com.secondaryscreen.server;
 
+import android.app.ActivityOptions;
+import android.content.Intent;
+
 public class ActivityDetector {
     private static String TAG = "ActivityDetector";
     private static int SCAN_INTERVAL = 1000; // 1s
     private static int WAIT_INTERVAL = 2000; // 2s
     private String mFirstActivity;
     private String mSecondActivity;
+    private String mSecondActivityPackage;
+    private String mSecondActivityClassName;
     private Thread mThread;
 
     public ActivityDetector(String firstActivity, String secondActivity) {
         this.mFirstActivity = firstActivity;
         this.mSecondActivity = secondActivity;
+        this.mSecondActivityPackage = mSecondActivity.substring(0, mSecondActivity.indexOf("/"));
+        this.mSecondActivityClassName = mSecondActivity.substring(mSecondActivity.indexOf("/") + 1);
     }
 
     public void start() {
@@ -25,9 +32,16 @@ public class ActivityDetector {
     }
 
     private void startSecondActivity() {
-        int displayId = DisplayInfo.getMirrorDisplayId();
-        if (displayId > 0) {
-            Utils.startActivity(mSecondActivity, displayId);
+        Intent intent = new Intent();
+        intent.setClassName(mSecondActivityPackage, mSecondActivityClassName);
+        ActivityOptions options = ActivityOptions.makeBasic();
+        options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
+
+        int result = ServiceManager.getActivityManager().startActivity(intent, options.toBundle());
+        Ln.i(TAG, "DetectorThread result:" + result);
+        if (result < 0) {
+            Ln.e(TAG, "Could not start second activity by ActivityManager");
+            Utils.startActivity(mSecondActivity, DisplayInfo.getMirrorDisplayId());
         }
     }
 

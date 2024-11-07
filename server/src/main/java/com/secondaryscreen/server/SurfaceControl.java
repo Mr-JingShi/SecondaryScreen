@@ -17,7 +17,6 @@ import java.lang.reflect.Method;
 
 @SuppressLint("PrivateApi")
 public final class SurfaceControl {
-    private static final String PACKAGE_NAME = "com.android.shell";
     private static final String VIRTUALDISPLAY_NAME_UNSAFE = "PC_virtualdisplay";
     private static final String VIRTUALDISPLAY_NAME = "virtualdisplay";
     private static final Class<?> CLASS;
@@ -98,7 +97,7 @@ public final class SurfaceControl {
                     /* this */ dm,
                     /* callback */ callback,
                     /* projectionToken */ null,
-                    /* packageName */ PACKAGE_NAME,
+                    /* packageName */ Utils.PACKAGE_NAME,
                     /* name */ VIRTUALDISPLAY_NAME_UNSAFE,
                     /* width */ width,
                     /* height */ height,
@@ -114,7 +113,7 @@ public final class SurfaceControl {
                 /* virtualDisplayConfig */ config,
                 /* callback */ callback,
                 /* projectionToken */ null,
-                /* packageName */ PACKAGE_NAME);
+                /* packageName */ Utils.PACKAGE_NAME);
     }
 
     private static Object virtualDisplayCallback() throws Exception {

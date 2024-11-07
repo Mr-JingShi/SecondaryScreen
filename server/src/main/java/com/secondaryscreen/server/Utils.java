@@ -2,6 +2,7 @@ package com.secondaryscreen.server;
 
 public class Utils {
     private static String TAG = "Utils";
+    public static final String PACKAGE_NAME = "com.android.shell";
     public static int CONTROL_CHANNEL_PORT = 8402;
     public static int VIDEO_CHANNEL_PORT = 8403;
     public static int DISPLAY_CHANNEL_PORT = 8404;

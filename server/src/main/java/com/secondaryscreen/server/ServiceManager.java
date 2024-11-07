@@ -25,6 +25,7 @@ public final class ServiceManager {
     private static WindowManager windowManager;
     private static DisplayManager displayManager;
     private static InputManager inputManager;
+    private static ActivityManager activityManager;
     private ServiceManager() {
         /* not instantiable */
     }
@@ -58,5 +59,12 @@ public final class ServiceManager {
             inputManager = InputManager.create();
         }
         return inputManager;
+    }
+
+    public static ActivityManager getActivityManager() {
+        if (activityManager == null) {
+            activityManager = ActivityManager.create();
+        }
+        return activityManager;
     }
 }
