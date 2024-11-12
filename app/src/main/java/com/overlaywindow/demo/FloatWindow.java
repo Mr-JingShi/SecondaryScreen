@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
@@ -30,10 +31,11 @@ final class FloatWindow {
     private final float INITIAL_SCALE = 0.5f;
     private final float MIN_SCALE = 0.3f;
     private final float MAX_SCALE = 1.0f;
-    private final float WINDOW_ALPHA = 0.95f;
+    private final float WINDOW_ALPHA = 1.0f;
     private final boolean DISABLE_MOVE_AND_RESIZE = false;
     private final boolean ADD_FLAG_SECURE = false;
     private final boolean USE_SURFACE_EVENT = false;
+    private final boolean USE_APP_VIRTUALDISPLAY = false;
     private int mWidth;
     private int mHeight;
     private int mDensityDpi;
@@ -73,15 +75,19 @@ final class FloatWindow {
         mWindowManager = (WindowManager)Utils.getContext().getSystemService(
                 Context.WINDOW_SERVICE);
 
-        Display defaultDisplay = mWindowManager.getDefaultDisplay();
+        mRotation = mWindowManager.getDefaultDisplay().getRotation();
 
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        defaultDisplay.getRealMetrics(displayMetrics);
-        mRotation = defaultDisplay.getRotation();
-        Log.d(TAG, "rotation:" + mRotation + " displayMetrics widthPixels:" + displayMetrics.widthPixels + " heightPixels:" + displayMetrics.heightPixels);
-
-        resize(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi, false);
-
+        if (mRotation % 2 == 0) {
+            resize(Resolution.R.TEXTUREVIEW_WIDTH,
+                    Resolution.R.TEXTUREVIEW_HEIGHT,
+                    Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
+                    false);
+        } else {
+            resize(Resolution.R.TEXTUREVIEW_HEIGHT,
+                    Resolution.R.TEXTUREVIEW_WIDTH,
+                    Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
+                    false);
+        }
         createWindow();
 
         mFloatIcon = new FloatIcon(mWindowContent);
@@ -91,11 +97,11 @@ final class FloatWindow {
         mVideoClient = new VideoClient();
         mControlClient = new ControlClient();
         mDisplayClient = new DisplayClient();
-        if (mRotation % 2 == 1) {
-            mDisplayClient.setScreenInfo(0, displayMetrics.heightPixels, displayMetrics.widthPixels, mRotation, displayMetrics.densityDpi);
-        } else {
-            mDisplayClient.setScreenInfo(0, displayMetrics.widthPixels, displayMetrics.heightPixels, mRotation, displayMetrics.densityDpi);
-        }
+        mDisplayClient.setScreenInfo(0,
+                Resolution.R.VIRTUALDISPLAY_WIDTH,
+                Resolution.R.VIRTUALDISPLAY_HEIGHT,
+                mRotation,
+                Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
     }
 
     public void show() {
@@ -348,16 +354,24 @@ final class FloatWindow {
 
     private final SurfaceTextureListener mSurfaceTextureListener =
             new SurfaceTextureListener() {
+                private VirtualDisplay mVirtualDisplay = null;
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
-                    if (View.VISIBLE == mLockImageView.getVisibility()) {
-                        mVideoClient.start(new Surface(surfaceTexture));
-                        mDisplayClient.start();
-                        mControlClient.start();
+                    if (USE_APP_VIRTUALDISPLAY) {
+                        String name = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ? "virtualdisplay" : "PC_virtualdisplay";
+                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
+                        Display display = mVirtualDisplay.getDisplay();
+                        Log.i(TAG, "FloatWindow display: " + display);
                     } else {
-                        mSurfaceTexture = surfaceTexture;
+                        if (View.VISIBLE == mLockImageView.getVisibility()) {
+                            mVideoClient.start(new Surface(surfaceTexture));
+                            mDisplayClient.start();
+                            mControlClient.start();
+                        } else {
+                            mSurfaceTexture = surfaceTexture;
+                        }
                     }
                 }
 
@@ -370,6 +384,9 @@ final class FloatWindow {
                 @Override
                 public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureSizeChanged surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
+                    if (USE_APP_VIRTUALDISPLAY && mVirtualDisplay != null) {
+                        mVirtualDisplay.resize(width, height, mDensityDpi);
+                    }
                 }
 
                 @Override
@@ -434,7 +451,7 @@ final class FloatWindow {
             AdbShell.getInstance().disconnect();
 
             if (Utils.isSingleMachineMode()) {
-                if (mSurfaceTexture != null) {
+                if (!USE_APP_VIRTUALDISPLAY && mSurfaceTexture != null) {
                     mLockImageView.setVisibility(View.VISIBLE);
                     mPairImageView.setVisibility(View.GONE);
                     mTcpipImageView.setVisibility(View.GONE);
@@ -477,23 +494,21 @@ final class FloatWindow {
     private void onRotationChanged(int rotation) {
         mRotation = rotation;
 
-        Display defaultDisplay = mWindowManager.getDefaultDisplay();
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        defaultDisplay.getRealMetrics(displayMetrics);
+        mDisplayClient.setScreenInfo(0,
+                Resolution.R.VIRTUALDISPLAY_WIDTH,
+                Resolution.R.VIRTUALDISPLAY_HEIGHT,
+                mRotation,
+                Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
 
-        if (rotation % 2 == 1) {
-            mDisplayClient.setScreenInfo(0, displayMetrics.heightPixels, displayMetrics.widthPixels, rotation, displayMetrics.densityDpi);
+        if (mRotation % 2 == 0) {
+            mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_WIDTH;
+            mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_HEIGHT;
         } else {
-            mDisplayClient.setScreenInfo(0, displayMetrics.widthPixels, displayMetrics.heightPixels, rotation, displayMetrics.densityDpi);
+            mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_HEIGHT;
+            mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_WIDTH;
         }
 
-        mWidth = displayMetrics.widthPixels;
-        mHeight = displayMetrics.heightPixels;
-        mDensityDpi = displayMetrics.densityDpi;
-
         Log.i(TAG, "onRotationChanged width:" + mWidth + " height:" + mHeight);
-        mTextureView.getLayoutParams().width = mWidth;
-        mTextureView.getLayoutParams().height = mHeight;
 
         relayout();
     }

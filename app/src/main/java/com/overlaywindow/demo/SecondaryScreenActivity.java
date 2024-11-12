@@ -1,11 +1,9 @@
 package com.overlaywindow.demo;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
@@ -127,48 +125,33 @@ public class SecondaryScreenActivity extends AppCompatActivity {
             };
 
     private void setRect() {
-        WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
+        Display display = getWindowManager().getDefaultDisplay();
 
         int rotation = display.getRotation();
         if (rotation != mRotation) {
             mRotation = rotation;
 
-            DisplayMetrics metrics = new DisplayMetrics();
-            display.getMetrics(metrics);
-            DisplayMetrics realMetrics = new DisplayMetrics();
-            display.getRealMetrics(realMetrics);
+            mDisplayClient.setScreenInfo(1,
+                    Resolution.R.VIRTUALDISPLAY_WIDTH,
+                    Resolution.R.VIRTUALDISPLAY_HEIGHT,
+                    mRotation,
+                    Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
+            if (mRotation % 2 == 0) {
+                mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_WIDTH;
+                mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_HEIGHT;
 
-            if (mRotation % 2 == 1) {
-                mDisplayClient.setScreenInfo(1, realMetrics.heightPixels, realMetrics.widthPixels, mRotation, realMetrics.densityDpi);
+                mRealScaleX = (float)Resolution.R.TEXTUREVIEW_WIDTH / Resolution.R.VIRTUALDISPLAY_WIDTH;
+                mRealScaleY = (float)Resolution.R.TEXTUREVIEW_HEIGHT / Resolution.R.VIRTUALDISPLAY_HEIGHT;
             } else {
-                mDisplayClient.setScreenInfo(1, realMetrics.widthPixels, realMetrics.heightPixels, mRotation, realMetrics.densityDpi);
-            }
+                mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_HEIGHT;
+                mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_WIDTH;
 
-            if (realMetrics.widthPixels > realMetrics.heightPixels) {
-                if (metrics.widthPixels > metrics.heightPixels) {
-                    mTextureView.getLayoutParams().width = metrics.widthPixels;
-                    mTextureView.getLayoutParams().height = metrics.heightPixels;
-                } else {
-                    mTextureView.getLayoutParams().width = metrics.heightPixels;
-                    mTextureView.getLayoutParams().height = metrics.widthPixels;
-                }
-            } else {
-                if (metrics.widthPixels <= metrics.heightPixels) {
-                    mTextureView.getLayoutParams().width = metrics.widthPixels;
-                    mTextureView.getLayoutParams().height = metrics.heightPixels;
-                } else {
-                    mTextureView.getLayoutParams().width = metrics.heightPixels;
-                    mTextureView.getLayoutParams().height = metrics.widthPixels;
-                }
+                mRealScaleX = (float)Resolution.R.TEXTUREVIEW_HEIGHT / Resolution.R.VIRTUALDISPLAY_HEIGHT;
+                mRealScaleY = (float)Resolution.R.TEXTUREVIEW_WIDTH / Resolution.R.VIRTUALDISPLAY_WIDTH;
             }
             mTextureView.requestLayout();
             Log.i(TAG, "rotation:" + mRotation);
             Log.i(TAG, "TextureView width:" + mTextureView.getLayoutParams().width + " height:" + mTextureView.getLayoutParams().height);
-            Log.i(TAG, "realMetrics widthPixels:" + realMetrics.widthPixels + " heightPixels:" + realMetrics.heightPixels);
-
-            mRealScaleX = (float)mTextureView.getLayoutParams().width / realMetrics.widthPixels;
-            mRealScaleY = (float)mTextureView.getLayoutParams().height / realMetrics.heightPixels;
             Log.i(TAG, "mRealScaleX:" + mRealScaleX + " mRealScaleY:" + mRealScaleY);
         }
     }
