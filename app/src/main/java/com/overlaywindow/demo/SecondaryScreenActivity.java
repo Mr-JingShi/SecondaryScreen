@@ -140,14 +140,14 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_WIDTH;
                 mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_HEIGHT;
 
-                mRealScaleX = (float)Resolution.R.TEXTUREVIEW_WIDTH / Resolution.R.VIRTUALDISPLAY_WIDTH;
-                mRealScaleY = (float)Resolution.R.TEXTUREVIEW_HEIGHT / Resolution.R.VIRTUALDISPLAY_HEIGHT;
+                mRealScaleX = Resolution.R.SCALE_X;
+                mRealScaleY = Resolution.R.SCALE_Y;
             } else {
                 mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_HEIGHT;
                 mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_WIDTH;
 
-                mRealScaleX = (float)Resolution.R.TEXTUREVIEW_HEIGHT / Resolution.R.VIRTUALDISPLAY_HEIGHT;
-                mRealScaleY = (float)Resolution.R.TEXTUREVIEW_WIDTH / Resolution.R.VIRTUALDISPLAY_WIDTH;
+                mRealScaleX = Resolution.R.SCALE_Y;
+                mRealScaleY = Resolution.R.SCALE_X;
             }
             mTextureView.requestLayout();
             Log.i(TAG, "rotation:" + mRotation);

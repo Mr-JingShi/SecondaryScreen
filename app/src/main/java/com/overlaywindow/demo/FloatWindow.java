@@ -67,6 +67,8 @@ final class FloatWindow {
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
     private DisplayClient mDisplayClient;
+    private int mScreenWidth;
+    private int mScreenHeight;
     private int mRotation;
 
     public FloatWindow() {
@@ -75,7 +77,13 @@ final class FloatWindow {
         mWindowManager = (WindowManager)Utils.getContext().getSystemService(
                 Context.WINDOW_SERVICE);
 
-        mRotation = mWindowManager.getDefaultDisplay().getRotation();
+        Display display = mWindowManager.getDefaultDisplay();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        display.getRealMetrics(displayMetrics);
+        mScreenWidth = displayMetrics.widthPixels;
+        mScreenHeight = displayMetrics.heightPixels;
+
+        mRotation = display.getRotation();
 
         if (mRotation % 2 == 0) {
             resize(Resolution.R.TEXTUREVIEW_WIDTH,
@@ -254,7 +262,9 @@ final class FloatWindow {
 
     private void updateWindowParams() {
         float scale = mWindowScale * mLiveScale;
-        scale = Math.min(scale, 1.0f);
+        // scale = Math.min(scale, 1.0f);
+        scale = Math.min(scale, (float)mScreenWidth / mWidth);
+        scale = Math.min(scale, (float)mScreenHeight / mHeight);
         scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
 
         float offsetScale = (scale / mWindowScale - 1.0f) * 0.5f;
@@ -262,8 +272,11 @@ final class FloatWindow {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        x = Math.max(0, Math.min(x, mWidth - width));
-        y = Math.max(0, Math.min(y, mHeight - height));
+        // x = Math.max(0, Math.min(x, mWidth - width));
+        // y = Math.max(0, Math.min(y, mHeight - height));
+        x = Math.max(0, Math.min(x, mScreenWidth - width));
+        y = Math.max(0, Math.min(y, mScreenHeight - height));
+
 
         mTextureView.setScaleX(scale);
         mTextureView.setScaleY(scale);
@@ -273,7 +286,7 @@ final class FloatWindow {
         mWindowParams.width = width;
         mWindowParams.height = height;
 
-        mRealScale = scale;
+        mRealScale = scale * Resolution.R.SCALE_X;
     }
 
     private void saveWindowParams() {
@@ -492,6 +505,11 @@ final class FloatWindow {
     }
 
     private void onRotationChanged(int rotation) {
+        if ((mRotation + rotation) % 2 == 1) {
+            int tmp = mScreenWidth;
+            mScreenWidth = mScreenHeight;
+            mScreenHeight = tmp;
+        }
         mRotation = rotation;
 
         mDisplayClient.setScreenInfo(0,

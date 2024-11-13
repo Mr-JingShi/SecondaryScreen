@@ -61,10 +61,7 @@ public class MainActivity extends AppCompatActivity {
         TextView wlan_address = findViewById(R.id.wlan_address);
         String remoteHost = PrivatePreferences.getString("remoteHost", "");
         wlan_address.setText(remoteHost);
-        boolean needShowSpinner = chooseResolution(spinner);
-        if (!needShowSpinner) {
-            spinner.setVisibility(View.GONE);
-        }
+        chooseResolution(spinner);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             radio_single.setVisibility(View.GONE);
             radio_master.setVisibility(View.GONE);
@@ -73,16 +70,12 @@ public class MainActivity extends AppCompatActivity {
             wlan_address.setVisibility(View.VISIBLE);
         } else {
             radio_single.setOnClickListener((view) -> {
-                if (needShowSpinner) {
-                    spinner.setVisibility(View.VISIBLE);
-                }
+                spinner.setVisibility(View.VISIBLE);
                 wlan_description.setVisibility(View.GONE);
                 wlan_address.setVisibility(View.GONE);
             });
             radio_master.setOnClickListener((view) -> {
-                if (needShowSpinner) {
-                    spinner.setVisibility(View.GONE);
-                }
+                spinner.setVisibility(View.GONE);
                 String ip = Utils.getHostAddress();
                 if (ip.isEmpty()) {
                     wlan_description.setVisibility(View.GONE);
@@ -93,9 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 wlan_address.setVisibility(View.GONE);
             });
             radio_slave.setOnClickListener((view) -> {
-                if (needShowSpinner) {
-                    spinner.setVisibility(View.VISIBLE);
-                }
+                spinner.setVisibility(View.VISIBLE);
                 wlan_description.setVisibility(View.VISIBLE);
                 wlan_description.setText("主设备WLAN地址：");
                 wlan_address.setVisibility(View.VISIBLE);
@@ -184,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
         return Settings.canDrawOverlays(this);
     }
 
-    private boolean chooseResolution(Spinner spinner) {
+    private void chooseResolution(Spinner spinner) {
         Display display = getWindowManager().getDefaultDisplay();
         DisplayMetrics realMetrics = new DisplayMetrics();
         display.getRealMetrics(realMetrics);
@@ -192,122 +183,89 @@ public class MainActivity extends AppCompatActivity {
         display.getMetrics(metrics);
 
         if (display.getRotation() % 2 == 0) {
-            return chooseResolution(spinner, realMetrics.widthPixels, realMetrics.heightPixels, realMetrics.densityDpi, metrics.widthPixels, metrics.heightPixels);
+            Resolution selfResolution = new Resolution("self", realMetrics.widthPixels, realMetrics.heightPixels, realMetrics.densityDpi, metrics.widthPixels, metrics.heightPixels);
+            chooseResolution(spinner, selfResolution);
+        } else {
+            Resolution selfResolution = new Resolution("self", realMetrics.heightPixels, realMetrics.widthPixels, realMetrics.densityDpi, metrics.heightPixels, metrics.widthPixels);
+            chooseResolution(spinner, selfResolution);
         }
-        return chooseResolution(spinner, realMetrics.heightPixels, realMetrics.widthPixels, realMetrics.densityDpi, metrics.heightPixels, metrics.widthPixels);
     }
 
-    private boolean chooseResolution(Spinner spinner, int virtualDisplayWidth, int virtualDisplayHeight, int virutalDisplayDensityDpi, int textureViewWidth, int textureViewHeight) {
-        Log.d(TAG, "chooseResolution virtualDisplayWidth:" + virtualDisplayWidth + " virtualDisplayHeight:" + virtualDisplayHeight + " virutalDisplayDensityDpi:" + virutalDisplayDensityDpi + " textureViewWidth:" + textureViewWidth + " textureViewHeight:" + textureViewHeight);
+    private void chooseResolution(Spinner spinner, Resolution selfResolution) {
+        Log.d(TAG, "chooseResolution selfResolution:" + selfResolution);
 
         ArrayList<Resolution> resolutions = new ArrayList<>();
-        resolutions.add(new Resolution(480, 720, 142));
-        resolutions.add(new Resolution(720, 1280, 213));
-        resolutions.add(new Resolution(1080, 1920, 320));
-        resolutions.add(new Resolution(2160, 3840, 320));
+        resolutions.add(new Resolution("480p", 480, 720, 142));
+        resolutions.add(new Resolution("720p", 720, 1280, 213));
+        resolutions.add(new Resolution("1080p", 1080, 1920, 320));
+        resolutions.add(new Resolution("4k", 2160, 3840, 320));
 
+        float[] scales = {2.0f, 1.5f, 1.0f, 0.5f};
         ArrayList<String> resolutionStrings = new ArrayList<>();
         for (int i = resolutions.size() - 1 ; i >= 0; i--) {
-            int width = resolutions.get(i).TEXTUREVIEW_WIDTH;
-            int height = resolutions.get(i).TEXTUREVIEW_HEIGHT;
-            if (textureViewWidth >= width * 2 && textureViewHeight >= height * 2) {
-                resolutions.get(i).TEXTUREVIEW_WIDTH *= 2;
-                resolutions.get(i).TEXTUREVIEW_HEIGHT *= 2;
-            } else if (textureViewWidth >= width * 1.5 && textureViewHeight >= height * 1.5) {
-                resolutions.get(i).TEXTUREVIEW_WIDTH *= 1.5;
-                resolutions.get(i).TEXTUREVIEW_HEIGHT *= 1.5;
-            } else if (textureViewWidth >= width && textureViewHeight >= height) {
-                // do nothing
-            } else if (textureViewWidth >= width * 0.5 && textureViewHeight >= height * 0.5) {
-                resolutions.get(i).TEXTUREVIEW_WIDTH *= 0.5;
-                resolutions.get(i).TEXTUREVIEW_HEIGHT *= 0.5;
-            } else {
+            Resolution resolution = resolutions.get(i);
+            boolean match = false;
+            for (int j = 0; j < scales.length; j++) {
+                if (selfResolution.TEXTUREVIEW_WIDTH >= resolution.TEXTUREVIEW_WIDTH * scales[j]
+                    && selfResolution.TEXTUREVIEW_HEIGHT >= resolution.TEXTUREVIEW_HEIGHT * scales[j]) {
+                    resolution.changeScale(scales[j], scales[j]);
+
+                    Log.d(TAG, "chooseResolution RESOLUTIONS[" + i + "]:" + resolution);
+                    resolutionStrings.add(resolution.toSimpleString());
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) {
                 resolutions.remove(i);
-                continue;
             }
-
-            Log.d(TAG, "chooseResolution RESOLUTIONS[" + i + "]:" + resolutions.get(i).toString());
-            String tag = "";
-            if (resolutions.get(i).VIRTUALDISPLAY_WIDTH == 480) {
-                tag = "480p";
-            } else if (resolutions.get(i).VIRTUALDISPLAY_WIDTH == 720) {
-                tag = "720p";
-            } else if (resolutions.get(i).VIRTUALDISPLAY_WIDTH == 1080) {
-                tag = "1080p";
-            } else if (resolutions.get(i).VIRTUALDISPLAY_WIDTH == 2160) {
-                tag = "4K";
-            }
-            resolutionStrings.add(tag
-                    + "("
-                    + resolutions.get(i).VIRTUALDISPLAY_WIDTH
-                    + "x"
-                    + resolutions.get(i).VIRTUALDISPLAY_HEIGHT
-                    + "/"
-                    + resolutions.get(i).VIRTUALDISPLAY_DENSITYDPI
-                    + ")");
         }
-
 
         if (!resolutions.isEmpty()) {
             Collections.reverse(resolutionStrings);
-            resolutions.add(new Resolution(virtualDisplayWidth,
-                    virtualDisplayHeight,
-                    virutalDisplayDensityDpi,
-                    textureViewWidth,
-                    textureViewHeight));
-            resolutionStrings.add("slef"
-                    + "("
-                    + virtualDisplayWidth
-                    + "x"
-                    + virtualDisplayHeight
-                    + "/"
-                    + virutalDisplayDensityDpi
-                    + ")");
-
-            spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resolutionStrings));
-
-            String resolution = PrivatePreferences.getString("resolution", "");
-            Log.i(TAG, "resolution:" + resolution);
-            if (!resolution.isEmpty()) {
-                for (int i = 0; i < resolutionStrings.size(); i++) {
-                    if (resolutionStrings.get(i).equals(resolution)) {
-                        spinner.setSelection(i, true);
-
-                        Resolution.R = new Resolution(resolutions.get(i).TEXTUREVIEW_WIDTH,
-                                resolutions.get(i).TEXTUREVIEW_HEIGHT,
-                                resolutions.get(i).VIRTUALDISPLAY_DENSITYDPI,
-                                resolutions.get(i).TEXTUREVIEW_WIDTH,
-                                resolutions.get(i).TEXTUREVIEW_HEIGHT);
-                        break;
-                    }
-                }
-            }
-
-            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                    String item = (String) adapterView.getItemAtPosition(i);
-                    Utils.toast(item);
-
-                    Log.i(TAG, "i:" + i + " item:" + item + " resolutions:" + resolutions.get(i).toString());
-
-                    Resolution.R = new Resolution(resolutions.get(i).TEXTUREVIEW_WIDTH,
-                            resolutions.get(i).TEXTUREVIEW_HEIGHT,
-                            resolutions.get(i).VIRTUALDISPLAY_DENSITYDPI,
-                            resolutions.get(i).TEXTUREVIEW_WIDTH,
-                            resolutions.get(i).TEXTUREVIEW_HEIGHT);
-
-                    PrivatePreferences.putString("resolution", item);
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> adapterView) {
-                }
-            });
-            return true;
         }
 
-        Resolution.R = new Resolution(virtualDisplayWidth, virtualDisplayHeight, virutalDisplayDensityDpi, textureViewWidth, textureViewHeight);
-        return false;
+        boolean found = false;
+        for (Resolution resolution : resolutions) {
+            if (resolution.match(selfResolution)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            resolutions.add(selfResolution);
+            resolutionStrings.add(selfResolution.toSimpleString());
+        }
+
+        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resolutionStrings));
+
+        String resolution = PrivatePreferences.getString("resolution", "");
+        Log.i(TAG, "resolution:" + resolution);
+        for (int i = 0; i < resolutionStrings.size(); i++) {
+            if (resolutionStrings.get(i).equals(resolution)) {
+                spinner.setSelection(i, true);
+
+                Resolution.R = resolutions.get(i);
+                break;
+            }
+        }
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                String item = (String) adapterView.getItemAtPosition(i);
+                Utils.toast(item);
+
+                Log.i(TAG, "i:" + i + " item:" + item + " resolutions:" + resolutions.get(i).toString());
+
+                Resolution.R = resolutions.get(i);
+
+                PrivatePreferences.putString("resolution", item);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
     }
 }

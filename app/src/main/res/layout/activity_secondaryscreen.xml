@@ -7,17 +7,22 @@
     android:background="#000000"
     tools:context=".SecondaryScreenActivity">
 
-    <TextView
-        android:id="@+id/secondaryscreen_title"
+    <FrameLayout
+        android:id="@+id/secondaryscreen_layout"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="20dp"
-        android:textColor="#FFA500"
-        android:layout_gravity="center|top"
-        android:text="@string/overlay_window_title" />
+        android:layout_height="wrap_content" >
+        <TextView
+            android:id="@+id/secondaryscreen_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20dp"
+            android:textColor="#FFA500"
+            android:layout_gravity="center|top"
+            android:text="@string/overlay_window_title" />
 
-    <TextureView android:id="@+id/secondaryscreen_texture"
-        android:layout_width="0dp"
-        android:layout_height="0dp" />
+        <TextureView android:id="@+id/secondaryscreen_texture"
+            android:layout_width="0dp"
+            android:layout_height="0dp" />
+    </FrameLayout>
 
 </FrameLayout>

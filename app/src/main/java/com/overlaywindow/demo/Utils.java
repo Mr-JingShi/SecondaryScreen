@@ -33,7 +33,7 @@ public class Utils {
     public static int VIDEO_CHANNEL_PORT = 8403;
     public static int DISPLAY_CHANNEL_PORT = 8404;
     public static int SOCKET_TIMEOUT = 3000;
-    public static String REMOTE_HOST = "127.0.0.1";
+    private static String REMOTE_HOST = "127.0.0.1";
     private static Context mContext = null;
     private static boolean mIsSingleMachineMode = true;
     private static int mVirtualDisplayId = -1;
