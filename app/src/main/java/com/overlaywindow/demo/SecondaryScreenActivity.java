@@ -134,8 +134,8 @@ public class SecondaryScreenActivity extends AppCompatActivity {
             mDisplayClient.setScreenInfo(1,
                     Resolution.R.VIRTUALDISPLAY_WIDTH,
                     Resolution.R.VIRTUALDISPLAY_HEIGHT,
-                    mRotation,
-                    Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
+                    Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
+                    mRotation);
             if (mRotation % 2 == 0) {
                 mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_WIDTH;
                 mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_HEIGHT;

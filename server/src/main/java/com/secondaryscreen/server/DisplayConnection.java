@@ -10,16 +10,16 @@ public final class DisplayConnection extends ServerChannel {
     private static String TAG = "DisplayConnection";
     private int mWidth;
     private int mHeight;
-    private int mRotation;
     private int mDensityDpi;
+    private int mRotation;
     private String mRemoteAddress;
-    public DisplayConnection(int width, int height, int rotation, int densityDpi) {
+    public DisplayConnection(int width, int height, int densityDpi, int rotation) {
        super(Utils.DISPLAY_CHANNEL_PORT);
 
         mWidth = width;
         mHeight = height;
-        mRotation = rotation;
         mDensityDpi = densityDpi;
+        mRotation = rotation;
     }
 
     private void changeVirtualDisplayRotation(int rotation) {
@@ -44,15 +44,15 @@ public final class DisplayConnection extends ServerChannel {
 
     @Override
     public void work(byte[] buffer, int length) {
-        // 1200,1920,240
+        // 0,1200,1920,240,3
         String displayInfo = new String(buffer, 0, length);
         Ln.d(TAG, "displayInfo:" + displayInfo);
         String[] split = displayInfo.split(",");
         int flag = Integer.parseInt(split[0]);
         int width = Integer.parseInt(split[1]);
         int height = Integer.parseInt(split[2]);
-        int rotation = Integer.parseInt(split[3]);
-        int densityDpi = Integer.parseInt(split[4]);
+        int densityDpi = Integer.parseInt(split[3]);
+        int rotation = Integer.parseInt(split[4]);
 
         // 0:Local 1:Remote
         Utils.setSingleMachineMode(flag == 0);

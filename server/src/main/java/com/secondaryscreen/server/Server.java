@@ -49,7 +49,7 @@ public class Server {
                 activityDetector.start();
             }
 
-            DisplayConnection displayConnection = new DisplayConnection(width, height, rotation, densityDpi);
+            DisplayConnection displayConnection = new DisplayConnection(width, height, densityDpi, rotation);
             displayConnection.start();
 
             ControlConnection controlConnection = new ControlConnection();

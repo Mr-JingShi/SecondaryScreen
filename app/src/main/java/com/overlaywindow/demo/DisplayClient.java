@@ -18,7 +18,7 @@ public class DisplayClient {
         mThread = new DisplayClientThread();
     }
 
-    public void setScreenInfo(int flag, int width, int height, int rotation, int densityDpi) {
+    public void setScreenInfo(int flag, int width, int height, int densityDpi, int rotation) {
         StringBuilder sb = new StringBuilder();
         sb.append(flag);
         sb.append(",");
@@ -26,9 +26,9 @@ public class DisplayClient {
         sb.append(",");
         sb.append(height);
         sb.append(",");
-        sb.append(rotation);
-        sb.append(",");
         sb.append(densityDpi);
+        sb.append(",");
+        sb.append(rotation);
 
         setDisplayInfo(sb.toString());
     }

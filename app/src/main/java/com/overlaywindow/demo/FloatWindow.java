@@ -108,8 +108,8 @@ final class FloatWindow {
         mDisplayClient.setScreenInfo(0,
                 Resolution.R.VIRTUALDISPLAY_WIDTH,
                 Resolution.R.VIRTUALDISPLAY_HEIGHT,
-                mRotation,
-                Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
+                Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
+                mRotation);
     }
 
     public void show() {
@@ -515,8 +515,8 @@ final class FloatWindow {
         mDisplayClient.setScreenInfo(0,
                 Resolution.R.VIRTUALDISPLAY_WIDTH,
                 Resolution.R.VIRTUALDISPLAY_HEIGHT,
-                mRotation,
-                Resolution.R.VIRTUALDISPLAY_DENSITYDPI);
+                Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
+                mRotation);
 
         if (mRotation % 2 == 0) {
             mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_WIDTH;
