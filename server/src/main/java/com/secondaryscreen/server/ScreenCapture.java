@@ -40,11 +40,21 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
 
     @Override
     public void onRotationChanged(int rotation) {
+        /** 假定主机启动时width:1200 height:1920 rotation:1 densityDpi:240
+            副机启动时width:720 height:1280 rotation:3 densityDpi:213
+            此时会判定为发生了旋转，但mScreenInfo并不是在构造函数初始化的，而是在computeScreenInfo内，
+            所以此时mScreenInfo为null，此处需要判断mScreenInfo是否为null
+        */
         if (mScreenInfo != null) {
-            mScreenInfo = mScreenInfo.withDeviceRotation(rotation);
-        }
+            int oldRotation = mScreenInfo.getDeviceRotation();
+            if ((oldRotation + rotation) % 2 != 0) {
+                mScreenInfo = mScreenInfo.onRotationChanged(rotation, true);
 
-        requestReset();
+                requestReset();
+            } else {
+                mScreenInfo = mScreenInfo.onRotationChanged(rotation, false);
+            }
+        }
     }
 
     @Override

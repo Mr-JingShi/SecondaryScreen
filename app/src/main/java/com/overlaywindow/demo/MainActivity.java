@@ -25,9 +25,6 @@ import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
     private static String TAG = "MainActivity";
-    private static int STANDARD_WIDTH = 1080;
-    private static int STANDARD_HEIGHT = 1920;
-    private static int STANDARD_DENSITYDPI = 320;
     private static int REQUEST_CODE = 1001;
     private static FloatWindow mFloatWindow;
 

@@ -47,8 +47,9 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         dm.registerDisplayListener(mDisplayListener, null);
 
-        TextView textView = findViewById(R.id.secondaryscreen_title);
-        textView.bringToFront();
+        TextView titleTextView = findViewById(R.id.secondaryscreen_title);
+        titleTextView.bringToFront();
+        titleTextView.append(" " + Resolution.R.toSimpleString());
 
         mTextureView = findViewById(R.id.secondaryscreen_texture);
         mTextureView.setPivotX(0);
@@ -129,30 +130,33 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
         int rotation = display.getRotation();
         if (rotation != mRotation) {
-            mRotation = rotation;
-
             mDisplayClient.setScreenInfo(1,
                     Resolution.R.VIRTUALDISPLAY_WIDTH,
                     Resolution.R.VIRTUALDISPLAY_HEIGHT,
                     Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
-                    mRotation);
-            if (mRotation % 2 == 0) {
-                mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_WIDTH;
-                mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_HEIGHT;
+                    rotation);
 
-                mRealScaleX = Resolution.R.SCALE_X;
-                mRealScaleY = Resolution.R.SCALE_Y;
-            } else {
-                mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_HEIGHT;
-                mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_WIDTH;
+            if ((mRotation + rotation) % 2 != 0 || mRotation == -1) {
+                if (rotation % 2 == 0) {
+                    mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_WIDTH;
+                    mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_HEIGHT;
 
-                mRealScaleX = Resolution.R.SCALE_Y;
-                mRealScaleY = Resolution.R.SCALE_X;
+                    mRealScaleX = Resolution.R.SCALE_X;
+                    mRealScaleY = Resolution.R.SCALE_Y;
+                } else {
+                    mTextureView.getLayoutParams().width = Resolution.R.TEXTUREVIEW_HEIGHT;
+                    mTextureView.getLayoutParams().height = Resolution.R.TEXTUREVIEW_WIDTH;
+
+                    mRealScaleX = Resolution.R.SCALE_Y;
+                    mRealScaleY = Resolution.R.SCALE_X;
+                }
+                mTextureView.requestLayout();
+                Log.i(TAG, "rotation:" + mRotation);
+                Log.i(TAG, "TextureView width:" + mTextureView.getLayoutParams().width + " height:" + mTextureView.getLayoutParams().height);
+                Log.i(TAG, "mRealScaleX:" + mRealScaleX + " mRealScaleY:" + mRealScaleY);
             }
-            mTextureView.requestLayout();
-            Log.i(TAG, "rotation:" + mRotation);
-            Log.i(TAG, "TextureView width:" + mTextureView.getLayoutParams().width + " height:" + mTextureView.getLayoutParams().height);
-            Log.i(TAG, "mRealScaleX:" + mRealScaleX + " mRealScaleY:" + mRealScaleY);
+
+            mRotation = rotation;
         }
     }
 }

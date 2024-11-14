@@ -10,7 +10,8 @@
     <FrameLayout
         android:id="@+id/secondaryscreen_layout"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" >
+        android:layout_height="wrap_content"
+        android:layout_gravity="center">
         <TextView
             android:id="@+id/secondaryscreen_title"
             android:layout_width="wrap_content"

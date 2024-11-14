@@ -214,18 +214,14 @@ final class FloatWindow {
             }
             sb.append(Utils.getContext().getString(R.string.adb_tcpip_remark));
 
-            if (!Utils.isSingleMachineMode()) {
-                String ip = Utils.getHostAddress();
-                TextView textView = mWindowContent.findViewById(R.id.overlay_display_window_title);
-                textView.append("--");
-                textView.append(ip);
-            }
-
             String remark = sb.toString();
             Log.i(TAG, "remark: " + remark);
 
             mRemarkTextView.setText(remark);
         }
+
+        TextView titleTextView = mWindowContent.findViewById(R.id.overlay_display_window_title);
+        titleTextView.append(" " + Resolution.R.toSimpleString());
 
         mTextureView = mWindowContent.findViewById(R.id.overlay_display_window_texture);
         mTextureView.setPivotX(0);
@@ -505,29 +501,30 @@ final class FloatWindow {
     }
 
     private void onRotationChanged(int rotation) {
-        if ((mRotation + rotation) % 2 == 1) {
-            int tmp = mScreenWidth;
-            mScreenWidth = mScreenHeight;
-            mScreenHeight = tmp;
-        }
-        mRotation = rotation;
-
         mDisplayClient.setScreenInfo(0,
                 Resolution.R.VIRTUALDISPLAY_WIDTH,
                 Resolution.R.VIRTUALDISPLAY_HEIGHT,
                 Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
-                mRotation);
+                rotation);
 
-        if (mRotation % 2 == 0) {
-            mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_WIDTH;
-            mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_HEIGHT;
-        } else {
-            mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_HEIGHT;
-            mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_WIDTH;
+        if ((mRotation + rotation) % 2 != 0) {
+            int tmp = mScreenWidth;
+            mScreenWidth = mScreenHeight;
+            mScreenHeight = tmp;
+
+            if (rotation % 2 == 0) {
+                mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_WIDTH;
+                mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_HEIGHT;
+            } else {
+                mTextureView.getLayoutParams().width = mWidth = Resolution.R.TEXTUREVIEW_HEIGHT;
+                mTextureView.getLayoutParams().height = mHeight = Resolution.R.TEXTUREVIEW_WIDTH;
+            }
+
+            Log.i(TAG, "onRotationChanged width:" + mWidth + " height:" + mHeight);
+
+            relayout();
         }
 
-        Log.i(TAG, "onRotationChanged width:" + mWidth + " height:" + mHeight);
-
-        relayout();
+        mRotation = rotation;
     }
 }

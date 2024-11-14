@@ -69,12 +69,15 @@ public final class ScreenInfo {
     }
 
     public ScreenInfo withDeviceRotation(int newDeviceRotation) {
-        Ln.d(TAG, "newDeviceRotation:" + newDeviceRotation + " oldDeviceRotation:" + mDeviceRotation);
         if (newDeviceRotation == mDeviceRotation) {
             return this;
         }
         // true if changed between portrait and landscape
         boolean orientationChanged = (mDeviceRotation + newDeviceRotation) % 2 != 0;
+        return onRotationChanged(newDeviceRotation, orientationChanged);
+    }
+
+    public ScreenInfo onRotationChanged(int newDeviceRotation, boolean orientationChanged) {
         Rect newContentRect;
         Size newUnlockedVideoSize;
         if (orientationChanged) {
