@@ -1,11 +1,20 @@
 package com.overlaywindow.demo;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.RemoteInput;
+import android.app.UiAutomation;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -20,8 +29,11 @@ import android.view.TextureView;
 import android.view.TextureView.SurfaceTextureListener;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import java.util.List;
 
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
@@ -42,9 +54,6 @@ final class FloatWindow {
     private DisplayManager mDisplayManager;
     private WindowManager mWindowManager;
     private View mWindowContent;
-    private ImageView mTcpipImageView;
-    private ImageView mPairImageView;
-    private TextView  mRemarkTextView;
     private ImageView mLockImageView;
     private ImageView mFocusImageView;
     private WindowManager.LayoutParams mWindowParams;
@@ -61,7 +70,6 @@ final class FloatWindow {
     private float mLiveScale = 1.0f;
     private float mRealScale;
     private FloatIcon mFloatIcon;
-    private FloatDialog mFloatDialog;
     private boolean mIsLocked = false;
     private boolean mIsFocused = false;
     private ControlClient mControlClient;
@@ -99,8 +107,6 @@ final class FloatWindow {
         createWindow();
 
         mFloatIcon = new FloatIcon(mWindowContent);
-
-        mFloatDialog = new FloatDialog(this);
 
         mVideoClient = new VideoClient();
         mControlClient = new ControlClient();
@@ -160,23 +166,6 @@ final class FloatWindow {
         mWindowContent = inflater.inflate(R.layout.overlay_display_window, null);
         mWindowContent.setOnTouchListener(mOnTouchListener);
 
-        mTcpipImageView = mWindowContent.findViewById(R.id.overlay_display_window_tcpip);
-        mTcpipImageView.setOnClickListener((View v) -> {
-            mFloatDialog.show(false);
-            focusImageViewShow(true);
-        });
-
-        mPairImageView = mWindowContent.findViewById(R.id.overlay_display_window_pair);
-        mPairImageView.setOnClickListener((View v) -> {
-            Log.i(TAG, "mPairListener");
-            Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            Utils.getContext().startActivity(intent);
-
-            mFloatDialog.show(true);
-            focusImageViewShow(true);
-        });
-
         mWindowContent.findViewById(R.id.overlay_display_window_close).setOnClickListener((View v) -> {
             dismiss();
         });
@@ -193,32 +182,6 @@ final class FloatWindow {
             mIsFocused = !mIsFocused;
             focusImageViewChange(mIsFocused);
         });
-
-        mRemarkTextView = mWindowContent.findViewById(R.id.overlay_display_window_remark);
-
-        if (Utils.checkVirtualDisplayReady()) {
-            mTcpipImageView.setVisibility(View.GONE);
-            mPairImageView.setVisibility(View.GONE);
-            mRemarkTextView.setVisibility(View.GONE);
-            mLockImageView.setVisibility(View.VISIBLE);
-        } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append(Utils.getContext().getString(R.string.jar_not_started));
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                mPairImageView.setVisibility(View.GONE);
-            } else {
-                sb.append(Utils.getContext().getString(R.string.adb_pair_remark));
-
-                int adbWifiEnabled = Settings.Global.getInt(Utils.getContext().getContentResolver(), "adb_wifi_enabled", 0);
-                Log.i(TAG, "adbWifiEnabled: " + adbWifiEnabled);
-            }
-            sb.append(Utils.getContext().getString(R.string.adb_tcpip_remark));
-
-            String remark = sb.toString();
-            Log.i(TAG, "remark: " + remark);
-
-            mRemarkTextView.setText(remark);
-        }
 
         TextView titleTextView = mWindowContent.findViewById(R.id.overlay_display_window_title);
         titleTextView.append(" " + Resolution.R.toSimpleString());
@@ -315,7 +278,7 @@ final class FloatWindow {
                             if (USE_SURFACE_EVENT) {
                                 mTextureView.setOnTouchListener((view, event) -> {
                                     if (mIsLocked) {
-                                        Utils.offerMotionEvent(event);
+                                        Utils.offerMotionEvent(event, true);
                                     }
                                     return true;
                                 });
@@ -409,7 +372,7 @@ final class FloatWindow {
             if (!USE_SURFACE_EVENT && mIsLocked) {
                 event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
 
-                Utils.offerMotionEvent(event);
+                Utils.offerMotionEvent(event, true);
                 return true;
             }
 
@@ -459,25 +422,11 @@ final class FloatWindow {
         if (Utils.waitVirtualDisplayReady(3)) {
             AdbShell.getInstance().disconnect();
 
-            if (Utils.isSingleMachineMode()) {
-                if (!USE_APP_VIRTUALDISPLAY && mSurfaceTexture != null) {
-                    mLockImageView.setVisibility(View.VISIBLE);
-                    mPairImageView.setVisibility(View.GONE);
-                    mTcpipImageView.setVisibility(View.GONE);
-                    mRemarkTextView.setVisibility(View.GONE);
-
-                    mVideoClient.start(new Surface(mSurfaceTexture));
-                    mDisplayClient.start();
-                    mControlClient.start();
-                }
-            } else {
-                mRemarkTextView.setText("主设备已准备就绪，即将关闭悬浮窗。");
-                Utils.runOnOtherThread(() -> {
-                    Utils.sleep(2000);
-                    Utils.runOnUiThread(() -> {
-                        dismiss();
-                    });
-                });
+            if (!USE_APP_VIRTUALDISPLAY && mSurfaceTexture != null) {
+                mLockImageView.setVisibility(View.VISIBLE);
+                mVideoClient.start(new Surface(mSurfaceTexture));
+                mDisplayClient.start();
+                mControlClient.start();
             }
         }
     }
@@ -526,5 +475,90 @@ final class FloatWindow {
         }
 
         mRotation = rotation;
+    }
+
+    public void createNotification() {
+        RemoteInput remoteInput = new RemoteInput.Builder("paring_code")
+                .setLabel("请输入WLAN配对码")
+                .build();
+        Intent replayIntent = new Intent("input_paring_code")
+                .setPackage(Utils.getContext().getPackageName());
+        PendingIntent replyPendingIntent = PendingIntent.getBroadcast(Utils.getContext(),
+                1,
+                replayIntent,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT : PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Action action = new Notification.Action.Builder(R.mipmap.ic_launcher, "请点击此处输入WLAN配对码", replyPendingIntent)
+                .addRemoteInput(remoteInput)
+                .build();
+
+        NotificationManager notificationManager = (NotificationManager) Utils.getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel = new NotificationChannel("secondaryscreen", "notifications", NotificationManager.IMPORTANCE_HIGH);
+        notificationManager.createNotificationChannel(channel);
+        Notification notification = new Notification.Builder(Utils.getContext(), "secondaryscreen")
+                .setAutoCancel(true)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("监测到WLAN-ADB调试已开启")
+                .addAction(action)
+                .build();
+
+        notificationManager.notify(1, notification);
+
+        IntentFilter filter = new IntentFilter("input_paring_code");
+        filter.addCategory(Utils.getContext().getPackageName());
+        Utils.getContext().registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.i(TAG, "onReceive intent:" + intent);
+
+                Bundle bundle = RemoteInput.getResultsFromIntent(intent);
+                if (bundle != null) {
+                    CharSequence pairingCode = bundle.getCharSequence("paring_code");
+                    Log.i(TAG, "pairingCode:" + pairingCode);
+                    if (pairingCode != null
+                            && pairingCode.length() == 6) {
+                        AdbShell.getInstance().pair(pairingCode.toString(), () -> {
+                            final boolean  connected = AdbShell.getInstance().getConnectStatus();
+
+                            Notification.Builder replyBuilder = new Notification.Builder(Utils.getContext(), "secondaryscreen");
+                            replyBuilder.setSmallIcon(R.mipmap.ic_launcher);
+                            replyBuilder.setAutoCancel(true);
+                            if (connected) {
+                                replyBuilder.setContentTitle("WLAN-ADB调试配对成功");
+                                replyBuilder.setContentText("您现在可以使用WLAN-ADB调试功能了。");
+                            } else {
+                                replyBuilder.setContentTitle("WLAN-ADB调试配对失败");
+                                replyBuilder.setContentText("请再次尝试");
+                            }
+
+                            Notification replyNotification = replyBuilder.build();
+                            notificationManager.notify(1, replyNotification);
+
+                            Utils.runOnOtherThread(() -> {
+                                if (connected) {
+                                    AdbShell.getInstance().disconnect();
+                                } else {
+                                    AdbShell.getInstance().getPairingPort(() -> {
+                                        createNotification();
+                                    });
+                                }
+                                Utils.sleep(1000);
+                                Utils.runOnUiThread(() -> {
+                                    notificationManager.cancel(1);
+                                });
+                            });
+                        });
+                    }
+                }
+            }
+        }, filter);
+    }
+
+    public void openDevelopmentSettings() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
+        Utils.getContext().startActivity(intent);
+
+        AdbShell.getInstance().getPairingPort(() -> {
+            createNotification();
+        });
     }
 }

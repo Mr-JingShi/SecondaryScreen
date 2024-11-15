@@ -16,6 +16,35 @@
         android:text="SecondaryScreen"/>
 
     <LinearLayout
+        android:id="@+id/adb_connection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right|top"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/adb_tcpip"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/adb_tcpip" />
+
+        <ImageView
+            android:id="@+id/adb_pair"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/adb_pair" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/secondaryscreen_settings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -27,26 +56,19 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
             <RadioButton
-                android:id="@+id/radio_single"
+                android:id="@+id/radio_master"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="20dip"
                 android:checked="true"
-                android:text="单机模式" />
-            <RadioButton
-                android:id="@+id/radio_master"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:textSize="20dip"
-                android:text="联机-主设备" />
+                android:text="主设备" />
             <RadioButton
                 android:id="@+id/radio_slave"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:textSize="20dip"
-                android:text="联机-副设备" />
+                android:text="副设备" />
         </RadioGroup>
         <TextView
             android:id="@+id/wlan_description"

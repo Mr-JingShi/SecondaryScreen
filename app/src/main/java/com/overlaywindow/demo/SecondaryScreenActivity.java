@@ -28,8 +28,6 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         Log.i(TAG, "SecondaryScreenSlaveActivity onCreate");
         super.onCreate(savedInstanceState);
 
-        Utils.setIsSingleMachineMode(false);
-
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (getSupportActionBar() != null) {
@@ -61,7 +59,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
             event.setLocation(event.getX()/mRealScaleX, event.getY()/mRealScaleY);
 
-            Utils.offerMotionEvent(event);
+            Utils.offerMotionEvent(event, false);
             return true;
         });
 

@@ -17,6 +17,7 @@ import android.widget.Toast;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -35,23 +36,15 @@ public class Utils {
     public static int SOCKET_TIMEOUT = 3000;
     private static String REMOTE_HOST = "127.0.0.1";
     private static Context mContext = null;
-    private static boolean mIsSingleMachineMode = true;
     private static int mVirtualDisplayId = -1;
     private static ExecutorService mExecutor  = Executors.newSingleThreadExecutor();
-    private static final Handler mHandler = new Handler(Looper.getMainLooper());
+    private static final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private static final BlockingQueue<byte[]> mMotioneventBytesQueue = new LinkedBlockingQueue<>();
     static void setContext(Context context) {
         mContext = context;
     }
     static Context getContext() {
         return mContext;
-    }
-    static void setIsSingleMachineMode(boolean isSingleMachineMode) {
-        mIsSingleMachineMode = isSingleMachineMode;
-    }
-
-    static boolean isSingleMachineMode() {
-        return mIsSingleMachineMode;
     }
     static int getVirtualDisplayId() {
         return mVirtualDisplayId;
@@ -150,6 +143,18 @@ public class Utils {
         return false;
     }
 
+    static String getAdbTcpipPort() {
+        String port = null;
+        try {
+            Class<?> c = Class.forName("android.os.SystemProperties");
+            Method get = c.getMethod("get", String.class, String.class);
+            port = (String)(get.invoke(c, "service.adb.tcp.port", port));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return port;
+    }
+
     static void runOnOtherThread(Runnable runnable) {
         mExecutor.submit(() -> {
             runnable.run();
@@ -160,12 +165,16 @@ public class Utils {
         if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
             runnable.run();
         } else {
-            mHandler.post(runnable);
+            mMainHandler.post(runnable);
         }
     }
 
     static void toast(String msg) {
-        Toast.makeText(mContext, msg, Toast.LENGTH_SHORT).show();
+        toast(msg, Toast.LENGTH_SHORT);
+    }
+
+    static void toast(String msg, int duration) {
+        Toast.makeText(mContext, msg, duration).show();
     }
 
     static void startJar() {
@@ -201,9 +210,9 @@ public class Utils {
         return targets;
     }
 
-     static void offerMotionEvent(MotionEvent event) {
+     static void offerMotionEvent(MotionEvent event, boolean singleMachineMode) {
         byte[] bytes = null;
-        if (mIsSingleMachineMode) {
+        if (singleMachineMode) {
             Parcel parcel = Parcel.obtain();
             event.writeToParcel(parcel, 0);
             bytes = parcel.marshall();
@@ -263,6 +272,7 @@ public class Utils {
                 if (display.getName().contains("virtualdisplay")) {
 
                     mVirtualDisplayId = display.getDisplayId();
+                    Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
                     return true;
                 }
             }

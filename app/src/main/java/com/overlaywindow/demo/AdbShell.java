@@ -1,8 +1,6 @@
 package com.overlaywindow.demo;
 
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -98,7 +96,6 @@ public class AdbShell {
         mExecutor.submit(() -> {
             AtomicInteger atomicPort = new AtomicInteger(-1);
             CountDownLatch resolveHostAndPort = new CountDownLatch(1);
-
             AdbMdns adbMdns = new AdbMdns(Utils.getContext(), AdbMdns.SERVICE_TYPE_TLS_PAIRING, (hostAddress, port) -> {
                 atomicPort.set(port);
                 resolveHostAndPort.countDown();
@@ -106,7 +103,7 @@ public class AdbShell {
             adbMdns.start();
 
             try {
-                if (!resolveHostAndPort.await(1, TimeUnit.MINUTES)) {
+                if (!resolveHostAndPort.await(5, TimeUnit.MINUTES)) {
                     return;
                 }
             } catch (InterruptedException ignore) {
@@ -119,13 +116,13 @@ public class AdbShell {
         });
     }
 
-    public void pair(int port, String pairingCode, Runnable runnable) {
+    public void pair(String pairingCode, Runnable runnable) {
         mExecutor.submit(() -> {
             boolean connected = false;
             try {
                 AbsAdbConnectionManager manager = AdbManager.getInstance(Utils.getContext());
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    connected = manager.pair(AndroidUtils.getHostIpAddress(Utils.getContext()), port, pairingCode);
+                    connected = manager.pair(AndroidUtils.getHostIpAddress(Utils.getContext()), mPort, pairingCode);
                     if (connected) {
                         connected = manager.autoConnect(Utils.getContext(), 5000);
                     }
@@ -142,7 +139,7 @@ public class AdbShell {
 
             Utils.runOnUiThread(runnable);
 
-            Log.i(TAG, "pair connected: " + connected);
+            Log.i(TAG, "pair connected:" + connected);
         });
     }
 
