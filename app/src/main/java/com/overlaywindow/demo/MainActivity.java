@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE_OVERLAY_PERMISSION) {
-            if (hasPermission()) {
+            if (hasOverlayPermission()) {
                 showFloatWindow();
             } else {
                 Utils.toast("请授予悬浮窗权限", Toast.LENGTH_LONG);
@@ -204,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private void startFloatWindow() {
-        if (hasPermission()) {
+        if (hasOverlayPermission()) {
             showFloatWindow();
 
             finish();
@@ -220,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         mFloatWindow.show();
     }
 
-    private boolean hasPermission() {
+    private boolean hasOverlayPermission() {
         return Settings.canDrawOverlays(this);
     }
 
@@ -460,16 +460,21 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         findViewById(R.id.adb_connection).setVisibility(visibility ? View.VISIBLE : View.GONE);
     }
 
-    private void tryAdbTcpipConnect() {
-//        String portString = Utils.getAdbTcpipPort();
-//        if (portString != null && !portString.isEmpty()) {
-//            AdbShell.getInstance().connect(Integer.parseInt(portString), () -> {
-//                if (AdbShell.getInstance().getConnectStatus()) {
-//                    Utils.toast("ADB连接成功");
-//                    adbViewGone();
-//                }
-//            });
-//        }
+    private boolean tryAdbTcpipConnect() {
+        boolean tryConnect = false;
+        String portString = Utils.getAdbTcpipPort();
+        if (portString != null && !portString.isEmpty()) {
+            tryConnect = true;
+            AdbShell.getInstance().connect(Integer.parseInt(portString), () -> {
+                if (AdbShell.getInstance().getConnectStatus()) {
+                    Utils.toast("ADB连接成功");
+                    setAdbConnectionVisibility(false);
+                } else {
+                    showPairImageView();
+                }
+            });
+        }
+        return tryConnect;
     }
 
     private void adbTcpipConnect() {
@@ -527,17 +532,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         } else {
             setAdbConnectionVisibility(true);
 
-            Utils.toast("请先连接ADB");
-
-            tryAdbTcpipConnect();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (hasNotificationPermission()) {
-                    registerReceiver();
-                } else {
-                    mPairImageView.setVisibility(View.GONE);
-                    requestNotificationsPermission();
-                }
+            if (tryAdbTcpipConnect()) {
+                Utils.toast("正在尝试使用TCPIP方式连接ADB");
+            } else {
+                Utils.toast("请先连接ADB");
+                showPairImageView();
             }
         }
 
@@ -547,5 +546,16 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private void openDeveloperOptions() {
         Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
         startActivity(intent);
+    }
+
+    private void showPairImageView() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (hasNotificationPermission()) {
+                registerReceiver();
+            } else {
+                mPairImageView.setVisibility(View.GONE);
+                requestNotificationsPermission();
+            }
+        }
     }
 }
