@@ -470,7 +470,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     Utils.toast("ADB连接成功");
                     setAdbConnectionVisibility(false);
                 } else {
-                    showPairImageView();
+                    hidePairImageView();
                 }
             });
         }
@@ -536,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 Utils.toast("正在尝试使用TCPIP方式连接ADB");
             } else {
                 Utils.toast("请先连接ADB");
-                showPairImageView();
+                hidePairImageView();
             }
         }
 
@@ -548,7 +548,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         startActivity(intent);
     }
 
-    private void showPairImageView() {
+    private void hidePairImageView() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (hasNotificationPermission()) {
                 registerReceiver();
@@ -556,6 +556,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 mPairImageView.setVisibility(View.GONE);
                 requestNotificationsPermission();
             }
+        } else {
+            mPairImageView.setVisibility(View.GONE);
         }
     }
 }
