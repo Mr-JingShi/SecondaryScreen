@@ -5,7 +5,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.RemoteInput;
-import android.app.UiAutomation;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -29,11 +28,8 @@ import android.view.TextureView;
 import android.view.TextureView.SurfaceTextureListener;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import java.util.List;
 
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
@@ -86,10 +82,10 @@ final class FloatWindow {
                 Context.WINDOW_SERVICE);
 
         Display display = mWindowManager.getDefaultDisplay();
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        display.getRealMetrics(displayMetrics);
-        mScreenWidth = displayMetrics.widthPixels;
-        mScreenHeight = displayMetrics.heightPixels;
+        DisplayMetrics realMetrics = new DisplayMetrics();
+        display.getRealMetrics(realMetrics);
+        mScreenWidth = realMetrics.widthPixels;
+        mScreenHeight = realMetrics.heightPixels;
 
         mRotation = display.getRotation();
 

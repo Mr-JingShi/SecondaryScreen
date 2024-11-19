@@ -6,17 +6,28 @@ import android.util.Log;
 import android.view.Surface;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 
 public class MediaDecoder {
     private static String TAG = "MediaDecoder";
     private static String VIDEO_FORMAT = "video/avc";
-    private Thread mThread;
     private MediaCodec mMediaCodec;
     private ByteBuffer mCodecBuffer;
     private MediaCodec.BufferInfo mBufferInfo;
+    private final AtomicBoolean mDecoderRunning;
+    private final AtomicBoolean mDecoderReset;
+    private Thread mDecoderThread;
+    private Thread mSocketThread;
 
-    public MediaDecoder() {}
+    public MediaDecoder() {
+        mDecoderRunning = new AtomicBoolean(false);
+        mDecoderReset = new AtomicBoolean(false);
+
+        mDecoderThread = new MediaCodecThread();
+        mDecoderThread.start();
+    }
 
     public void configure(int width, int height, ByteBuffer csd0, Surface surface) {
         try {
@@ -35,20 +46,22 @@ public class MediaDecoder {
     public void start() {
         mMediaCodec.start();
 
-        mThread = new MediaCodecThread();
-        mThread.start();
+        LockSupport.unpark(mDecoderThread);
     }
 
-    public void interrupt() {
+    public void reset(Thread thread) {
+        if (mDecoderRunning.get()) {
+            mSocketThread = thread;
+            mDecoderReset.set(true);
+
+            LockSupport.park();
+        }
+    }
+
+    public void join() {
         try {
-            if (mThread != null
-                && mThread.isAlive()
-                && !mThread.isInterrupted()) {
-                mThread.interrupt();
-                mThread.join();
-                mThread = null;
-            }
-        } catch (Exception e) {
+            mDecoderThread.join();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -111,25 +124,27 @@ public class MediaDecoder {
             try {
                 MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                 while (!Thread.currentThread().isInterrupted()) {
-                    int index = mMediaCodec.dequeueOutputBuffer(info, 10000L);
-                    if (index >= 0) {
-                        // setting true is telling system to render frame onto Surface
-                        mMediaCodec.releaseOutputBuffer(index, true);
-                        if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
-                            break;
+                    LockSupport.park();
+                    mDecoderRunning.set(true);
+                    while (!mDecoderReset.get()) {
+                        int index = mMediaCodec.dequeueOutputBuffer(info, 10000L);
+                        if (index >= 0) {
+                            // setting true is telling system to render frame onto Surface
+                            mMediaCodec.releaseOutputBuffer(index, true);
+                            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
+                                break;
+                            }
                         }
                     }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                try {
+                    mDecoderRunning.set(false);
+                    mDecoderReset.set(false);
                     mMediaCodec.stop();
                     mMediaCodec.release();
                     mMediaCodec = null;
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    LockSupport.unpark(mSocketThread);
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

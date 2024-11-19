@@ -103,7 +103,7 @@ public class VideoClient {
                                     int height = headerBuffer.getInt();
                                     Log.i(TAG, "sizeBuffer width:" + width + " height:" + height);
 
-                                    mMediaDecoder.interrupt();
+                                    mMediaDecoder.reset(Thread.currentThread());
 
                                     mMediaDecoder.configure(width, height, eventBuffer, mSurface);
 
