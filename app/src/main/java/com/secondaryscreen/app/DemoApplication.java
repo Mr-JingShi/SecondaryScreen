@@ -1,4 +1,4 @@
-package com.overlaywindow.demo;
+package com.secondaryscreen.app;
 
 import android.app.Application;
 import android.content.Context;

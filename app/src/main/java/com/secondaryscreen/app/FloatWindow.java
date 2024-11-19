@@ -1,4 +1,4 @@
-package com.overlaywindow.demo;
+package com.secondaryscreen.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -417,19 +417,6 @@ final class FloatWindow {
                     return true;
                 }
             };
-
-    public void serverReady() {
-        if (Utils.waitVirtualDisplayReady(3)) {
-            AdbShell.getInstance().disconnect();
-
-            if (!USE_APP_VIRTUALDISPLAY && mSurfaceTexture != null) {
-                mLockImageView.setVisibility(View.VISIBLE);
-                mVideoClient.start(new Surface(mSurfaceTexture));
-                mDisplayClient.start();
-                mControlClient.start();
-            }
-        }
-    }
 
     private void focusImageViewChange(boolean focus) {
         if (focus) {

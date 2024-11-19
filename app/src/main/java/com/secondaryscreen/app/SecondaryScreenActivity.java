@@ -1,4 +1,4 @@
-package com.overlaywindow.demo;
+package com.secondaryscreen.app;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;

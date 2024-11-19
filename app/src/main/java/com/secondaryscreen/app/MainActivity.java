@@ -1,4 +1,4 @@
-package com.overlaywindow.demo;
+package com.secondaryscreen.app;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -182,12 +182,31 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         if (intent != null) {
             String connected = intent.getStringExtra("connected");
             if (connected != null) {
+                Log.i(TAG, "WLAN-ADB调试配对结果:" + connected);
                 Utils.toast("WLAN-ADB调试配对结果:" + connected);
 
-                if (connected.equals("OK") && Utils.waitVirtualDisplayReady(3)) {
-                    setAdbConnectionVisibility(false);
-
-                    AdbShell.getInstance().disconnect();
+                if (connected.equals("OK")) {
+                    Utils.runOnOtherThread(() -> {
+                        for (int i = 0; i < 5; i++) {
+                            boolean ready = Utils.checkVirtualDisplayReady();
+                            Log.i(TAG, "serverReady ready:" + ready);
+                            if (ready) {
+                                if (ready) {
+                                    AdbShell.getInstance().disconnect();
+                                    runOnUiThread(() -> {
+                                        setAdbConnectionVisibility(false);
+                                    });
+                                }
+                                break;
+                            }
+                            if (i == 4) {
+                                Log.i(TAG, "i == 4");
+                                break;
+                            }
+                            Log.i(TAG, "serverReady wait 1s");
+                            Utils.sleep(1000);
+                        }
+                    });
                 }
             }
         }
@@ -329,7 +348,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     public boolean hasNotificationPermission() {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+        // https://developer.android.com/develop/ui/views/notifications/notification-permission?hl=zh-cn
+        // Android 13（API 级别 33）及更高版本支持用于从应用发送非豁免（包括前台服务 [FGS]）通知的运行时权限：POST_NOTIFICATIONS。此更改有助于用户专注于最重要的通知。
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
             || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
@@ -394,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             .setAutoCancel(false)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("监测到WLAN-ADB调试配对服务已开启")
-            .setContentText("请输入WLAN配对码，点击下方输入框即可输入⬇\uFE0F")
+            .setContentText("请输入WLAN配对码，点击下方即可输入⬇\uFE0F")
             .addAction(action)
             .build();
 
@@ -549,7 +570,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private void hidePairImageView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // Andrid 11+ 支持无线调试
+        // 华为设备禁用了无线调试功能
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Build.MANUFACTURER.equals("HUAWEI")) {
             if (hasNotificationPermission()) {
                 registerReceiver();
             } else {

@@ -1,4 +1,4 @@
-package com.overlaywindow.demo;
+package com.secondaryscreen.app;
 
 import android.content.Context;
 import android.hardware.display.DisplayManager;
@@ -110,20 +110,6 @@ public class Utils {
         }
 
         return ip.getHostAddress();
-    }
-
-    static boolean checkSelfWifi() {
-        try {
-            String ip = Utils.getHostAddress();
-            Log.i(TAG, "getHostAddress:" + ip);
-            if (ip == null || ip.isEmpty()) {
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
     }
 
     static boolean checkRemoteWifi(String remoteHost) {
@@ -249,19 +235,6 @@ public class Utils {
 
     static byte[] takeMotionEventBytes() throws InterruptedException {
         return mMotioneventBytesQueue.take();
-    }
-
-    static boolean waitVirtualDisplayReady(int count) {
-        boolean ready = false;
-        for (int i = 0; i < count; i++) {
-            ready = checkVirtualDisplayReady();
-            if (ready || i == 2) {
-                break;
-            }
-            Log.i(TAG, "serverReady wait 1s");
-            Utils.sleep(1000);
-        }
-        return ready;
     }
 
     static boolean checkVirtualDisplayReady() {
