@@ -23,7 +23,10 @@ final class FloatIcon {
 
         mShowImageView = new ImageView(Utils.getContext());
         mShowImageView.setImageResource(R.drawable.go_left);
-        mShowImageView.setOnClickListener(mShowListener);
+        mShowImageView.setOnClickListener((View v) -> {
+            mWindowContent.setVisibility(View.VISIBLE);
+            mShowImageView.setVisibility(View.GONE);
+        });
         mShowImageView.setVisibility(View.GONE);
 
         WindowManager.LayoutParams windowParams = new WindowManager.LayoutParams(
@@ -35,31 +38,18 @@ final class FloatIcon {
                 | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
 
         windowParams.format = PixelFormat.RGBA_8888;
-        windowParams.alpha = 0.8f;
+        windowParams.alpha = 1.0f;
         windowParams.gravity = Gravity.CENTER_VERTICAL | Gravity.RIGHT;
-        // windowParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
         windowParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
         windowParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
 
-        WindowManager windowManager = (WindowManager)Utils.getContext().getSystemService(Context.WINDOW_SERVICE);
-        windowManager.addView(mShowImageView, windowParams);
+        WindowManager wm = (WindowManager)Utils.getContext().getSystemService(Context.WINDOW_SERVICE);
+        wm.addView(mShowImageView, windowParams);
     }
 
     public void show() {
         mShowImageView.setVisibility(View.VISIBLE);
         mWindowContent.setVisibility(View.GONE);
     }
-    private void hide() {
-        mWindowContent.setVisibility(View.VISIBLE);
-        mShowImageView.setVisibility(View.GONE);
-    }
-
-    private final View.OnClickListener mShowListener =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    hide();
-                }
-            };
 }

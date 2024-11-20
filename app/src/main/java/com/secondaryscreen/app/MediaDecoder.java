@@ -58,23 +58,29 @@ public class MediaDecoder {
         }
     }
 
-    public void join() {
+    public void shutdown() {
         try {
-            mDecoderThread.join();
-        } catch (InterruptedException e) {
+            if (mDecoderThread != null
+                && mDecoderThread.isAlive()
+                && !mDecoderThread.isInterrupted()) {
+                mDecoderThread.interrupt();
+                mDecoderThread.join();
+                mDecoderThread = null;
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public void decode(ByteBuffer codecBuffer, MediaCodec.BufferInfo bufferInfo) {
         if (mCodecBuffer != null && mBufferInfo != null) {
-            if (tryDecode(mCodecBuffer, mBufferInfo)) {
+            if (!tryDecode(mCodecBuffer, mBufferInfo)) {
                 Log.w(TAG, "decode failed again");
             }
             mCodecBuffer = null;
             mBufferInfo = null;
         }
-        if (tryDecode(codecBuffer, bufferInfo)) {
+        if (!tryDecode(codecBuffer, bufferInfo)) {
             Log.w(TAG, "decode failed");
             mCodecBuffer = ByteBuffer.allocate(bufferInfo.size);
             mCodecBuffer.put(codecBuffer);
@@ -108,10 +114,10 @@ public class MediaDecoder {
                     mMediaCodec.queueInputBuffer(index, 0, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
                 }
 
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     class MediaCodecThread extends Thread {
@@ -131,7 +137,7 @@ public class MediaDecoder {
                         if (index >= 0) {
                             // setting true is telling system to render frame onto Surface
                             mMediaCodec.releaseOutputBuffer(index, true);
-                            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
+                            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                                 break;
                             }
                         }

@@ -163,31 +163,6 @@ public class Utils {
         Toast.makeText(mContext, msg, duration).show();
     }
 
-    static void startJar() {
-        StringBuilder sb = new StringBuilder();
-
-        String jarPath = mContext.getPackageCodePath();
-        Log.i(TAG, "jarPath:" + jarPath);
-
-        sb.append("CLASSPATH=");
-        sb.append(jarPath);
-        sb.append(" ");
-        sb.append("nohup app_process / com.secondaryscreen.server.Server");
-
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
-            sb.append(" ");
-            sb.append(mContext.getString(R.string.first_activity));
-            sb.append(" ");
-            sb.append(mContext.getString(R.string.seoncd_activity));
-        }
-        sb.append(" ");
-        sb.append(">/dev/null 2>&1 &");
-
-        String cmd = sb.toString();
-        Log.i(TAG, "connectResult cmd:" + cmd);
-        AdbShell.getInstance().execute(sb.toString());
-    }
-
     static byte[] intToByte4(int i, byte[] targets) {
         targets[3] = (byte) (i & 0xFF);
         targets[2] = (byte) (i >> 8 & 0xFF);

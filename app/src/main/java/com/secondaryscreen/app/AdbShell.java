@@ -4,6 +4,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.UiContext;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -66,11 +67,11 @@ public class AdbShell {
 
             mConnectSatus = connectionStatus;
             if (connectionStatus) {
-                Utils.startJar();
+                startJar();
             }
             Utils.runOnUiThread(runnable);
 
-            Log.i(TAG, "connect connectionStatus: " + connectionStatus);
+            Log.i(TAG, "connect connectionStatus:" + connectionStatus);
         });
     }
 
@@ -134,7 +135,7 @@ public class AdbShell {
 
             mConnectSatus = connected;
             if (connected) {
-                Utils.startJar();
+                startJar();
             }
 
             Utils.runOnUiThread(runnable);
@@ -159,5 +160,30 @@ public class AdbShell {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void startJar() {
+        StringBuilder sb = new StringBuilder();
+
+        String jarPath = Utils.getContext().getPackageCodePath();
+        Log.i(TAG, "jarPath:" + jarPath);
+
+        sb.append("CLASSPATH=");
+        sb.append(jarPath);
+        sb.append(" ");
+        sb.append("nohup app_process / com.secondaryscreen.server.Server");
+
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
+            sb.append(" ");
+            sb.append(Utils.getContext().getString(R.string.first_activity));
+            sb.append(" ");
+            sb.append(Utils.getContext().getString(R.string.seoncd_activity));
+        }
+        sb.append(" ");
+        sb.append(">/dev/null 2>&1 &");
+
+        String cmd = sb.toString();
+        Log.i(TAG, "connectResult cmd:" + cmd);
+        execute(cmd);
     }
 }

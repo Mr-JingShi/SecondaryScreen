@@ -4,7 +4,7 @@ import java.util.Objects;
 
 public class Resolution {
     static public Resolution R;
-    public String TAG;
+    private final String NAME;
     public final int VIRTUALDISPLAY_WIDTH;
     public final int VIRTUALDISPLAY_HEIGHT;
     public final int VIRTUALDISPLAY_DENSITYDPI;
@@ -13,8 +13,8 @@ public class Resolution {
     public float SCALE_X;
     public float SCALE_Y;
 
-    public Resolution(String tag, int virtualDisplayWidth, int virtualDisplayHeight, int virutalDisplayDensityDpi) {
-        this.TAG = tag;
+    public Resolution(String name, int virtualDisplayWidth, int virtualDisplayHeight, int virutalDisplayDensityDpi) {
+        this.NAME = name;
         this.VIRTUALDISPLAY_WIDTH = virtualDisplayWidth;
         this.VIRTUALDISPLAY_HEIGHT = virtualDisplayHeight;
         this.VIRTUALDISPLAY_DENSITYDPI = virutalDisplayDensityDpi;
@@ -24,8 +24,8 @@ public class Resolution {
         this.SCALE_Y = 1.0f;
     }
 
-    public Resolution(String tag, int virtualDisplayWidth, int virtualDisplayHeight, int virutalDisplayDensityDpi, int textureViewWidth, int textureViewHeight) {
-        this.TAG = tag;
+    public Resolution(String name, int virtualDisplayWidth, int virtualDisplayHeight, int virutalDisplayDensityDpi, int textureViewWidth, int textureViewHeight) {
+        this.NAME = name;
         this.VIRTUALDISPLAY_WIDTH = virtualDisplayWidth;
         this.VIRTUALDISPLAY_HEIGHT = virtualDisplayHeight;
         this.VIRTUALDISPLAY_DENSITYDPI = virutalDisplayDensityDpi;
@@ -60,13 +60,18 @@ public class Resolution {
 
     @Override
     public int hashCode() {
-        return Objects.hash(TAG, VIRTUALDISPLAY_WIDTH, VIRTUALDISPLAY_HEIGHT, VIRTUALDISPLAY_DENSITYDPI, TEXTUREVIEW_WIDTH, TEXTUREVIEW_HEIGHT);
+        return Objects.hash(NAME,
+                VIRTUALDISPLAY_WIDTH,
+                VIRTUALDISPLAY_HEIGHT,
+                VIRTUALDISPLAY_DENSITYDPI,
+                TEXTUREVIEW_WIDTH,
+                TEXTUREVIEW_HEIGHT);
     }
 
     @Override
     public String toString() {
-        return "Resolution{TAG="
-            + TAG
+        return "Resolution{NAME="
+            + NAME
             + ", VIRTUALDISPLAY_WIDTH="
             + VIRTUALDISPLAY_WIDTH
             + ", VIRTUALDISPLAY_HEIGHT="
@@ -85,7 +90,7 @@ public class Resolution {
     }
 
     public String toSimpleString() {
-        return TAG
+        return NAME
             + "("
             + VIRTUALDISPLAY_WIDTH
             + "x"
