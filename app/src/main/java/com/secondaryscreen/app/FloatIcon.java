@@ -16,15 +16,15 @@ final class FloatIcon {
 
     private ImageView mShowImageView;
 
-    private View mWindowContent;
+    private View mParentWindowContent;
 
     public FloatIcon(View windowContent) {
-        mWindowContent = windowContent;
+        mParentWindowContent = windowContent;
 
         mShowImageView = new ImageView(Utils.getContext());
         mShowImageView.setImageResource(R.drawable.go_left);
         mShowImageView.setOnClickListener((View v) -> {
-            mWindowContent.setVisibility(View.VISIBLE);
+            mParentWindowContent.setVisibility(View.VISIBLE);
             mShowImageView.setVisibility(View.GONE);
         });
         mShowImageView.setVisibility(View.GONE);
@@ -50,6 +50,6 @@ final class FloatIcon {
 
     public void show() {
         mShowImageView.setVisibility(View.VISIBLE);
-        mWindowContent.setVisibility(View.GONE);
+        mParentWindowContent.setVisibility(View.GONE);
     }
 }

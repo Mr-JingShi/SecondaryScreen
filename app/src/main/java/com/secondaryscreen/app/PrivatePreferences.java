@@ -3,9 +3,9 @@ package com.secondaryscreen.app;
 import android.content.SharedPreferences;
 
 public class PrivatePreferences {
-    public static final String NOTIFICATION_PERMISSION_REQUESTED = "notificationPermissionRequested";
-    public static final String REMOTE_HOST = "remoteHost";
-    public static final String RESOLUTION = "resolution";
+    private static final String NOTIFICATION_PERMISSION_REQUESTED = "notificationPermissionRequested";
+    private static final String REMOTE_HOST = "remoteHost";
+    private static final String RESOLUTION = "resolution";
 
     public static boolean getNotificationPermissionRequested() {
         return getBoolean(NOTIFICATION_PERMISSION_REQUESTED, false);

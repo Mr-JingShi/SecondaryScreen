@@ -15,7 +15,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SecondaryScreenActivity extends AppCompatActivity {
-    private static String TAG = "SecondaryScreenSlaveActivity";
+    private static String TAG = "SecondaryScreenActivity";
     private TextureView mTextureView;
     private ControlClient mControlClient;
     private VideoClient mVideoClient;
@@ -25,7 +25,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
     private float mRealScaleY;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i(TAG, "SecondaryScreenSlaveActivity onCreate");
+        Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);

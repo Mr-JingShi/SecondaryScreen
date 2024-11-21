@@ -1,19 +1,20 @@
 package com.secondaryscreen.server;
 
 import android.annotation.SuppressLint;
+import android.app.IActivityController;
+import android.app.TaskInfo;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
 public final class ActivityManager {
     public static final String TAG = "ActivityManager";
-    private final IInterface manager;
-    private Method startActivityAsUserMethod;
-
+    private final IInterface mManager;
     static ActivityManager create() {
         try {
             // On old Android versions, the ActivityManager is not exposed via AIDL,
@@ -28,26 +29,20 @@ public final class ActivityManager {
     }
 
     private ActivityManager(IInterface manager) {
-        this.manager = manager;
-    }
-
-    private Method getStartActivityAsUserMethod() throws NoSuchMethodException, ClassNotFoundException {
-        if (startActivityAsUserMethod == null) {
-            Class<?> iApplicationThreadClass = Class.forName("android.app.IApplicationThread");
-            Class<?> profilerInfo = Class.forName("android.app.ProfilerInfo");
-            startActivityAsUserMethod = manager.getClass()
-                    .getMethod("startActivityAsUser", iApplicationThreadClass, String.class, Intent.class, String.class, IBinder.class, String.class,
-                            int.class, int.class, profilerInfo, Bundle.class, int.class);
-        }
-        return startActivityAsUserMethod;
+        this.mManager = manager;
     }
 
     @SuppressWarnings("ConstantConditions")
     public int startActivity(Intent intent, Bundle bOptions) {
         try {
-            Method method = getStartActivityAsUserMethod();
+            Class<?> iApplicationThreadClass = Class.forName("android.app.IApplicationThread");
+            Class<?> profilerInfo = Class.forName("android.app.ProfilerInfo");
+            Method method = mManager.getClass()
+                    .getMethod("startActivityAsUser", iApplicationThreadClass, String.class, Intent.class, String.class, IBinder.class, String.class,
+                            int.class, int.class, profilerInfo, Bundle.class, int.class);
+
             return (int) method.invoke(
-                    /* this */ manager,
+                    /* this */ mManager,
                     /* caller */ null,
                     /* callingPackage */ Utils.PACKAGE_NAME,
                     /* intent */ intent,
@@ -62,6 +57,25 @@ public final class ActivityManager {
         } catch (Throwable e) {
             Ln.e(TAG, "Could not invoke method", e);
             return -1;
+        }
+    }
+
+    public List<TaskInfo> getAllRootTaskInfos() {
+        try {
+            Method method = mManager.getClass().getMethod("getAllRootTaskInfos");
+            return (List<TaskInfo>)method.invoke(mManager);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void setActivityController(IActivityController.Stub stub) {
+        try {
+            Method method = mManager.getClass().getMethod("setActivityController", IActivityController.class, boolean.class);
+            method.invoke(mManager, stub, true);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

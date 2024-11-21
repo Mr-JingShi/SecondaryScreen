@@ -27,7 +27,7 @@ defaultConfig {
 
 第三步：重新编译server
 
-cd /x/y/z/SecondaryScreen/server/build/intermediates/apk/debug
+cd /x/y/z/SecondaryScreen/server/build/build/outputs/apk
 
 cp server-debug.apk secondaryscreen-server-debug.jar
 

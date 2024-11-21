@@ -1,5 +1,7 @@
 package com.secondaryscreen.server;
 
+import androidx.annotation.NonNull;
+
 public class Utils {
     private static String TAG = "Utils";
     public static final String PACKAGE_NAME = "com.android.shell";
@@ -17,7 +19,7 @@ public class Utils {
         }
     }
 
-    static boolean activityRunning(String activity) {
+    static boolean activityRunning(@NonNull String activity) {
         try {
             String cmd = "am stack list | grep " + activity + " | wc -l";
             String result = Shell.execReadOutput("sh", "-c", cmd);
@@ -29,7 +31,7 @@ public class Utils {
         return false;
     }
 
-    static void startActivity(String activity, int displayId) {
+    static void startActivity(@NonNull String activity, int displayId) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("am start -n ");
@@ -45,15 +47,7 @@ public class Utils {
         }
     }
 
-    static void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (IllegalArgumentException | InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    static String prettifyActivity(String activity) {
+    static String prettifyActivity(@NonNull String activity) {
         int index = activity.indexOf ("/.");
         if (index > 0) {
             String prefix = activity.substring(0, index);
