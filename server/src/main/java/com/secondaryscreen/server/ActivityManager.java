@@ -7,8 +7,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.util.Pair;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
@@ -60,14 +62,50 @@ public final class ActivityManager {
         }
     }
 
-    public List<TaskInfo> getAllRootTaskInfos() {
+    public List<TaskInfo> getTasks(int maxNum) throws ReflectiveOperationException {
+        // List<ActivityManager.RunningTaskInfo> getTasks(int maxNum);
+        // android.app.TaskInfo是android.app.ActivityManager.RunningTaskInfo的父类
+        Method method = mManager.getClass().getMethod("getTasks", int.class);
+        return (List<TaskInfo>)method.invoke(mManager, maxNum);
+    }
+
+    public List<Pair<Integer, String[]>> getAllTaskInfos() throws ReflectiveOperationException {
+        List<Pair<Integer, String[]>> ret = null;
         try {
+            // Android 12+
+            // List<ActivityTaskManager.RootTaskInfo> getAllRootTaskInfos();
             Method method = mManager.getClass().getMethod("getAllRootTaskInfos");
-            return (List<TaskInfo>)method.invoke(mManager);
-        } catch (Exception e) {
-            e.printStackTrace();
+            List<Object> list = (List<Object>)method.invoke(mManager);
+            Class<?> cls = Class.forName("android.app.ActivityTaskManager$RootTaskInfo");
+            ret = new ArrayList<>(list.size());
+            for (Object info : list) {
+                // displayId在RootTaskInfo的父类TaskInfo中定义
+                // android.app.TaskInfo.displayId
+                int displayId = cls.getField("displayId").getInt(info);
+                @SuppressLint("BlockedPrivateApi")
+                String[] childTaskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
+                Ln.w(TAG, "ActivityTaskManager$RootTaskInfo: " + childTaskNames);
+                ret.add(new Pair<>(displayId, childTaskNames));
+            }
+        } catch (NoSuchMethodException e) {
+            Ln.w(TAG, "NoSuchMethodException getAllRootTaskInfos");
+            try {
+                // Android 10 ~ 11
+                // List<ActivityManager.StackInfo> getAllStackInfos();
+                Method method = mManager.getClass().getMethod("getAllStackInfos");
+                List<Object> list =  (List<Object>)method.invoke(mManager);
+                Class<?> cls = Class.forName("android.app.ActivityManager$StackInfo");
+                ret = new ArrayList<>(list.size());
+                for (Object info : list) {
+                    int displayId = cls.getDeclaredField("displayId").getInt(info);
+                    String[] taskNames = (String[])cls.getDeclaredField("taskNames").get(info);
+                    ret.add(new Pair<>(displayId, taskNames));
+                }
+            } catch (NoSuchMethodException e1) {
+                Ln.w(TAG, "NoSuchMethodException getAllStackInfos");
+            }
         }
-        return null;
+        return ret;
     }
 
     public void setActivityController(IActivityController.Stub stub) {

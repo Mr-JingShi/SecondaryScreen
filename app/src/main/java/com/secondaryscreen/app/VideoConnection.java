@@ -14,13 +14,13 @@ import java.util.Iterator;
 import java.util.Set;
 
 
-public class VideoClient {
-    private static String TAG = "VideoClient";
+public class VideoConnection {
+    private static String TAG = "VideoConnection";
     private Thread mThread;
     private MediaDecoder mMediaDecoder;
     private Surface mSurface;
 
-    public VideoClient() {
+    public VideoConnection() {
         mMediaDecoder = new MediaDecoder();
         mThread = new ServerChannelThread();
     }

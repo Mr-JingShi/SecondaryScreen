@@ -17,7 +17,6 @@ import java.lang.reflect.Method;
 
 @SuppressLint("PrivateApi")
 public final class SurfaceControl {
-    private static final String VIRTUALDISPLAY_NAME_UNSAFE = "PC_virtualdisplay";
     private static final String VIRTUALDISPLAY_NAME = "virtualdisplay";
     private static final Class<?> CLASS;
     private static Object SELF_VIRTUALDISPLAY_TOKEN;
@@ -98,7 +97,7 @@ public final class SurfaceControl {
                     /* callback */ callback,
                     /* projectionToken */ null,
                     /* packageName */ Utils.PACKAGE_NAME,
-                    /* name */ VIRTUALDISPLAY_NAME_UNSAFE,
+                    /* name */ VIRTUALDISPLAY_NAME,
                     /* width */ width,
                     /* height */ height,
                     /* densityDpi */ densityDpi,
@@ -136,12 +135,7 @@ public final class SurfaceControl {
         Class<?> BuilderClass = Class.forName("android.hardware.display.VirtualDisplayConfig$Builder");
         Constructor<?> BuilderConstructor = BuilderClass.getConstructor(String.class, int.class, int.class, int.class);
 
-        String name = VIRTUALDISPLAY_NAME;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            name = VIRTUALDISPLAY_NAME_UNSAFE;
-        }
-
-        Object builder = BuilderConstructor.newInstance(name, width, height, densityDpi);
+        Object builder = BuilderConstructor.newInstance(VIRTUALDISPLAY_NAME, width, height, densityDpi);
 
         Method setFlags = BuilderClass.getMethod("setFlags", int.class);
         setFlags.invoke(builder, getflags());
@@ -159,6 +153,46 @@ public final class SurfaceControl {
     }
 
     private static int getflags() {
+        /** remark
+         * Android 10 FLAG_PRESENTATION
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1, displayId 14", uniqueId "overlay:1", app 1920 x 1080, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, mode 22, defaultMode 22, modes [{id=22, width=1920, height=1080, fps=60.000004}], colorMode 0, supportedColorModes [0], hdrCapabilities null, rotation 0, density 320 (320.0 x 320.0) dpi, layerStack 14, appVsyncOff 0, presDeadline 33333332, type OVERLAY, state ON, FLAG_PRESENTATION, removeMode 0}
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1, displayId 13", uniqueId "overlay:1", app 1920 x 1080, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, mode 21, defaultMode 21, modes [{id=21, width=1920, height=1080, fps=60.000004}], colorMode 0, supportedColorModes [0], hdrCapabilities null, rotation 0, density 320 (320.0 x 320.0) dpi, layerStack 13, appVsyncOff 0, presDeadline 33333332, type OVERLAY, state ON, FLAG_SECURE, FLAG_PRESENTATION, removeMode 0}
+         *
+         * Android 11 FLAG_PRESENTATION, FLAG_TRUSTED
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 22, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 33333332, mode 23, defaultMode 23, modes [{id=23, width=1920, height=1080, fps=60.000004}], hdrCapabilities null, minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 22, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0}
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 24, FLAG_SECURE, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 33333332, mode 25, defaultMode 25, modes [{id=25, width=1920, height=1080, fps=60.000004}], hdrCapabilities null, minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 24, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0}
+         * 自定义virtualdisplay添加但是添加VIRTUAL_DISPLAY_FLAG_TRUSTED时报错，添加ADD_TRUSTED_DISPLAY也无效
+         * java.lang.reflect.InvocationTargetException
+         * at java.lang.reflect.Method.invoke(Native Method)
+         * at com.secondaryscreen.server.SurfaceControl.createVirtualDisplay(SurfaceControl.java:110)
+         * at com.secondaryscreen.server.Server.main(Server.java:38)
+         * at com.android.internal.os.RuntimeInit.nativeFinishInit(Native Method)
+         * at com.android.internal.os.RuntimeInit.main(RuntimeInit.java:463)
+         * Caused by: java.lang.SecurityException: Requires ADD_TRUSTED_DISPLAY permission to create a trusted virtual display.
+         * at android.os.Parcel.createExceptionOrNull(Parcel.java:2376)
+         * at android.os.Parcel.createException(Parcel.java:2360)
+         * at android.os.Parcel.readException(Parcel.java:2343)
+         * at android.os.Parcel.readException(Parcel.java:2285)
+         * at android.hardware.display.IDisplayManager$Stub$Proxy.createVirtualDisplay(IDisplayManager.java:1085)
+         * ... 5 more
+         * Caused by: android.os.RemoteException: Remote stack trace:
+         * at com.android.server.display.DisplayManagerService$BinderService.createVirtualDisplay(DisplayManagerService.java:2273)
+         * at android.hardware.display.IDisplayManager$Stub.onTransact(IDisplayManager.java:519)
+         * at com.android.server.display.DisplayManagerService$BinderService.onTransact(DisplayManagerService.java:2638)
+         * at android.os.Binder.execTransactInternal(Binder.java:1157)
+         * at android.os.Binder.execTransact(Binder.java:1126)
+         *
+         * Android 12 FLAG_PRESENTATION, FLAG_TRUSTED
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 935", displayGroupId 0, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 33333332, mode 942, defaultMode 942, modes [{id=942, width=1920, height=1080, fps=60.000004, alternativeRefreshRates=[]}], hdrCapabilities null, userDisabledHdrTypes [], minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 935, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0, refreshRateOverride 0.0, brightnessMinimum 0.0, brightnessMaximum 0.0, brightnessDefault 0.0}
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 936", displayGroupId 0, FLAG_SECURE, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 33333332, mode 943, defaultMode 943, modes [{id=943, width=1920, height=1080, fps=60.000004, alternativeRefreshRates=[]}], hdrCapabilities null, userDisabledHdrTypes [], minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 936, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0, refreshRateOverride 0.0, brightnessMinimum 0.0, brightnessMaximum 0.0, brightnessDefault 0.0}
+         * 同Android 11，自定义virtualdisplay添加但是添加VIRTUAL_DISPLAY_FLAG_TRUSTED时报错，添加ADD_TRUSTED_DISPLAY也无效
+         *
+         * Android 13
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 7", displayGroupId 0, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 28222221, mode 11, defaultMode 11, modes [{id=11, width=1920, height=1080, fps=90.0, alternativeRefreshRates=[]}], hdrCapabilities null, userDisabledHdrTypes [], minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 7, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0, refreshRateOverride 0.0, brightnessMinimum 0.0, brightnessMaximum 0.0, brightnessDefault 0.0, installOrientation ROTATION_0}
+         * mBaseDisplayInfo=DisplayInfo{"叠加视图 #1", displayId 6", displayGroupId 0, FLAG_SECURE, FLAG_PRESENTATION, FLAG_TRUSTED, real 1920 x 1080, largest app 1920 x 1080, smallest app 1920 x 1080, appVsyncOff 0, presDeadline 28222221, mode 10, defaultMode 10, modes [{id=10, width=1920, height=1080, fps=90.0, alternativeRefreshRates=[]}], hdrCapabilities null, userDisabledHdrTypes [], minimalPostProcessingSupported false, rotation 0, state ON, type OVERLAY, uniqueId "overlay:1", app 1920 x 1080, density 320 (320.0 x 320.0) dpi, layerStack 6, colorMode 0, supportedColorModes [0], deviceProductInfo null, removeMode 0, refreshRateOverride 0.0, brightnessMinimum 0.0, brightnessMaximum 0.0, brightnessDefault 0.0, installOrientation ROTATION_0}
+         * 自定义virtualdisplay时允许添加VIRTUAL_DISPLAY_FLAG_TRUSTED
+         */
+
         // VIRTUAL_DISPLAY_FLAG_PUBLIC 1 << 0
         // VIRTUAL_DISPLAY_FLAG_PRESENTATION 1 << 1
         // int VIRTUAL_DISPLAY_FLAG_SECURE 1 << 2
@@ -170,9 +204,13 @@ public final class SurfaceControl {
         // VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL = 1 << 8;
         // VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS 1 << 9
         // VIRTUAL_DISPLAY_FLAG_TRUSTED 1 << 10
-        int flags = (1<<0)|(1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);
+        int flags = (1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);
+        /** remark
+         * Android 10 ～ 12 pirvate的virtualdisplay对ADB SHELL和APP均可见，ADB SHELL有权限使用，但APP无权限使用
+         * Android 13+ pirvate的virtualdisplay对ADB SHELL和APP均不可见
+         */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            flags |= (1<<10);
+            flags = flags | (1<<0) | (1<<10);
         }
         return flags;
     }

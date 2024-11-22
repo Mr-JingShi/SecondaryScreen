@@ -10,7 +10,6 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -61,16 +60,16 @@ public class SampleActivity extends AppCompatActivity {
         DisplayManager displayManager = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         Display[] displays = displayManager.getDisplays();
         if (displays.length > 1) {
-            for (Display display :displays){
-                if (display.getName().contains("PC")) {
-                    return;
-                }
+            Log.i(TAG, "loadSecondActivity flags:" + (displays[1].getFlags() & Display.FLAG_PRIVATE));
+
+            if ((displays[1].getFlags() & Display.FLAG_PRIVATE) == 0) {
+                Log.i(TAG, "loadSecondActivity displayId:" + displays[1].getDisplayId());
+
+                Intent intent = new Intent(this, SecondActivity.class);
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setLaunchDisplayId(displays[1].getDisplayId());
+                startActivity(intent, options.toBundle());
             }
-            Intent intent = new Intent(this, SecondActivity.class);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(displays[1].getDisplayId());
-            startActivity(intent, options.toBundle());
         }
     }
-
 }

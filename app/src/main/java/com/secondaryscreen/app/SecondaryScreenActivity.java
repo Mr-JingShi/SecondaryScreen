@@ -17,9 +17,9 @@ import androidx.appcompat.app.AppCompatActivity;
 public class SecondaryScreenActivity extends AppCompatActivity {
     private static String TAG = "SecondaryScreenActivity";
     private TextureView mTextureView;
-    private ControlClient mControlClient;
-    private VideoClient mVideoClient;
-    private DisplayClient mDisplayClient;
+    private ControlConnection mControlConnection;
+    private VideoConnection mVideoConnection;
+    private DisplayConnection mDisplayConnection;
     private int mRotation = -1;
     private float mRealScaleX;
     private float mRealScaleY;
@@ -38,9 +38,9 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_secondaryscreen);
 
-        mVideoClient = new VideoClient();
-        mControlClient = new ControlClient();
-        mDisplayClient = new DisplayClient();
+        mVideoConnection = new VideoConnection();
+        mControlConnection = new ControlConnection();
+        mDisplayConnection = new DisplayConnection();
 
         DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         dm.registerDisplayListener(mDisplayListener, null);
@@ -70,9 +70,9 @@ public class SecondaryScreenActivity extends AppCompatActivity {
     protected void onDestroy() {
         Log.i(TAG, "onDestroy");
         super.onDestroy();
-        mDisplayClient.shutdown();
-        mVideoClient.shutdown();
-        mControlClient.shutdown();
+        mDisplayConnection.shutdown();
+        mVideoConnection.shutdown();
+        mControlConnection.shutdown();
         DisplayManager dm = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         dm.unregisterDisplayListener(mDisplayListener);
     }
@@ -83,9 +83,9 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
 
-                    mVideoClient.start(new Surface(surfaceTexture));
-                    mDisplayClient.start();
-                    mControlClient.start();
+                    mVideoConnection.start(new Surface(surfaceTexture));
+                    mDisplayConnection.start();
+                    mControlConnection.start();
                 }
 
                 @Override
@@ -128,7 +128,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
 
         int rotation = display.getRotation();
         if (rotation != mRotation) {
-            mDisplayClient.setScreenInfo(1,
+            mDisplayConnection.setScreenInfo(1,
                     Resolution.R.VIRTUALDISPLAY_WIDTH,
                     Resolution.R.VIRTUALDISPLAY_HEIGHT,
                     Resolution.R.VIRTUALDISPLAY_DENSITYDPI,

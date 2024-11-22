@@ -62,7 +62,7 @@ public class Server {
             controlConnection.join();
             displayConnection.join();
             if (activityDetector != null) {
-                activityDetector.join();
+                activityDetector.stop();
             }
         } catch (Exception e) {
             Ln.w(TAG, "Server main exception", e);

@@ -8,14 +8,14 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DisplayClient {
-    private static String TAG = "DisplayClient";
+public class DisplayConnection {
+    private static String TAG = "DisplayConnection";
     private Thread mThread;
     private Lock mLock = new ReentrantLock();
     private Condition mCondition = mLock.newCondition();
     private String mDisplayInfo;
-    public DisplayClient() {
-        mThread = new DisplayClientThread();
+    public DisplayConnection() {
+        mThread = new DisplayThread();
     }
 
     public void setScreenInfo(int flag, int width, int height, int densityDpi, int rotation) {
@@ -77,16 +77,16 @@ public class DisplayClient {
         }
     }
 
-    class DisplayClientThread extends Thread {
-        DisplayClientThread() {
-            super("DisplayClientThread");
-            Log.d(TAG, "DisplayClientThread");
+    class DisplayThread extends Thread {
+        DisplayThread() {
+            super("DisplayThread");
+            Log.d(TAG, "DisplayThread");
         }
         @Override
         public void run() {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.DISPLAY_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
-                Log.d(TAG, "DisplayClientThread connect success");
+                Log.d(TAG, "DisplayThread connect success");
 
                 byte[] length = new byte[4];
                 while (!Thread.currentThread().isInterrupted()) {
@@ -102,7 +102,7 @@ public class DisplayClient {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.d(TAG, "DisplayClientThread exception:" + e);
+                Log.d(TAG, "DisplayThread exception:" + e);
             }
         }
     }

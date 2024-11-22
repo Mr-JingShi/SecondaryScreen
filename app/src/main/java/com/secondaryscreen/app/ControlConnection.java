@@ -5,12 +5,12 @@ import android.util.Log;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-public class ControlClient {
-    private static String TAG = "ControlClient";
+public class ControlConnection {
+    private static String TAG = "ControlConnection";
     private Thread mThread;
 
-    public ControlClient() {
-        mThread = new ControlClientThread();
+    public ControlConnection() {
+        mThread = new ControlThread();
     }
 
     public void start() {
@@ -31,10 +31,10 @@ public class ControlClient {
         }
     }
 
-    class ControlClientThread extends Thread {
-        ControlClientThread() {
-            super("ControlClientThread");
-            Log.d(TAG, "ControlClientThread");
+    class ControlThread extends Thread {
+        ControlThread() {
+            super("ControlThread");
+            Log.d(TAG, "ControlThread");
         }
 
         @Override
@@ -42,7 +42,7 @@ public class ControlClient {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.CONTROL_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
 
-                Log.d(TAG, "ControlClientThread connect success");
+                Log.d(TAG, "ControlThread connect success");
 
                 byte[] length = new byte[4];
                 byte[] bytes = null;
@@ -56,7 +56,7 @@ public class ControlClient {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.w(TAG, "ControlClientThread socket exception:" + e);
+                Log.w(TAG, "ControlThread socket exception:" + e);
             }
         }
     }

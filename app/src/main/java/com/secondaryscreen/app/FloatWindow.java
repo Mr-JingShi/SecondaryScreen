@@ -58,9 +58,9 @@ final class FloatWindow {
     private FloatIcon mFloatIcon;
     private boolean mIsLocked = false;
     private boolean mIsFocused = false;
-    private ControlClient mControlClient;
-    private VideoClient mVideoClient;
-    private DisplayClient mDisplayClient;
+    private ControlConnection mControlConnection;
+    private VideoConnection mVideoConnection;
+    private DisplayConnection mDisplayConnection;
     private int mScreenWidth;
     private int mScreenHeight;
     private int mRotation;
@@ -94,10 +94,10 @@ final class FloatWindow {
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
-        mVideoClient = new VideoClient();
-        mControlClient = new ControlClient();
-        mDisplayClient = new DisplayClient();
-        mDisplayClient.setScreenInfo(0,
+        mVideoConnection = new VideoConnection();
+        mControlConnection = new ControlConnection();
+        mDisplayConnection = new DisplayConnection();
+        mDisplayConnection.setScreenInfo(0,
                 Resolution.R.VIRTUALDISPLAY_WIDTH,
                 Resolution.R.VIRTUALDISPLAY_HEIGHT,
                 Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
@@ -318,15 +318,18 @@ final class FloatWindow {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
                     if (USE_APP_VIRTUALDISPLAY) {
-                        String name = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ? "virtualdisplay" : "PC_virtualdisplay";
-                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(name, width, height, mDensityDpi, new Surface(surfaceTexture), DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, null, null);
+                        int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                            flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
+                        }
+                        mVirtualDisplay = mDisplayManager.createVirtualDisplay("virtualdisplay", width, height, mDensityDpi, new Surface(surfaceTexture), flags, null, null);
                         Display display = mVirtualDisplay.getDisplay();
                         Log.i(TAG, "FloatWindow display: " + display);
                     } else {
                         if (View.VISIBLE == mLockImageView.getVisibility()) {
-                            mVideoClient.start(new Surface(surfaceTexture));
-                            mDisplayClient.start();
-                            mControlClient.start();
+                            mVideoConnection.start(new Surface(surfaceTexture));
+                            mDisplayConnection.start();
+                            mControlConnection.start();
                         } else {
                             mSurfaceTexture = surfaceTexture;
                         }
@@ -423,7 +426,7 @@ final class FloatWindow {
     }
 
     private void onRotationChanged(int rotation) {
-        mDisplayClient.setScreenInfo(0,
+        mDisplayConnection.setScreenInfo(0,
                 Resolution.R.VIRTUALDISPLAY_WIDTH,
                 Resolution.R.VIRTUALDISPLAY_HEIGHT,
                 Resolution.R.VIRTUALDISPLAY_DENSITYDPI,

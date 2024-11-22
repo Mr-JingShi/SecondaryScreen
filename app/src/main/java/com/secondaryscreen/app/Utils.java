@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.SocketException;
 import java.util.Enumeration;
 import java.util.concurrent.BlockingQueue;
@@ -213,15 +215,37 @@ public class Utils {
     }
 
     static boolean checkVirtualDisplayReady() {
-        DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
-        Display[] displays = dm.getDisplays();
-        if (displays.length > 1) {
-            for (Display display : displays) {
-                if (display.getName().contains("virtualdisplay")) {
-
-                    mVirtualDisplayId = display.getDisplayId();
-                    Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
-                    return true;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Future<Boolean> future = mExecutor.submit(() -> {
+                try (Socket socket = new Socket()) {
+                    socket.setReuseAddress(true);
+                    socket.bind(new InetSocketAddress(CONTROL_CHANNEL_PORT));
+                } catch (java.net.BindException e) {
+                    Log.i(TAG, "BindException exception:" + e);
+                    String message = e.getMessage();
+                    if (message.contains("EADDRINUSE") || message.contains("Address already in use")) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return false;
+            });
+            try {
+                return future.get().booleanValue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
+            Display[] displays = dm.getDisplays();
+            if (displays.length > 1) {
+                for (Display display : displays) {
+                    if (display.getName().contains("virtualdisplay")) {
+                        mVirtualDisplayId = display.getDisplayId();
+                        Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
+                        return true;
+                    }
                 }
             }
         }

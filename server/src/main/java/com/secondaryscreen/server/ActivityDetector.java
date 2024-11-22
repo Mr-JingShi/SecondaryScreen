@@ -1,16 +1,20 @@
 package com.secondaryscreen.server;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.app.IActivityController;
 import android.app.TaskInfo;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ActivityDetector {
     private static String TAG = "ActivityDetector";
@@ -22,6 +26,7 @@ public class ActivityDetector {
     private String mSecondActivityPackage;
     @NonNull
     private String mSecondActivityClassName;
+    private static ScheduledExecutorService mExecutor  = Executors.newSingleThreadScheduledExecutor();
 
     public ActivityDetector(String firstActivity, String secondActivity) {
         this.mFirstActivity = firstActivity;
@@ -35,14 +40,17 @@ public class ActivityDetector {
         ServiceManager.getActivityManager().setActivityController(new IActivityController.Stub() {
             @Override
             public boolean activityStarting(Intent intent, String pkg) {
+                Ln.i(TAG, "intent:" + intent);
                 if (intent.getComponent() != null) {
                     String activityName = intent.getComponent().getClassName();
                     Ln.i(TAG, "activityStarting:" + activityName);
                     if(mFirstActivity.contains(activityName)) {
-                        if (isReady(null, mSecondActivity)) {
-                            Ln.i(TAG, "First activity started, but second activity have not start, start second activity");
-                            startSecondActivity();
-                        }
+                        mExecutor.schedule(() -> {
+                            if (isReady(mFirstActivity, mSecondActivity)) {
+                                Ln.i(TAG, "First activity started, but second activity have not start, start second activity");
+                                startSecondActivity();
+                            }
+                        }, 2, TimeUnit.SECONDS);
                     }
                 }
                 return true;
@@ -83,6 +91,7 @@ public class ActivityDetector {
 
     public void stop() {
         ServiceManager.getActivityManager().setActivityController(null);
+        mExecutor.shutdown();
     }
 
     @RequiresApi(api = 26)
@@ -101,24 +110,53 @@ public class ActivityDetector {
     }
 
     @RequiresApi(api = 29)
-    private boolean isReady(@Nullable String firstActivity, @NonNull String secondActivity) {
-        List<TaskInfo> list = ServiceManager.getActivityManager().getAllRootTaskInfos();
-        if (list != null) {
-            boolean found = firstActivity == null ? true : false;
+    private boolean isReady(@NonNull String firstActivity, @NonNull String secondActivity) {
+        try {
+            List<Pair<Integer, String[]>> list = ServiceManager.getActivityManager().getAllTaskInfos();
+            Ln.i(TAG, "list size:" + list.size());
 
-            for (TaskInfo info : list) {
-                if (info.baseIntent.getComponent() != null) {
-                    String name = info.baseIntent.getComponent().getClassName();
-                    Ln.i(TAG, "task:" + info.baseIntent.getComponent().getClassName());
-                    if (secondActivity.contains(name)) {
+            boolean found = false;
+            for (Pair<Integer, String[]> taskInfo : list) {
+                for (String activity : taskInfo.second) {
+                    // INFO ActivityDetector activity:com.overlaywindow.sample/com.overlaywindow.sample.SecondActivity
+                    Ln.i(TAG, "activity:" + activity);
+
+                    if (activity.equals(secondActivity) && taskInfo.first.intValue() == DisplayInfo.getMirrorDisplayId()) {
                         return false;
-                    } else if (firstActivity != null && firstActivity.contains(name)) {
+                    } else if (activity.equals(firstActivity) && taskInfo.first.intValue() == 0) {
                         found = true;
                     }
                 }
             }
             return found;
+        } catch (ReflectiveOperationException e) {
+            Ln.e(TAG, "getAllTaskInfos Could not invoke method", e);
+
+            try {
+                List<TaskInfo> list = ServiceManager.getActivityManager().getTasks(9999);
+                Ln.i(TAG, "list size:" + list.size());
+                boolean found = false;
+                for (TaskInfo taskInfo : list) {
+                    if (taskInfo.baseIntent.getComponent() != null) {
+                        String activity = taskInfo.baseIntent.getComponent().getClassName();
+                        // INFO ActivityDetector activity:com.overlaywindow.sample.SecondActivity
+                        Ln.i(TAG, "activity:" + activity);
+                        @SuppressLint("BlockedPrivateApi")
+                        int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
+                        Ln.i(TAG, "taskInfo.displayId:" + displayId);
+                        if (secondActivity.contains(activity) && displayId == DisplayInfo.getMirrorDisplayId()) {
+                            return false;
+                        } else if (firstActivity.contains(activity) && displayId == 0) {
+                            found = true;
+                        }
+                    }
+                }
+                return found;
+            } catch (ReflectiveOperationException e1) {
+                Ln.e(TAG, "getTasks Could not invoke method", e1);
+            }
         }
-        return !Utils.activityRunning(secondActivity) && (firstActivity == null ? true : Utils.activityRunning(firstActivity));
+
+        return !Utils.activityRunning(secondActivity) && Utils.activityRunning(firstActivity);
     }
 }
