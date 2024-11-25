@@ -425,6 +425,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private void registerReceiver() {
         IntentFilter filter = new IntentFilter("input_paring_code");
         filter.addCategory(getPackageName());
+        /**
+         * java.lang.SecurityException: com.secondaryscreen.app: One of RECEIVER_EXPORTED or RECEIVER_NOT_EXPORTED should be specified when a receiver isn't being registered exclusively for system broadcasts
+         * As discussed at Google I/O 2023, registering receivers with intention using the RECEIVER_EXPORTED / RECEIVER_NOT_EXPORTED flag was introduced as part of Android 13 and is now a requirement for apps running on Android 14 or higher (U+).
+         * If you do not implement this, the system will throw a security exception.
+         * To allow the broadcast receiver to receive broadcasts from other apps, register the receiver using the following code:
+         * context.registerReceiver(broadcastReceiver, intentFilter, RECEIVER_EXPORTED);
+         * To register a broadcast receiver that does not receive broadcasts from other apps, including system apps, register the receiver using the following code:
+         * context.registerReceiver(broadcastReceiver, intentFilter, RECEIVER_NOT_EXPORTED);
+         */
         registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -437,7 +446,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     }
                 }
             }
-        }, filter);
+        }, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     private void adbPair(String pairingCode) {
