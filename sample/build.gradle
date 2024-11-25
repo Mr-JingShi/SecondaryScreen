@@ -3,10 +3,10 @@ plugins {
 }
 
 android {
-    namespace 'com.overlaywindow.sample'
+    namespace 'com.secondaryscreen.sample'
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.overlaywindow.sample"
+        applicationId "com.secondaryscreen.sample"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

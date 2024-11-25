@@ -1,4 +1,4 @@
-package com.overlaywindow.sample;
+package com.secondaryscreen.sample;
 
 import android.os.Bundle;
 import android.util.Log;
