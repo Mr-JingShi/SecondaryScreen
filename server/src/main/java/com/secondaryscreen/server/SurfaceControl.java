@@ -19,7 +19,7 @@ import java.lang.reflect.Method;
 public final class SurfaceControl {
     private static final String VIRTUALDISPLAY_NAME = "virtualdisplay";
     private static final Class<?> CLASS;
-    private static Object SELF_VIRTUALDISPLAY_TOKEN;
+    private static Object TOKEN;
 
     static {
         try {
@@ -83,11 +83,11 @@ public final class SurfaceControl {
         // https://cs.android.com/android/platform/superproject/+/android-14.0.0_r1:frameworks/base/core/java/android/hardware/display/DisplayManager.java;drc=b3691fab2356133dfc7e11c213732ffef9a85315;l=1567
         IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
         Method[] dmMethods = dm.getClass().getDeclaredMethods();
-        Method method = findMethodAndMakeAccessible(dmMethods,"createVirtualDisplay");
+        Method method = Utils.findMethodAndMakeAccessible(dmMethods,"createVirtualDisplay");
 
         Object callback = virtualDisplayCallback();
         // 保存token
-        SELF_VIRTUALDISPLAY_TOKEN = callback;
+        TOKEN = callback;
 
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             Surface surface = getSurface(width, height);
@@ -119,7 +119,7 @@ public final class SurfaceControl {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Class<?> DisplayManagerGlobalClass = Class.forName("android.hardware.display.DisplayManagerGlobal");
             Class<?>[] innerClasses = DisplayManagerGlobalClass.getDeclaredClasses();
-            Class<?> VirtualDisplayCallbackClass = findClassAndMakeAccessible(innerClasses, "android.hardware.display.DisplayManagerGlobal$VirtualDisplayCallback");
+            Class<?> VirtualDisplayCallbackClass = Utils.findClass(innerClasses, "android.hardware.display.DisplayManagerGlobal$VirtualDisplayCallback");
             Constructor<?>[] VirtualDisplayCallbackConstructors = VirtualDisplayCallbackClass.getConstructors();
 
             VirtualDisplayCallbackConstructors[0].setAccessible(true);
@@ -220,53 +220,34 @@ public final class SurfaceControl {
         return flags;
     }
 
-    private static Class<?> findClassAndMakeAccessible(Class<?>[] innerClasses, String name) throws ClassNotFoundException {
-        for (Class<?> clazz : innerClasses) {
-            if (clazz.getName().equals(name)) {
-                return clazz;
-            }
-        }
-        throw new ClassNotFoundException(name);
-    }
-
-    private static Method findMethodAndMakeAccessible(Method[] methods, String name) throws NoSuchMethodException {
-        for (Method method : methods) {
-            if (method.getName().equals(name)) {
-                method.setAccessible(true);
-                return method;
-            }
-        }
-        throw new NoSuchMethodException(name);
-    }
-
     public static void resizeVirtualDisplay(int width, int height, int densityDpi) throws Exception {
-        if (SELF_VIRTUALDISPLAY_TOKEN != null) {
+        if (TOKEN != null) {
             IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
             Method[] dmMethods = dm.getClass().getDeclaredMethods();
-            Method resize = findMethodAndMakeAccessible(dmMethods, "resizeVirtualDisplay");
+            Method resize = Utils.findMethodAndMakeAccessible(dmMethods, "resizeVirtualDisplay");
             resize.invoke(
                     /* this */ dm,
-                    /* callback */ SELF_VIRTUALDISPLAY_TOKEN,
+                    /* callback */ TOKEN,
                     /* width */ width,
                     /* height */ height,
                     /* densityDpi */ densityDpi);
 
-            Method setSurface = findMethodAndMakeAccessible(dmMethods, "setVirtualDisplaySurface");
+            Method setSurface = Utils.findMethodAndMakeAccessible(dmMethods, "setVirtualDisplaySurface");
             setSurface.invoke(
                     /* this */ dm,
-                    /* callback */ SELF_VIRTUALDISPLAY_TOKEN,
+                    /* callback */ TOKEN,
                     /* surface */ getSurface(width, height));
         }
     }
 
     public static void releaseVirtualDisplay() throws Exception {
-        if (SELF_VIRTUALDISPLAY_TOKEN != null) {
+        if (TOKEN != null) {
             IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
             Method[] dmMethods = dm.getClass().getDeclaredMethods();
-            Method method = findMethodAndMakeAccessible(dmMethods, "releaseVirtualDisplay");
+            Method method = Utils.findMethodAndMakeAccessible(dmMethods, "releaseVirtualDisplay");
             method.invoke(
                     /* this */ dm,
-                    /* callback */ SELF_VIRTUALDISPLAY_TOKEN);
+                    /* callback */ TOKEN);
         }
     }
 

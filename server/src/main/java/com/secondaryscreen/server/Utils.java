@@ -2,6 +2,8 @@ package com.secondaryscreen.server;
 
 import androidx.annotation.NonNull;
 
+import java.lang.reflect.Method;
+
 public class Utils {
     private static String TAG = "Utils";
     public static final String PACKAGE_NAME = "com.android.shell";
@@ -54,5 +56,24 @@ public class Utils {
             activity = activity.replace("/", "/" + prefix);
         }
         return activity;
+    }
+
+    static Class<?> findClass(Class<?>[] innerClasses, String name) throws ClassNotFoundException {
+        for (Class<?> clazz : innerClasses) {
+            if (clazz.getName().equals(name)) {
+                return clazz;
+            }
+        }
+        throw new ClassNotFoundException(name);
+    }
+
+    static Method findMethodAndMakeAccessible(Method[] methods, String name) throws NoSuchMethodException {
+        for (Method method : methods) {
+            if (method.getName().equals(name)) {
+                method.setAccessible(true);
+                return method;
+            }
+        }
+        throw new NoSuchMethodException(name);
     }
 }

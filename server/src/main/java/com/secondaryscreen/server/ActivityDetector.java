@@ -121,9 +121,9 @@ public class ActivityDetector {
                     // INFO ActivityDetector activity:com.overlaywindow.sample/com.overlaywindow.sample.SecondActivity
                     Ln.i(TAG, "activity:" + activity);
 
-                    if (activity.equals(secondActivity) && taskInfo.first.intValue() == DisplayInfo.getMirrorDisplayId()) {
+                    if (taskInfo.first.intValue() == DisplayInfo.getMirrorDisplayId() && activity.equals(secondActivity)) {
                         return false;
-                    } else if (activity.equals(firstActivity) && taskInfo.first.intValue() == 0) {
+                    } else if (taskInfo.first.intValue() == 0 && activity.equals(firstActivity)) {
                         found = true;
                     }
                 }
@@ -144,9 +144,9 @@ public class ActivityDetector {
                         @SuppressLint("BlockedPrivateApi")
                         int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
                         Ln.i(TAG, "taskInfo.displayId:" + displayId);
-                        if (secondActivity.contains(activity) && displayId == DisplayInfo.getMirrorDisplayId()) {
+                        if (displayId == DisplayInfo.getMirrorDisplayId() && secondActivity.contains(activity)) {
                             return false;
-                        } else if (firstActivity.contains(activity) && displayId == 0) {
+                        } else if (displayId == 0 && firstActivity.contains(activity)) {
                             found = true;
                         }
                     }
