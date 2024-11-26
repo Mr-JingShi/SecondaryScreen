@@ -118,8 +118,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             if (radio_master.isChecked()) {
                 if (checkVirtualDisplayReady()) {
                     startFloatWindow();
-                } else {
-                    Utils.toast("jar包未启动，请先启动jar包");
                 }
             } else if (radio_slave.isChecked()) {
                 CharSequence charSequence = wlan_address.getText();
@@ -136,8 +134,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     }
 
                     if (wlanAddress.equals("127.0.0.1")) {
-                        if (!checkVirtualDisplayReady()) {
-                            Utils.toast("jar包未启动，请先启动jar包");
+                        if (!Utils.checkVirtualDisplayReady()) {
+                            Utils.toast("jar包未启动，请先按主设备方式启动jar包");
                             return;
                         }
                     }
@@ -186,27 +184,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 Utils.toast("WLAN-ADB调试配对结果:" + connected);
 
                 if (connected.equals("OK")) {
-                    Utils.runOnOtherThread(() -> {
-                        for (int i = 0; i < 5; i++) {
-                            boolean ready = Utils.checkVirtualDisplayReady();
-                            Log.i(TAG, "serverReady ready:" + ready);
-                            if (ready) {
-                                if (ready) {
-                                    AdbShell.getInstance().disconnect();
-                                    runOnUiThread(() -> {
-                                        setAdbConnectionVisibility(false);
-                                    });
-                                }
-                                break;
-                            }
-                            if (i == 4) {
-                                Log.i(TAG, "i == 4");
-                                break;
-                            }
-                            Log.i(TAG, "serverReady wait 1s");
-                            Utils.sleep(1000);
-                        }
-                    });
+                    setAdbConnectionVisibility(false);
+
+                    AdbShell.getInstance().disconnect();
                 }
             }
         }
@@ -384,7 +364,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         Log.i(TAG, "onRequestPermissionsResult requestCode:" + requestCode + " permissions:" + Arrays.toString(permissions) + " grantResults:" + Arrays.toString(grantResults));
         if (requestCode == REQUEST_CODE_NOTIFICATION_PERMISSION) {
             if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission was granted.
                 Utils.toast("Notification permission was granted.");
 
                 mPairImageView.setVisibility(View.VISIBLE);
@@ -453,6 +432,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         AdbShell.getInstance().pair(pairingCode, () -> {
             final boolean connected = AdbShell.getInstance().getConnectStatus();
             Log.i(TAG, "connected:" + connected);
+            if (connected) {
+                PrivatePreferences.setServiceAdbTslPort(AdbShell.getInstance().getTlsPort());
+            }
             replyNotification(connected);
 
             Intent intent = new Intent(Utils.getContext(), MainActivity.class);
@@ -490,21 +472,74 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         findViewById(R.id.adb_connection).setVisibility(visibility ? View.VISIBLE : View.GONE);
     }
 
-    private boolean tryAdbTcpipConnect() {
-        boolean tryConnect = false;
-        String portString = Utils.getAdbTcpipPort();
-        if (portString != null && !portString.isEmpty()) {
-            tryConnect = true;
-            AdbShell.getInstance().connect(Integer.parseInt(portString), () -> {
-                if (AdbShell.getInstance().getConnectStatus()) {
-                    Utils.toast("ADB连接成功");
-                    setAdbConnectionVisibility(false);
-                } else {
-                    hidePairImageView();
+    private void tryAdbConnect() {
+        Runnable runnable = () -> {
+            boolean connected = AdbShell.getInstance().getConnectStatus();
+            Log.i(TAG, "runnable connected:" + connected);
+            if (connected) {
+                PrivatePreferences.setServiceAdbTslPort(AdbShell.getInstance().getTlsPort());
+
+                Utils.toast("ADB连接成功");
+                setAdbConnectionVisibility(false);
+            } else {
+                hidePairImageView();
+
+                Utils.toast("ADB连接失败");
+            }
+        };
+
+        Runnable runnable1 = () -> {
+            boolean connected = AdbShell.getInstance().getConnectStatus();
+            Log.i(TAG, "runnable1 connected:" + connected);
+            if (connected) {
+                Utils.toast("ADB连接成功");
+                setAdbConnectionVisibility(false);
+            } else {
+                PrivatePreferences.setServiceAdbTslPort(0);
+
+                Log.i(TAG, "runnable1 autoConnect");
+                AdbShell.getInstance().autoConnect(runnable);
+            }
+        };
+
+        Runnable runnable2 = () -> {
+            int port = PrivatePreferences.getServiceAdbTslPort();
+            if (port != 0) {
+                Log.i(TAG, "ServiceAdbTslPort:" + port);
+                AdbShell.getInstance().connect(port, runnable1);
+            } else {
+                Log.i(TAG, "runnable2 autoConnect");
+                AdbShell.getInstance().autoConnect(runnable);
+            }
+        };
+
+        Runnable runnable3 = () -> {
+            boolean connected = AdbShell.getInstance().getConnectStatus();
+            Log.i(TAG, "runnable3 connected:" + connected);
+            if (connected) {
+                Utils.toast("ADB连接成功");
+                setAdbConnectionVisibility(false);
+            } else {
+                if (supportWlanDebug()) {
+                    runnable2.run();
                 }
-            });
-        }
-        return tryConnect;
+            }
+        };
+
+        Runnable runnable4 = () -> {
+            String port = Utils.getServiceAdbTcpPort();
+            if (port != null && !port.isEmpty()) {
+                Log.i(TAG, "ServiceAdbTcpPort:" + port);
+                AdbShell.getInstance().connect(Integer.parseInt(port), runnable3);
+            } else {
+                if (supportWlanDebug()) {
+                    runnable2.run();
+                }
+            }
+        };
+
+        Utils.toast("正在尝试ADB连接...");
+        runnable4.run();
     }
 
     private void adbTcpipConnect() {
@@ -512,7 +547,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
         EditText input_text = inputView.findViewById(R.id.input_text);
         input_text.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        String portString = Utils.getAdbTcpipPort();
+        String portString = Utils.getServiceAdbTcpPort();
         if (portString != null && !portString.isEmpty()) {
             input_text.setText(portString);
         }
@@ -528,8 +563,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             String portNumberString = input_text.getText().toString();
 
             if (portNumberString != null
-                    && !portNumberString.isEmpty()
-                    && TextUtils.isDigitsOnly(portNumberString)) {
+                && !portNumberString.isEmpty()
+                && TextUtils.isDigitsOnly(portNumberString)) {
                 int port = Integer.parseInt(portNumberString);
                 AdbShell.getInstance().connect(port, () -> {
                     if (AdbShell.getInstance().getConnectStatus()) {
@@ -562,12 +597,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         } else {
             setAdbConnectionVisibility(true);
 
-            if (tryAdbTcpipConnect()) {
-                Utils.toast("正在尝试使用TCPIP方式连接ADB");
-            } else {
-                Utils.toast("请先连接ADB");
-                hidePairImageView();
-            }
+            tryAdbConnect();
         }
 
         return ready;
@@ -581,7 +611,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private void hidePairImageView() {
         // Andrid 11+ 支持无线调试
         // 华为设备禁用了无线调试功能
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Build.MANUFACTURER.equals("HUAWEI")) {
+        if (supportWlanDebug()) {
             if (hasNotificationPermission()) {
                 registerReceiver();
             } else {
@@ -591,5 +621,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         } else {
             mPairImageView.setVisibility(View.GONE);
         }
+    }
+
+    private boolean supportWlanDebug() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Build.MANUFACTURER.equals("HUAWEI");
     }
 }

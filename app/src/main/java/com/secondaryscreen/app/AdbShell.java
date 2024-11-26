@@ -4,9 +4,9 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.UiContext;
 
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.muntashirakon.adb.AbsAdbConnectionManager;
+import io.github.muntashirakon.adb.AdbConnection;
+import io.github.muntashirakon.adb.AdbPairingRequiredException;
 import io.github.muntashirakon.adb.AdbStream;
 import io.github.muntashirakon.adb.LocalServices;
 import io.github.muntashirakon.adb.android.AdbMdns;
@@ -30,7 +32,8 @@ public class AdbShell {
     private static String TAG = "AdbShell";
     private final ExecutorService mExecutor;
     private boolean mConnectSatus = false;
-    private int mPort = 0;
+    private int mTlsPort = 0;
+    private int mPairPort = 0;
     @Nullable
     private AdbStream adbShellStream;
 
@@ -46,8 +49,8 @@ public class AdbShell {
         return mConnectSatus;
     }
 
-    public int getPort() {
-        return mPort;
+    public int getTlsPort() {
+        return mTlsPort;
     }
 
     public void connect(int port, Runnable runnable) {
@@ -72,6 +75,29 @@ public class AdbShell {
             Utils.runOnUiThread(runnable);
 
             Log.i(TAG, "connect connectionStatus:" + connectionStatus);
+        });
+    }
+
+    public void autoConnect(Runnable runnable) {
+        mExecutor.submit(() -> {
+            boolean connected = false;
+            try {
+                AbsAdbConnectionManager manager = AdbManager.getInstance(Utils.getContext());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    connected = manager.connectTls(Utils.getContext(), 5000);
+                    getTlsPort(connected, manager);
+                }
+            } catch (Throwable th) {
+                th.printStackTrace();
+            }
+
+            mConnectSatus = connected;
+            if (connected) {
+                startJar();
+            }
+            Utils.runOnUiThread(runnable);
+
+            Log.i(TAG, "connect connectionStatus:" + connected);
         });
     }
 
@@ -112,7 +138,7 @@ public class AdbShell {
                 adbMdns.stop();
             }
 
-            mPort = atomicPort.get();
+            mPairPort = atomicPort.get();
             Utils.runOnUiThread(runnable);
         });
     }
@@ -123,9 +149,10 @@ public class AdbShell {
             try {
                 AbsAdbConnectionManager manager = AdbManager.getInstance(Utils.getContext());
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    connected = manager.pair(AndroidUtils.getHostIpAddress(Utils.getContext()), mPort, pairingCode);
+                    connected = manager.pair(AndroidUtils.getHostIpAddress(Utils.getContext()), mPairPort, pairingCode);
                     if (connected) {
                         connected = manager.autoConnect(Utils.getContext(), 5000);
+                        getTlsPort(connected, manager);
                     }
                 }
             } catch (Throwable th) {
@@ -160,6 +187,16 @@ public class AdbShell {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void getTlsPort(boolean connected, AbsAdbConnectionManager manager) throws Throwable {
+        if (connected) {
+            AdbConnection adbConnection = manager.getAdbConnection();
+            Field field = AdbConnection.class.getDeclaredField("mPort");
+            field.setAccessible(true);
+            mTlsPort = field.getInt(adbConnection);
+            Log.i(TAG, "autoConnect port:" + mTlsPort);
+        }
     }
 
     private void startJar() {

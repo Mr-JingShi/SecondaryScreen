@@ -131,7 +131,7 @@ public class Utils {
         return false;
     }
 
-    static String getAdbTcpipPort() {
+    static String getServiceAdbTcpPort() {
         String port = null;
         try {
             Class<?> c = Class.forName("android.os.SystemProperties");
