@@ -35,7 +35,7 @@ adb push secondaryscreen-server-debug.jar /data/local/tmp/
 
 Android 10 ～ 12需要指定Activity
 
-adb shell CLASSPATH=/data/local/tmp/overlaywindow-server-debug.jar app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity
+adb shell CLASSPATH=/data/local/tmp/secondaryscreen-server-debug.jar app_process / com.secondaryscreen.server.Server A.B.C/A.B.C.FirstActivity A.B.C/A.B.C.SecondActivity
 
 Android 13以及以上不需要指定Activity
 

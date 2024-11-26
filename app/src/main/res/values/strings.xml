@@ -18,6 +18,6 @@
     <string name="adb_connecting">连接中</string>
     <string name="adb_connect_success">连接成功</string>
     <string name="adb_connect_failed">连接失败</string>
-    <string name="first_activity">com.overlaywindow.sample/.SampleActivity</string>
-    <string name="seoncd_activity">com.overlaywindow.sample/.SecondActivity</string>
+    <string name="first_activity">com.secondaryscreen.sample/.SampleActivity</string>
+    <string name="seoncd_activity">com.secondaryscreen.sample/.SecondActivity</string>
 </resources>

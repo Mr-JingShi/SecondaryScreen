@@ -43,7 +43,7 @@ public class ActivityDetector {
                 Ln.i(TAG, "intent:" + intent);
                 if (intent.getComponent() != null) {
                     String activityName = intent.getComponent().getClassName();
-                    Ln.i(TAG, "activityStarting:" + activityName);
+                    Ln.i(TAG, "activityStarting:" + activityName + " FirstActivity:" + mFirstActivity);
                     if(mFirstActivity.contains(activityName)) {
                         mExecutor.schedule(() -> {
                             if (isReady(mFirstActivity, mSecondActivity)) {
@@ -118,7 +118,7 @@ public class ActivityDetector {
             boolean found = false;
             for (Pair<Integer, String[]> taskInfo : list) {
                 for (String activity : taskInfo.second) {
-                    // INFO ActivityDetector activity:com.overlaywindow.sample/com.overlaywindow.sample.SecondActivity
+                    // INFO ActivityDetector activity:com.secondaryscreen.sample/com.secondaryscreen.sample.SecondActivity
                     Ln.i(TAG, "activity:" + activity);
 
                     if (taskInfo.first.intValue() == DisplayInfo.getMirrorDisplayId() && activity.equals(secondActivity)) {
@@ -139,7 +139,7 @@ public class ActivityDetector {
                 for (TaskInfo taskInfo : list) {
                     if (taskInfo.baseIntent.getComponent() != null) {
                         String activity = taskInfo.baseIntent.getComponent().getClassName();
-                        // INFO ActivityDetector activity:com.overlaywindow.sample.SecondActivity
+                        // INFO ActivityDetector activity:com.secondaryscreen.sample.SecondActivity
                         Ln.i(TAG, "activity:" + activity);
                         @SuppressLint("BlockedPrivateApi")
                         int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
