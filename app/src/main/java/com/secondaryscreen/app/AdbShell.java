@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.muntashirakon.adb.AbsAdbConnectionManager;
 import io.github.muntashirakon.adb.AdbConnection;
-import io.github.muntashirakon.adb.AdbPairingRequiredException;
 import io.github.muntashirakon.adb.AdbStream;
 import io.github.muntashirakon.adb.LocalServices;
 import io.github.muntashirakon.adb.android.AdbMdns;

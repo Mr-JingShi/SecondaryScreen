@@ -22,10 +22,13 @@ public final class ServiceManager {
         }
     }
 
-    private static WindowManager windowManager;
-    private static DisplayManager displayManager;
-    private static InputManager inputManager;
-    private static ActivityManager activityManager;
+    private static WindowManager mWindowManager;
+    private static DisplayManager mDisplayManager;
+    private static InputManager mInputManager;
+    private static ActivityManager mActivityManager;
+    private static PackageManager mPackageManager;
+    private static LauncherApps mLauncherApps;
+
     private ServiceManager() {
         /* not instantiable */
     }
@@ -41,30 +44,44 @@ public final class ServiceManager {
     }
 
     public static WindowManager getWindowManager() {
-        if (windowManager == null) {
-            windowManager = WindowManager.create();
+        if (mWindowManager == null) {
+            mWindowManager = WindowManager.create();
         }
-        return windowManager;
+        return mWindowManager;
     }
 
     public static DisplayManager getDisplayManager() {
-        if (displayManager == null) {
-            displayManager = DisplayManager.create();
+        if (mDisplayManager == null) {
+            mDisplayManager = DisplayManager.create();
         }
-        return displayManager;
+        return mDisplayManager;
     }
 
     public static InputManager getInputManager() {
-        if (inputManager == null) {
-            inputManager = InputManager.create();
+        if (mInputManager == null) {
+            mInputManager = InputManager.create();
         }
-        return inputManager;
+        return mInputManager;
     }
 
     public static ActivityManager getActivityManager() {
-        if (activityManager == null) {
-            activityManager = ActivityManager.create();
+        if (mActivityManager == null) {
+            mActivityManager = ActivityManager.create();
         }
-        return activityManager;
+        return mActivityManager;
+    }
+
+    public static PackageManager getPackageManager() {
+        if (mPackageManager == null) {
+            mPackageManager = PackageManager.create();
+        }
+        return mPackageManager;
+    }
+
+    public static LauncherApps getLauncherApps() {
+        if (mLauncherApps == null) {
+            mLauncherApps = LauncherApps.create();
+        }
+        return mLauncherApps;
     }
 }

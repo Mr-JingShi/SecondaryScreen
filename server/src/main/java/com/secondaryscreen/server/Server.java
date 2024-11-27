@@ -22,6 +22,8 @@ public class Server {
                 Ln.i(TAG, "firstActivity:" + firstActivity + " secondActivity:" + secondActivity);
             }
 
+            KillSelf.start();
+
             DisplayInfo displayInfo = ServiceManager.getDisplayManager().getDisplayInfo(true);
 
             Size size = displayInfo.getSize();
