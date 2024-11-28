@@ -17,7 +17,6 @@ import java.lang.reflect.Method;
 
 @SuppressLint("PrivateApi")
 public final class SurfaceControl {
-    private static final String VIRTUALDISPLAY_NAME = "virtualdisplay";
     private static final Class<?> CLASS;
     private static Object TOKEN;
 
@@ -97,7 +96,7 @@ public final class SurfaceControl {
                     /* callback */ callback,
                     /* projectionToken */ null,
                     /* packageName */ Utils.PACKAGE_NAME,
-                    /* name */ VIRTUALDISPLAY_NAME,
+                    /* name */ Utils.VIRTUALDISPLAY_NAME,
                     /* width */ width,
                     /* height */ height,
                     /* densityDpi */ densityDpi,
@@ -135,7 +134,7 @@ public final class SurfaceControl {
         Class<?> BuilderClass = Class.forName("android.hardware.display.VirtualDisplayConfig$Builder");
         Constructor<?> BuilderConstructor = BuilderClass.getConstructor(String.class, int.class, int.class, int.class);
 
-        Object builder = BuilderConstructor.newInstance(VIRTUALDISPLAY_NAME, width, height, densityDpi);
+        Object builder = BuilderConstructor.newInstance(Utils.VIRTUALDISPLAY_NAME, width, height, densityDpi);
 
         Method setFlags = BuilderClass.getMethod("setFlags", int.class);
         setFlags.invoke(builder, getflags());
@@ -210,9 +209,11 @@ public final class SurfaceControl {
         // VIRTUAL_DISPLAY_FLAG_TRUSTED 1 << 10
         int flags = (1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);
         /** remark
-         * Android 10 ～ 12 pirvate的virtualdisplay对ADB SHELL和APP均可见，ADB SHELL有权限使用，但APP无权限使用
-         * Android 13 pirvate的virtualdisplay对ADB SHELL和APP均不可见，ADB SHELL无权限使用，APP无权限使用
-         * Android 14 pirvate的virtualdisplay对ADB SHELL可见，但对APP不可见，ADB SHELL有权限使用，APP无权限使用
+         * Android 10 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
+         * Android 11 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP可见，APP无权限使用
+         * Android 12 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP有些设备可见，有些设备不可见，APP无权限使用
+         * Android 13 pirvate的virtualdisplay对ADB SHELL不可见，ADB SHELL无权限使用；对APP不可见，APP无权限使用
+         * Android 14 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
          */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             flags = flags | (1<<0) | (1<<10);

@@ -59,6 +59,7 @@ public class SampleActivity extends AppCompatActivity {
     private void loadSecondActivity() {
         DisplayManager displayManager = (DisplayManager)getSystemService(Context.DISPLAY_SERVICE);
         Display[] displays = displayManager.getDisplays();
+        Log.i(TAG, "loadSecondActivity displays.length:" + displays.length);
         if (displays.length > 1) {
             Log.i(TAG, "loadSecondActivity flags:" + (displays[1].getFlags() & Display.FLAG_PRIVATE));
 

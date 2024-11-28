@@ -32,10 +32,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Utils {
     private static String TAG = "Utils";
-    public static int CONTROL_CHANNEL_PORT = 8402;
-    public static int VIDEO_CHANNEL_PORT = 8403;
-    public static int DISPLAY_CHANNEL_PORT = 8404;
-    public static int SOCKET_TIMEOUT = 3000;
+    static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
+    static int CONTROL_CHANNEL_PORT = 8402;
+    static int VIDEO_CHANNEL_PORT = 8403;
+    static int DISPLAY_CHANNEL_PORT = 8404;
+    static int SOCKET_TIMEOUT = 3000;
     private static String REMOTE_HOST = "127.0.0.1";
     private static Context mContext = null;
     private static int mVirtualDisplayId = -1;
@@ -215,6 +216,17 @@ public class Utils {
     }
 
     static boolean checkVirtualDisplayReady() {
+        DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
+        Display[] displays = dm.getDisplays();
+        if (displays.length > 1) {
+            for (Display display : displays) {
+                if (display.getName().equals(VIRTUALDISPLAY_NAME)) {
+                    mVirtualDisplayId = display.getDisplayId();
+                    Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
+                    return true;
+                }
+            }
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Future<Boolean> future = mExecutor.submit(() -> {
                 try (Socket socket = new Socket()) {
@@ -235,18 +247,6 @@ public class Utils {
                 return future.get().booleanValue();
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-        } else {
-            DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
-            Display[] displays = dm.getDisplays();
-            if (displays.length > 1) {
-                for (Display display : displays) {
-                    if (display.getName().contains("virtualdisplay")) {
-                        mVirtualDisplayId = display.getDisplayId();
-                        Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
-                        return true;
-                    }
-                }
             }
         }
         return false;

@@ -1,2 +1,2 @@
 rootProject.name = "SecondaryScreen"
-include ":server", ":app", "sample", ":virtualdisplay"
+include ":server", ":app", "sample"

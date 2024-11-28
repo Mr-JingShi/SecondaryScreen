@@ -18,7 +18,6 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
     private static final String TAG = "ScreenCapture";
     private final AtomicBoolean mResetCapture = new AtomicBoolean();
     private final AtomicBoolean mRestartCapture = new AtomicBoolean();
-    private static String VIRTUALDISPLAY = "virtualdisplay";
     private ScreenInfo mScreenInfo;
     private IBinder mDisplay;
     private VirtualDisplay mVirtualDisplay;
@@ -133,7 +132,7 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
             try {
                 Rect videoRect = mScreenInfo.getVideoSize().toRect();
                 Ln.d(TAG, "videoRotation:" + videoRect);
-                mVirtualDisplay = ServiceManager.getDisplayManager().createVirtualDisplay(VIRTUALDISPLAY, videoRect.width(), videoRect.height(), mirrorDisplayId, surface);
+                mVirtualDisplay = ServiceManager.getDisplayManager().createVirtualDisplay(Utils.VIRTUALDISPLAY_NAME, videoRect.width(), videoRect.height(), mirrorDisplayId, surface);
                 Ln.i(TAG, "Display: using DisplayManager API");
             } catch (Exception displayManagerException) {
                 Ln.w(TAG, "Could not create display using DisplayManager", displayManagerException);
@@ -170,7 +169,7 @@ public class ScreenCapture implements WindowManager.RotationListener, DisplayMan
         // On Android 12 preview, SDK_INT is still R (not S), but CODENAME is "S".
         boolean secure = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (Build.VERSION.SDK_INT == Build.VERSION_CODES.R && !"S".equals(
                 Build.VERSION.CODENAME));
-        return SurfaceControl.createDisplay(VIRTUALDISPLAY, secure);
+        return SurfaceControl.createDisplay(Utils.VIRTUALDISPLAY_NAME, secure);
     }
 
     private static void setDisplaySurface(IBinder display, Surface surface, int orientation, Rect deviceRect, Rect displayRect, int layerStack) {

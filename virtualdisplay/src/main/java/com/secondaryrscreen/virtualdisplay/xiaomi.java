@@ -47,7 +47,7 @@ public class xiaomi {
         try {
             Class<?> BuilderClass = Class.forName("android.hardware.display.VirtualDisplayConfig$Builder");
             Constructor<?> BuilderConstructor = BuilderClass.getConstructor(String.class, int.class, int.class, int.class);
-            Object builder = BuilderConstructor.newInstance("virtualdisplay", 1920, 1200, 1/* densityDpi */);
+            Object builder = BuilderConstructor.newInstance("secondaryscreen", 1920, 1200, 1/* densityDpi */);
 
             Method setFlags = BuilderClass.getMethod("setFlags", int.class);
             Method build = BuilderClass.getMethod("build");

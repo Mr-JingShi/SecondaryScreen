@@ -6,19 +6,18 @@ import java.lang.reflect.Method;
 
 public class Utils {
     private static String TAG = "Utils";
-    public static final String PACKAGE_NAME = "com.android.shell";
-    public static int CONTROL_CHANNEL_PORT = 8402;
-    public static int VIDEO_CHANNEL_PORT = 8403;
-    public static int DISPLAY_CHANNEL_PORT = 8404;
+    static final String PACKAGE_NAME = "com.android.shell";
+    static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
+    static int CONTROL_CHANNEL_PORT = 8402;
+    static int VIDEO_CHANNEL_PORT = 8403;
+    static int DISPLAY_CHANNEL_PORT = 8404;
     private static boolean mIsSingleMachineMode = true;
 
     static boolean isSingleMachineMode() {
         return mIsSingleMachineMode;
     }
     static void setSingleMachineMode(boolean isSingleMachineMode) {
-        synchronized (Utils.class) {
-            mIsSingleMachineMode = isSingleMachineMode;
-        }
+        mIsSingleMachineMode = isSingleMachineMode;
     }
 
     static boolean activityRunning(@NonNull String activity) {

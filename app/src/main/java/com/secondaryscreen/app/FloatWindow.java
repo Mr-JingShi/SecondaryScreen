@@ -320,9 +320,9 @@ final class FloatWindow {
                     if (USE_APP_VIRTUALDISPLAY) {
                         int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                            flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
+                            flags = flags | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC | (1 << 10);
                         }
-                        mVirtualDisplay = mDisplayManager.createVirtualDisplay("virtualdisplay", width, height, mDensityDpi, new Surface(surfaceTexture), flags, null, null);
+                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(Utils.VIRTUALDISPLAY_NAME, width, height, mDensityDpi, new Surface(surfaceTexture), flags, null, null);
                         Display display = mVirtualDisplay.getDisplay();
                         Log.i(TAG, "FloatWindow display: " + display);
                     } else {
