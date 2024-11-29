@@ -17,7 +17,6 @@ import java.util.concurrent.locks.LockSupport;
 
 public class MediaDecoder {
     private static String TAG = "MediaDecoder";
-    private static String VIDEO_FORMAT = "video/avc";
     private MediaCodec mMediaCodec;
     private ByteBuffer mCodecBuffer;
     private MediaCodec.BufferInfo mBufferInfo;
@@ -25,7 +24,7 @@ public class MediaDecoder {
     private final AtomicBoolean mDecoderReset;
     private Thread mDecoderThread;
     private Thread mSocketThread;
-    private ArrayList<String> mCodecList = new ArrayList<>();
+    private ArrayList<String> mCodecList;
 
     public MediaDecoder() {
         mDecoderRunning = new AtomicBoolean(false);
@@ -34,32 +33,11 @@ public class MediaDecoder {
         mDecoderThread = new MediaCodecThread();
         mDecoderThread.start();
 
-        getDecodeList();
-    }
-
-    private void getDecodeList() {
-        MediaCodecList codecs = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
-        for (MediaCodecInfo codecInfo : codecs.getCodecInfos()) {
-            if (!codecInfo.isEncoder() && Arrays.asList(codecInfo.getSupportedTypes()).contains(VIDEO_FORMAT)) {
-                Log.i(TAG, "decode name:" + codecInfo.getName());
-                mCodecList.add(codecInfo.getName());
-            }
-        }
-    }
-
-    private MediaCodec createByCodecName(String codecName, MediaFormat format, Surface surface) throws IOException {
-        MediaCodec codec = MediaCodec.createByCodecName(codecName);
-        Log.d(TAG, "configure cache decoder:" + codecName);
-        codec.configure(format, surface, null, 0);
-        return codec;
-    }
-
-    public MediaCodec createDecoderByType(String type) throws IOException {
-        return MediaCodec.createDecoderByType(type);
+        mCodecList = Utils.getDecodeList();
     }
 
     public void configure(int width, int height, ByteBuffer csd0, Surface surface) throws Exception {
-        MediaFormat format = MediaFormat.createVideoFormat(VIDEO_FORMAT, width, height);
+        MediaFormat format = MediaFormat.createVideoFormat(Utils.VIDEO_FORMAT, width, height);
         format.setByteBuffer("csd-0", csd0);
 
         String decoderCache = PrivatePreferences.getDecoder(width, height);
@@ -74,9 +52,28 @@ public class MediaDecoder {
             }
         }
 
+        /** remark
+         *  华为MatePad SE设备--分辨率1200x200/320--HarmonyOS 3.0.0版本
+         *  server侧 OMX.qcom.video.encoder.avc为默认编码器
+         *  1200x2000 configure失败
+         *  1152x1920 configure失败
+         *  960x1600 configure成功
+         *  然而app侧 OMX.qcom.video.decoder.avc为默认解码器
+         *  960x1600 configure失败，报错如下：
+         *  [OMX.qcom.video.decoder.avc] configureCodec returning error -12
+         *  signalError(omxError 0x80001001, internalError -12)
+         *  Codec reported err 0xfffffff4, actionCode 0, while in state 3/CONFIGURING
+         *
+         *  android.media.MediaCodec$CodecException: Error 0xfffffff4
+         *      at android.media.MediaCodec.native_configure(Native Method)
+         *      at android.media.MediaCodec.configure(MediaCodec.java:2176)
+         *      at android.media.MediaCodec.configure(MediaCodec.java:2092)
+         *      at com.secondaryscreen.app.MediaDecoder.configure(MediaDecoder.java:64)
+         * 此时切换解码器为c2.android.avc.decoder则可configure成功
+         */
         String decoderDefault = null;
         try {
-            mMediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
+            mMediaCodec = MediaCodec.createDecoderByType(Utils.VIDEO_FORMAT);
             decoderDefault = mMediaCodec.getName();
             Log.i(TAG, "configure default decoder:" + decoderDefault);
             mMediaCodec.configure(format, surface, null, 0);
@@ -86,10 +83,8 @@ public class MediaDecoder {
             e.printStackTrace();
 
             for (String decoder : mCodecList) {
-                if (decoderCache != null && decoder.equals(decoderCache)) {
-                    continue;
-                }
-                if (decoderDefault != null && decoder.equals(decoderDefault)) {
+                if ((decoderCache != null && decoder.equals(decoderCache))
+                    || (decoderDefault != null && decoder.equals(decoderDefault))) {
                     continue;
                 }
                 try {

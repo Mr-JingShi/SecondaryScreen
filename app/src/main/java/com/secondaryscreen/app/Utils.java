@@ -2,6 +2,8 @@ package com.secondaryscreen.app;
 
 import android.content.Context;
 import android.hardware.display.DisplayManager;
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +25,8 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +36,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Utils {
     private static String TAG = "Utils";
+    static String VIDEO_FORMAT = "video/avc";
     static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
     static int CONTROL_CHANNEL_PORT = 8402;
     static int VIDEO_CHANNEL_PORT = 8403;
@@ -279,5 +284,17 @@ public class Utils {
     }
     static String getRemoteHost() {
         return REMOTE_HOST;
+    }
+
+    static ArrayList<String> getDecodeList() {
+        ArrayList<String> list = new ArrayList<>();
+        MediaCodecList codecs = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
+        for (MediaCodecInfo codecInfo : codecs.getCodecInfos()) {
+            if (!codecInfo.isEncoder() && Arrays.asList(codecInfo.getSupportedTypes()).contains(VIDEO_FORMAT)) {
+                Log.i(TAG, "decode name:" + codecInfo.getName());
+                list.add(codecInfo.getName());
+            }
+        }
+        return list;
     }
 }
