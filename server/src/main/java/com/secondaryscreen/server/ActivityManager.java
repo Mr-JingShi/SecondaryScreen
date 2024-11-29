@@ -84,7 +84,6 @@ public final class ActivityManager {
                 int displayId = cls.getField("displayId").getInt(info);
                 @SuppressLint("BlockedPrivateApi")
                 String[] childTaskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
-                Ln.w(TAG, "ActivityTaskManager$RootTaskInfo: " + childTaskNames);
                 ret.add(new Pair<>(displayId, childTaskNames));
             }
         } catch (NoSuchMethodException e) {

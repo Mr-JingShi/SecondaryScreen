@@ -83,8 +83,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable width:" + width + " height:" + height);
 
-                    mVideoConnection.start(new Surface(surfaceTexture));
-                    mDisplayConnection.start();
+                    mVideoConnection.start(new Surface(surfaceTexture), mDisplayConnection);
                     mControlConnection.start();
                 }
 

@@ -482,9 +482,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 Utils.toast("ADB连接成功");
                 setAdbConnectionVisibility(false);
             } else {
-                hidePairImageView();
-
                 Utils.toast("ADB连接失败");
+                if (supportWlanDebug()) {
+                    if (hasNotificationPermission()) {
+                        registerReceiver();
+                    } else {
+                        mPairImageView.setVisibility(View.GONE);
+                        requestNotificationsPermission();
+                    }
+                } else {
+                    mPairImageView.setVisibility(View.GONE);
+                }
             }
         };
 
@@ -522,6 +530,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             } else {
                 if (supportWlanDebug()) {
                     runnable2.run();
+                } else {
+                    mPairImageView.setVisibility(View.GONE);
                 }
             }
         };
@@ -534,6 +544,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             } else {
                 if (supportWlanDebug()) {
                     runnable2.run();
+                } else {
+                    mPairImageView.setVisibility(View.GONE);
                 }
             }
         };
@@ -608,22 +620,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         startActivity(intent);
     }
 
-    private void hidePairImageView() {
+    private boolean supportWlanDebug() {
         // Andrid 11+ 支持无线调试
         // 华为设备禁用了无线调试功能
-        if (supportWlanDebug()) {
-            if (hasNotificationPermission()) {
-                registerReceiver();
-            } else {
-                mPairImageView.setVisibility(View.GONE);
-                requestNotificationsPermission();
-            }
-        } else {
-            mPairImageView.setVisibility(View.GONE);
-        }
-    }
-
-    private boolean supportWlanDebug() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Build.MANUFACTURER.equals("HUAWEI");
     }
 }

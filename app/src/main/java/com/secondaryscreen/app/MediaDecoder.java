@@ -1,11 +1,16 @@
 package com.secondaryscreen.app;
 
 import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
@@ -20,6 +25,7 @@ public class MediaDecoder {
     private final AtomicBoolean mDecoderReset;
     private Thread mDecoderThread;
     private Thread mSocketThread;
+    private ArrayList<String> mCodecList = new ArrayList<>();
 
     public MediaDecoder() {
         mDecoderRunning = new AtomicBoolean(false);
@@ -27,20 +33,77 @@ public class MediaDecoder {
 
         mDecoderThread = new MediaCodecThread();
         mDecoderThread.start();
+
+        getDecodeList();
     }
 
-    public void configure(int width, int height, ByteBuffer csd0, Surface surface) {
-        try {
-            mMediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void getDecodeList() {
+        MediaCodecList codecs = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
+        for (MediaCodecInfo codecInfo : codecs.getCodecInfos()) {
+            if (!codecInfo.isEncoder() && Arrays.asList(codecInfo.getSupportedTypes()).contains(VIDEO_FORMAT)) {
+                Log.i(TAG, "decode name:" + codecInfo.getName());
+                mCodecList.add(codecInfo.getName());
+            }
         }
+    }
 
+    private MediaCodec createByCodecName(String codecName, MediaFormat format, Surface surface) throws IOException {
+        MediaCodec codec = MediaCodec.createByCodecName(codecName);
+        Log.d(TAG, "configure cache decoder:" + codecName);
+        codec.configure(format, surface, null, 0);
+        return codec;
+    }
+
+    public MediaCodec createDecoderByType(String type) throws IOException {
+        return MediaCodec.createDecoderByType(type);
+    }
+
+    public void configure(int width, int height, ByteBuffer csd0, Surface surface) throws Exception {
         MediaFormat format = MediaFormat.createVideoFormat(VIDEO_FORMAT, width, height);
-
         format.setByteBuffer("csd-0", csd0);
 
-        mMediaCodec.configure(format, surface, null, 0);
+        String decoderCache = PrivatePreferences.getDecoder(width, height);
+        if (decoderCache != null && !decoderCache.isEmpty()) {
+            try {
+                mMediaCodec = MediaCodec.createByCodecName(decoderCache);
+                Log.i(TAG, "configure cache decoder:" + decoderCache);
+                mMediaCodec.configure(format, surface, null, 0);
+                return;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String decoderDefault = null;
+        try {
+            mMediaCodec = MediaCodec.createDecoderByType(VIDEO_FORMAT);
+            decoderDefault = mMediaCodec.getName();
+            Log.i(TAG, "configure default decoder:" + decoderDefault);
+            mMediaCodec.configure(format, surface, null, 0);
+            PrivatePreferences.appendDecoderInfo(width, height, decoderDefault);
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            for (String decoder : mCodecList) {
+                if (decoderCache != null && decoder.equals(decoderCache)) {
+                    continue;
+                }
+                if (decoderDefault != null && decoder.equals(decoderDefault)) {
+                    continue;
+                }
+                try {
+                    mMediaCodec = MediaCodec.createByCodecName(decoder);
+                    Log.i(TAG, "configure codecName:" + decoder);
+                    mMediaCodec.configure(format, surface, null, 0);
+                    PrivatePreferences.appendDecoderInfo(width, height, decoder);
+                    return;
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+        throw new Exception("decoder configure failed");
     }
 
     public void start() {

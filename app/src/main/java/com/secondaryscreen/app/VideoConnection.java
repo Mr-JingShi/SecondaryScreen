@@ -19,14 +19,16 @@ public class VideoConnection {
     private Thread mThread;
     private MediaDecoder mMediaDecoder;
     private Surface mSurface;
+    private DisplayConnection mDisplayConnection;
 
     public VideoConnection() {
         mMediaDecoder = new MediaDecoder();
         mThread = new ServerChannelThread();
     }
 
-    public void start(Surface surface) {
+    public void start(Surface surface, DisplayConnection displayConnection) {
         this.mSurface = surface;
+        this.mDisplayConnection = displayConnection;
         mThread.start();
     }
 
@@ -54,6 +56,11 @@ public class VideoConnection {
             try (Selector selector = Selector.open();
                  ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
                 serverSocket.socket().bind(new InetSocketAddress(Utils.VIDEO_CHANNEL_PORT));
+
+                Log.i(TAG, "ServerChannelThread bind success");
+
+                mDisplayConnection.start();
+
                 serverSocket.socket().setReuseAddress(true);
                 serverSocket.configureBlocking(false);
                 serverSocket.register(selector, SelectionKey.OP_ACCEPT);

@@ -7,6 +7,7 @@ public class PrivatePreferences {
     private static final String REMOTE_HOST = "remoteHost";
     private static final String RESOLUTION = "resolution";
     private static final String SERVICE_ADB_TSL_PORT = "service.adb.tls.port";
+    private static final String DECODER_INFO = "decoderInfo";
 
     public static boolean getNotificationPermissionRequested() {
         return getBoolean(NOTIFICATION_PERMISSION_REQUESTED, false);
@@ -31,6 +32,32 @@ public class PrivatePreferences {
     }
     public static void setServiceAdbTslPort(int value) {
         putInt(SERVICE_ADB_TSL_PORT, value);
+    }
+    public static String getDecoder(int width, int height) {
+        String decoderInfo = getString(DECODER_INFO, "");
+        String[] split = decoderInfo.split("\n");
+        for (String s : split) {
+            String[] s1 = s.split("/");
+            if (s1.length == 2 && s1[0].equals(width + "x" + height)) {
+                return s1[1];
+            }
+        }
+        return null;
+    }
+    public static void appendDecoderInfo(int width, int height, String decoder) {
+        String decoderInfo = getString(DECODER_INFO, "");
+
+        StringBuilder sb = new StringBuilder();
+        if (!decoderInfo.isEmpty()) {
+            sb.append(decoderInfo);
+            sb.append("\n");
+        }
+        sb.append(width);
+        sb.append("x");
+        sb.append(height);
+        sb.append("/");
+        sb.append(decoder);
+        putString(DECODER_INFO, sb.toString());
     }
 
     private static SharedPreferences getSharedPreferences() {

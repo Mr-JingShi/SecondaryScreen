@@ -327,8 +327,7 @@ final class FloatWindow {
                         Log.i(TAG, "FloatWindow display: " + display);
                     } else {
                         if (View.VISIBLE == mLockImageView.getVisibility()) {
-                            mVideoConnection.start(new Surface(surfaceTexture));
-                            mDisplayConnection.start();
+                            mVideoConnection.start(new Surface(surfaceTexture), mDisplayConnection);
                             mControlConnection.start();
                         } else {
                             mSurfaceTexture = surfaceTexture;

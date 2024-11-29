@@ -2,14 +2,17 @@ package com.secondaryscreen.server;
 
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.Surface;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 // 部分逻辑参考自：
 // https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/SurfaceEncoder.java
@@ -42,11 +45,11 @@ public class SurfaceEncoder {
 
             Streamer streamer = new Streamer();
 
-            MediaCodec mediaCodec = createMediaCodec();
             MediaFormat format = createFormat(VIDEO_FORMAT, mVideoBitRate, mMaxFps);
 
             while (!Thread.currentThread().isInterrupted()) {
                 String remoteAddress = screenCapture.getRemoteAddress();
+                Ln.d(TAG, "streamScreen remoteAddress:" + remoteAddress);
 
                 try (Socket socket = new Socket()) {
                     socket.connect(new InetSocketAddress(remoteAddress, Utils.VIDEO_CHANNEL_PORT), 3000);
@@ -55,22 +58,22 @@ public class SurfaceEncoder {
                     screenCapture.computeScreenInfo();
                     streamer.setSocket(socket);
 
-                    streamScreen(screenCapture, streamer, mediaCodec, format);
+                    streamScreen(screenCapture, streamer, format);
                 } catch (Exception e) {
-                    Ln.w(TAG, "VideoChannel socket exception", e);
+                    Ln.w(TAG, "streamScreen exception", e);
                 }
             }
 
-            mediaCodec.release();
             screenCapture.release();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void streamScreen(ScreenCapture screenCapture, Streamer streamer, MediaCodec mediaCodec, MediaFormat format) throws Exception {
+    private void streamScreen(ScreenCapture screenCapture, Streamer streamer, MediaFormat format) throws Exception {
         boolean alive;
 
+        MediaCodec mediaCodec = createMediaCodec(null);
         do {
             mFirstFrameSent = false;
             Size size = screenCapture.getSize();
@@ -104,6 +107,7 @@ public class SurfaceEncoder {
                 }
             }
         } while (alive);
+        mediaCodec.release();
     }
 
     private boolean prepareRetry(ScreenCapture screenCapture, Size currentSize) {
@@ -203,7 +207,15 @@ public class SurfaceEncoder {
         return !eof;
     }
 
-    private static MediaCodec createMediaCodec() throws IOException, IllegalArgumentException {
+    private static MediaCodec createMediaCodec(String encoderName) throws IOException, IllegalArgumentException {
+        if (encoderName != null && !encoderName.isEmpty()) {
+            try {
+                return MediaCodec.createByCodecName(encoderName);
+            } catch (Exception e) {
+                Ln.w("Could not create video encoder by name ", encoderName);
+            }
+        }
+
         try {
             MediaCodec mediaCodec = MediaCodec.createEncoderByType(VIDEO_FORMAT);
             Ln.i(TAG, "Using video encoder:" + mediaCodec.getName());
@@ -211,6 +223,15 @@ public class SurfaceEncoder {
         } catch (IOException | IllegalArgumentException e) {
             Ln.w(TAG, "Could not create video encoder for " + VIDEO_FORMAT);
             throw e;
+        }
+    }
+
+    private static void getEncoders() {
+        MediaCodecList codecs = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
+        for (MediaCodecInfo codecInfo : codecs.getCodecInfos()) {
+            if (codecInfo.isEncoder() && Arrays.asList(codecInfo.getSupportedTypes()).contains(VIDEO_FORMAT)) {
+                Log.i(TAG, "decode name:" + codecInfo.getName());
+            }
         }
     }
 
