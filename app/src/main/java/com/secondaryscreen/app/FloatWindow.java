@@ -313,6 +313,16 @@ final class FloatWindow {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
 
                     if (USE_APP_VIRTUALDISPLAY) {
+                        /** remark
+                         * 可以在APP内部直接创建virtualdisplay
+                         * server端只需要对接control通道完成事件注入即可
+                         * server端无需对接video通道
+                         * server端无需对接display通道
+                         * APP侧在屏幕旋转时需要处理onSurfaceTextureSizeChanged回调
+                         *
+                         * 此方式启动的virtaldisplay在APP完全退出时，无法进行scrcpy投屏
+                         * TODO 创建一个新的分支，在新分支中实现此方式的投屏
+                         */
                         int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                             flags = flags | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC | (1 << 10);
