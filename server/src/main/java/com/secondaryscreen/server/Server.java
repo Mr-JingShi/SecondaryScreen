@@ -43,7 +43,10 @@ public class Server {
 
             DisplayInfo.setMirrorDisplayId(displayId);
 
-            SecondaryDisplayLauncher.start();
+            // Android 11 ~ 12 需启动SecondaryDisplayLauncher
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R || Build.VERSION.SDK_INT == Build.VERSION_CODES.S) {
+                SecondaryDisplayLauncher.start();
+            }
 
             ServiceManager.getWindowManager().freezeRotation(displayId, rotation);
 

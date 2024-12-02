@@ -41,7 +41,7 @@ public class ActivityDetector {
                 Ln.i(TAG, "intent:" + intent);
                 if (intent.getComponent() != null) {
                     String activityName = intent.getComponent().getClassName();
-                    Ln.i(TAG, "activityStarting:" + activityName + " FirstActivity:" + mFirstActivity);
+                    Ln.i(TAG, "activityStarting:" + activityName);
                     if(mFirstActivity.contains(activityName)) {
                         Utils.schedule(() -> {
                             if (Utils.isActivityReady(mFirstActivity, mSecondActivity)) {
