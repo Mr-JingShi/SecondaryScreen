@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SecondaryScreenActivity"
+            android:name=".SlaveActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:launchMode="standard"
             android:windowSoftInputMode="stateHidden|stateAlwaysHidden"

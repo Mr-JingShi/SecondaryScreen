@@ -207,7 +207,6 @@ final class FloatWindow {
 
     private void updateWindowParams() {
         float scale = mWindowScale * mLiveScale;
-        // scale = Math.min(scale, 1.0f);
         scale = Math.min(scale, (float)mScreenWidth / mWidth);
         scale = Math.min(scale, (float)mScreenHeight / mHeight);
         scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
@@ -217,8 +216,6 @@ final class FloatWindow {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        // x = Math.max(0, Math.min(x, mWidth - width));
-        // y = Math.max(0, Math.min(y, mHeight - height));
         x = Math.max(0, Math.min(x, mScreenWidth - width));
         y = Math.max(0, Math.min(y, mScreenHeight - height));
 
@@ -254,30 +251,28 @@ final class FloatWindow {
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (Utils.getVirtualDisplayId() >= 1) {
-                        mIsLocked = !mIsLocked;
-                        if (mIsLocked) {
-                            mLockImageView.setImageResource(R.drawable.go_lock);
+                    mIsLocked = !mIsLocked;
+                    if (mIsLocked) {
+                        mLockImageView.setImageResource(R.drawable.go_lock);
 
-                            focusImageViewShow(true);
+                        focusImageViewShow(true);
 
-                            if (USE_SURFACE_EVENT) {
-                                mTextureView.setOnTouchListener((view, event) -> {
-                                    if (mIsLocked) {
-                                        Utils.offerMotionEvent(event, true);
-                                    }
-                                    return true;
-                                });
-                            }
-                        } else {
-                            mLockImageView.setImageResource(R.drawable.go_unlock);
+                        if (USE_SURFACE_EVENT) {
+                            mTextureView.setOnTouchListener((view, event) -> {
+                                if (mIsLocked) {
+                                    Utils.offerMotionEvent(event, true);
+                                }
+                                return true;
+                            });
+                        }
+                    } else {
+                        mLockImageView.setImageResource(R.drawable.go_unlock);
 
-                            mIsFocused = false;
-                            focusImageViewShow(false);
+                        mIsFocused = false;
+                        focusImageViewShow(false);
 
-                            if (USE_SURFACE_EVENT) {
-                                mTextureView.setOnTouchListener(null);
-                            }
+                        if (USE_SURFACE_EVENT) {
+                            mTextureView.setOnTouchListener(null);
                         }
                     }
                 }
@@ -297,14 +292,14 @@ final class FloatWindow {
                         if (mRotation != rotation) {
                             onRotationChanged(rotation);
                         }
-                    } else if (displayId == Utils.getVirtualDisplayId()) {
+                    } else {
                         relayout();
                     }
                 }
 
                 @Override
                 public void onDisplayRemoved(int displayId) {
-                    if (displayId == Utils.getVirtualDisplayId()) {
+                    if (displayId != 0) {
                         dismiss();
                     }
                 }

@@ -44,7 +44,6 @@ public class Utils {
     static int SOCKET_TIMEOUT = 3000;
     private static String REMOTE_HOST = "127.0.0.1";
     private static Context mContext = null;
-    private static int mVirtualDisplayId = -1;
     private static ExecutorService mExecutor  = Executors.newSingleThreadExecutor();
     private static final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private static final BlockingQueue<byte[]> mMotioneventBytesQueue = new LinkedBlockingQueue<>();
@@ -54,10 +53,6 @@ public class Utils {
     static Context getContext() {
         return mContext;
     }
-    static int getVirtualDisplayId() {
-        return mVirtualDisplayId;
-    }
-
     static String getWlanAddress() {
         String cmd = "ifconfig | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}'";
         Process process = null;
@@ -226,7 +221,6 @@ public class Utils {
         if (displays.length > 1) {
             for (Display display : displays) {
                 if (display.getName().equals(VIRTUALDISPLAY_NAME)) {
-                    mVirtualDisplayId = display.getDisplayId();
                     Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
                     return true;
                 }

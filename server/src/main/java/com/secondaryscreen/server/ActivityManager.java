@@ -17,6 +17,12 @@ import java.util.List;
 public final class ActivityManager {
     public static final String TAG = "ActivityManager";
     private final IInterface mManager;
+
+    public static class StackInfo {
+        public int displayId;
+        public String[] taskNames;
+    }
+
     static ActivityManager create() {
         try {
             // On old Android versions, the ActivityManager is not exposed via AIDL,
@@ -69,8 +75,9 @@ public final class ActivityManager {
         return (List<TaskInfo>)method.invoke(mManager, maxNum);
     }
 
-    public List<Pair<Integer, String[]>> getAllTaskInfos() throws ReflectiveOperationException {
-        List<Pair<Integer, String[]>> ret = null;
+    @SuppressLint("BlockedPrivateApi")
+    public List<StackInfo> getAllTaskInfos() throws ReflectiveOperationException {
+        List<StackInfo> ret = null;
         try {
             // Android 12+
             // List<ActivityTaskManager.RootTaskInfo> getAllRootTaskInfos();
@@ -81,10 +88,10 @@ public final class ActivityManager {
             for (Object info : list) {
                 // displayId在RootTaskInfo的父类TaskInfo中定义
                 // android.app.TaskInfo.displayId
-                int displayId = cls.getField("displayId").getInt(info);
-                @SuppressLint("BlockedPrivateApi")
-                String[] childTaskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
-                ret.add(new Pair<>(displayId, childTaskNames));
+                StackInfo stackInfo = new StackInfo();
+                stackInfo.displayId = cls.getField("displayId").getInt(info);
+                stackInfo.taskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
+                ret.add(stackInfo);
             }
         } catch (NoSuchMethodException e) {
             Ln.w(TAG, "NoSuchMethodException getAllRootTaskInfos");
@@ -96,9 +103,10 @@ public final class ActivityManager {
                 Class<?> cls = Class.forName("android.app.ActivityManager$StackInfo");
                 ret = new ArrayList<>(list.size());
                 for (Object info : list) {
-                    int displayId = cls.getDeclaredField("displayId").getInt(info);
-                    String[] taskNames = (String[])cls.getDeclaredField("taskNames").get(info);
-                    ret.add(new Pair<>(displayId, taskNames));
+                    StackInfo stackInfo = new StackInfo();
+                    stackInfo.displayId = cls.getDeclaredField("displayId").getInt(info);
+                    stackInfo.taskNames = (String[])cls.getDeclaredField("taskNames").get(info);
+                    ret.add(stackInfo);
                 }
             } catch (NoSuchMethodException e1) {
                 Ln.w(TAG, "NoSuchMethodException getAllStackInfos");

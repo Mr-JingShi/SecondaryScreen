@@ -103,7 +103,7 @@ public class KillSelf {
     }
 
     private static void kill(String packageName) {
-        if ("com.secondaryscreen.app".equals(packageName)) {
+        if (Utils.APP_PACKAGE_NAME.equals(packageName)) {
             Ln.i(TAG, "Kill Self...");
             System.exit(0);
         }

@@ -68,7 +68,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:textSize="20dip"
-                android:text="副设备" />
+                android:text="从设备" />
         </RadioGroup>
         <TextView
             android:id="@+id/wlan_description"

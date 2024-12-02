@@ -14,8 +14,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class SecondaryScreenActivity extends AppCompatActivity {
-    private static String TAG = "SecondaryScreenActivity";
+public class SlaveActivity extends AppCompatActivity {
+    private static String TAG = "SlaveActivity";
     private TextureView mTextureView;
     private ControlConnection mControlConnection;
     private VideoConnection mVideoConnection;
@@ -36,7 +36,7 @@ public class SecondaryScreenActivity extends AppCompatActivity {
         if (getActionBar() != null) {
             getActionBar().hide();
         }
-        setContentView(R.layout.activity_secondaryscreen);
+        setContentView(R.layout.activity_slave);
 
         mVideoConnection = new VideoConnection();
         mControlConnection = new ControlConnection();

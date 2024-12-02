@@ -13,6 +13,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -145,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
                     Utils.hideKeyboard(view);
 
-                    Intent intent = new Intent(this, SecondaryScreenActivity.class);
+                    Intent intent = new Intent(this, SlaveActivity.class);
                     startActivity(intent);
                 }
             }

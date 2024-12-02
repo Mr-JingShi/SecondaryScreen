@@ -43,6 +43,8 @@ public class Server {
 
             DisplayInfo.setMirrorDisplayId(displayId);
 
+            SecondaryDisplayLauncher.start();
+
             ServiceManager.getWindowManager().freezeRotation(displayId, rotation);
 
             ActivityDetector activityDetector =  null;
@@ -66,6 +68,7 @@ public class Server {
             if (activityDetector != null) {
                 activityDetector.stop();
             }
+            Utils.shutdown();
         } catch (Exception e) {
             Ln.w(TAG, "Server main exception", e);
         }
