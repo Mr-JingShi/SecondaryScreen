@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public final class SecondaryDisplayLauncher {
     private static String TAG = "SecondaryDisplayLauncher";
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    static void start() {
+    public static void start() {
         try {
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_HOME);

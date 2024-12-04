@@ -10,6 +10,7 @@ import android.os.IInterface;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
@@ -19,7 +20,7 @@ public final class ActivityManager {
 
     public static class StackInfo {
         public int displayId;
-        public String[] taskNames;
+        public List<String> taskNames;
     }
 
     static ActivityManager create() {
@@ -89,7 +90,8 @@ public final class ActivityManager {
                 // android.app.TaskInfo.displayId
                 StackInfo stackInfo = new StackInfo();
                 stackInfo.displayId = cls.getField("displayId").getInt(info);
-                stackInfo.taskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
+                String[] taskNames = (String[]) cls.getDeclaredField("childTaskNames").get(info);
+                stackInfo.taskNames = Arrays.asList(taskNames);
                 ret.add(stackInfo);
             }
         } catch (NoSuchMethodException e) {
@@ -104,7 +106,8 @@ public final class ActivityManager {
                 for (Object info : list) {
                     StackInfo stackInfo = new StackInfo();
                     stackInfo.displayId = cls.getDeclaredField("displayId").getInt(info);
-                    stackInfo.taskNames = (String[])cls.getDeclaredField("taskNames").get(info);
+                    String[] taskNames = (String[])cls.getDeclaredField("taskNames").get(info);
+                    stackInfo.taskNames = Arrays.asList(taskNames);
                     ret.add(stackInfo);
                 }
             } catch (NoSuchMethodException e1) {

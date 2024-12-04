@@ -2,8 +2,6 @@ package com.secondaryscreen.server;
 
 import android.util.Log;
 
-import java.io.OutputStream;
-
 /**
  * Log both to Android logger (so that logs are visible in "adb logcat") and standard output/error (so that they are visible in the terminal
  * directly).
@@ -37,28 +35,28 @@ public final class Ln {
     public static void v(String tag, String message) {
         if (isEnabled(Level.VERBOSE)) {
             Log.v(tag, message);
-            System.out.print("VERBOSE " + tag + " " + message + "\n");
+            print(tag, "VERBOSE", message);
         }
     }
 
     public static void d(String tag, String message) {
         if (isEnabled(Level.DEBUG)) {
             Log.d(tag, message);
-            System.out.print("DEBUG " + tag + " " + message + "\n");
+            print(tag, "DEBUG", message);
         }
     }
 
     public static void i(String tag, String message) {
         if (isEnabled(Level.INFO)) {
             Log.i(tag, message);
-            System.out.print("INFO " + tag + " " + message + "\n");
+            print(tag, "INFO", message);
         }
     }
 
     public static void w(String tag, String message, Throwable throwable) {
         if (isEnabled(Level.WARN)) {
             Log.w(tag, message, throwable);
-            System.out.print("WARN " + tag + " " + message + "\n");
+            print(tag, "WARN", message);
             if (throwable != null) {
                 throwable.printStackTrace(System.out);
             }
@@ -72,7 +70,7 @@ public final class Ln {
     public static void e(String tag, String message, Throwable throwable) {
         if (isEnabled(Level.ERROR)) {
             Log.e(tag, message, throwable);
-            System.err.print("ERROR " + tag + " " + message + "\n");
+            print(tag, "ERROR", message);
             if (throwable != null) {
                 throwable.printStackTrace(System.err);
             }
@@ -81,5 +79,31 @@ public final class Ln {
 
     public static void e(String tag, String message) {
         e(tag, message, null);
+    }
+
+    private static void print(String tag, String level, String message) {
+        StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[4];
+        String className = stackTraceElement.getClassName();
+        String methodName = stackTraceElement.getMethodName();
+        int lineNumber = stackTraceElement.getLineNumber();
+        String fileName = stackTraceElement.getFileName();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(level);
+        sb.append(" ");
+        sb.append(fileName);
+        sb.append(":");
+        sb.append(lineNumber);
+        sb.append(" ");
+        sb.append(className);
+        sb.append(".");
+        sb.append(methodName);
+        sb.append(" ");
+        sb.append(tag);
+        sb.append(" ");
+        sb.append(message);
+        sb.append("\n");
+
+        System.out.print(sb);
     }
 }
