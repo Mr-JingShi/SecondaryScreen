@@ -4,9 +4,12 @@ import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
 import android.os.Build;
+import android.util.Pair;
 
 import androidx.annotation.RequiresApi;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public final class SecondaryDisplayLauncher {
@@ -40,7 +43,11 @@ public final class SecondaryDisplayLauncher {
             Ln.i(TAG, "secondary launcher activityName:" + activityName);
 
             Utils.schedule(() -> {
-                if (Utils.isActivityReady(null, activityName)) {
+                ArrayList<Pair<String, String>> lists = new ArrayList<>();
+                lists.add(new Pair<>(null, activityName));
+                List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
+                Ln.i(TAG, "SecondaryDisplayLauncher result.get(0).first:" + result.get(0).first + ", result.get(0).second:" + result.get(0).second);
+                if (!result.get(0).second) {
                     Ln.i(TAG, "Secondary launcher activity have not start, start secondary launcher activity");
                     /**
                      * Virtual display flag: Indicates that the display should support system decorations. Virtual
@@ -86,6 +93,7 @@ public final class SecondaryDisplayLauncher {
                      *
                      * launcherIntent不添加CATEGORY_SECONDARY_HOME标识时，SecondaryDisplayLauncher会追加到指定屏幕
                      * 但是SecondaryDisplayLauncher是作为一个新的APP启动的，在最近活动的APP列表中可以看到，并且可以手动关闭
+                     * 添加FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS标识后，可以隐藏将SecondaryDisplayLauncher在最近活动列表中隐藏，防止用户手动关闭。
                      * Task任务中mActivityType=standard、displayId=8，am stack list抓到的详情如下：
                      * RootTask id=172 bounds=[0,0][1200,2000] displayId=8 userId=0
                      *  configuration={1.0 ?mcc?mnc [zh_CN_#Hans] ldltr sw600dp w600dp h1000dp 320dpi lrg port -touch -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1200, 2000) mAppBounds=Rect(0, 0 - 1200, 2000) mMaxBounds=Rect(0, 0 - 1200, 2000) mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0} suim:1 extflag:8 s.306 fontWeightAdjustment=0}
@@ -100,12 +108,17 @@ public final class SecondaryDisplayLauncher {
                         launcherIntent.setClassName(packageName, className);
                     }
                     launcherIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    // FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                    // 具有这个标记的 Activity 不会出现在历史 Activity 的列表中，
+                    // 在某些情况下我们不希望用户通过历史列表回到我们的 Activity 的时候这个标记比较有用。
+                    // 它等同于在 XML 中指定 Activity 的属性 android:excludeFromRecents="true"。
+                    launcherIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
                     ActivityOptions options = ActivityOptions.makeBasic();
                     options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
 
-                    int result = ServiceManager.getActivityManager().startActivity(launcherIntent, options.toBundle());
-                    Ln.i(TAG, "Start secondary launcher activity result:" + result);
-                    if (result < 0) {
+                    int ret = ServiceManager.getActivityManager().startActivity(launcherIntent, options.toBundle());
+                    Ln.i(TAG, "Start secondary launcher activity ret:" + ret);
+                    if (ret < 0) {
                         Ln.e(TAG, "Could not start secondary launcher activity by ActivityManager");
                         Utils.startActivity(activityName, DisplayInfo.getMirrorDisplayId());
                     }

@@ -1,52 +1,103 @@
 package com.secondaryscreen.server;
 
-import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.app.IActivityController;
-import android.app.TaskInfo;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ActivityDetector {
     private static String TAG = "ActivityDetector";
     @NonNull
-    private String mFirstActivity;
+    private String mTargetFirstActivity;
     @NonNull
-    private String mSecondActivity;
+    private String mTargetSecondActivity;
     @NonNull
-    private String mSecondActivityPackage;
+    private String mTargetSecondActivityPackageName;
     @NonNull
-    private String mSecondActivityClassName;
+    private String mTargetSecondActivityClassName;
 
     public ActivityDetector(String firstActivity, String secondActivity) {
-        this.mFirstActivity = firstActivity;
-        this.mSecondActivity = secondActivity;
-        this.mSecondActivityPackage = mSecondActivity.substring(0, mSecondActivity.indexOf("/"));
-        this.mSecondActivityClassName = mSecondActivity.substring(mSecondActivity.indexOf("/") + 1);
+        this.mTargetFirstActivity = firstActivity;
+        this.mTargetSecondActivity = secondActivity;
+        this.mTargetSecondActivityPackageName = mTargetSecondActivity.substring(0, mTargetSecondActivity.indexOf("/"));
+        this.mTargetSecondActivityClassName = mTargetSecondActivity.substring(mTargetSecondActivity.indexOf("/") + 1);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void start() {
+        // 1. 优先启动SecondaryDisplayLauncher
+        // Android 11 ~ 12 需启动SecondaryDisplayLauncher
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R
+                || Build.VERSION.SDK_INT == Build.VERSION_CODES.S) {
+            SecondaryDisplayLauncher.start();
+        }
+
+        // 2. 监听Activity启动
         ServiceManager.getActivityManager().setActivityController(new IActivityController.Stub() {
+            private boolean mAppSecondActivityStartBySelf = false;
             @Override
             public boolean activityStarting(Intent intent, String pkg) {
-                Ln.i(TAG, "intent:" + intent);
                 if (intent.getComponent() != null) {
-                    String activityName = intent.getComponent().getClassName();
-                    Ln.i(TAG, "activityStarting:" + activityName);
-                    if(mFirstActivity.contains(activityName)) {
+                    String packageName = intent.getComponent().getPackageName();
+                    String className = intent.getComponent().getClassName();
+                    String activityName = packageName + "/" + className;
+                    Ln.i(TAG, "activityStarting activityName:" + activityName);
+
+                    final int targetFlag = 1 << 0;
+                    final int appFlag = 1 << 1;
+                    int startFlag = 0;
+                    if (mTargetFirstActivity.equals(activityName)) {
+                        startFlag |= targetFlag;
+                    } else if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                            || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S)
+                            && Utils.APP_MAIN_ACTIVITY_NAME.equals(activityName)) {
+                        /* remark
+                        * Android 10 ～ 12 的SecondaryDisplayLauncher实际场景基本用不到，各个厂商的界面效果相差很大，
+                        * 小米的一款Android 10设备SecondaryDisplayLauncher直接把背景色设置为全黑，很丑，这里尝试做一个自己副屏桌面
+                        */
+                        startFlag |= appFlag;
+                    }
+
+                    if (startFlag != 0) {
+                        final int finalStartFlag = startFlag;
                         Utils.schedule(() -> {
-                            if (Utils.isActivityReady(mFirstActivity, mSecondActivity)) {
-                                Ln.i(TAG, "First activity started, but second activity have not start, start second activity");
-                                startSecondActivity();
+                            ArrayList<Pair<String, String>> lists = new ArrayList<>();
+                            lists.add(new Pair<>(mTargetFirstActivity, mTargetSecondActivity));
+                            lists.add(new Pair<>(Utils.APP_MAIN_ACTIVITY_NAME, Utils.APP_SECOND_ACTIVITY_NAME));
+
+                            List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
+
+                            Ln.i(TAG, "activityStarting startFlag:" + finalStartFlag);
+
+                            Pair<Boolean, Boolean> targetResult = result.get(0);
+                            Pair<Boolean, Boolean> appResult = result.get(1);
+                            Ln.i(TAG, "activityStarting targetResult.first:" + targetResult.first + ", targetResult.second:" + targetResult.second);
+                            Ln.i(TAG, "activityStarting appResult.first:" + appResult.first + ", appResult.second:" + appResult.second);
+
+                            if ((finalStartFlag & targetFlag) != 0) {
+                                if (targetResult.first && !targetResult.second) {
+                                    if (/*appResult.first && */!appResult.second) {
+                                        startSecondActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
+                                    }
+                                    startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+                                }
+                            } else if ((finalStartFlag & appFlag) != 0) {
+                                if (/*appResult.first && */!appResult.second) {
+                                    startSecondActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
+
+                                    if (/*targetResult.first && */targetResult.second) {
+                                        startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+                                    }
+                                }
                             }
                         }, 2, TimeUnit.SECONDS);
                     }
@@ -82,8 +133,13 @@ public class ActivityDetector {
             }
         });
 
-        if (Utils.isActivityReady(mFirstActivity, mSecondActivity)) {
-            startSecondActivity();
+        // 3. 检查是否需要启动SecondActivity
+        ArrayList<Pair<String, String>> lists = new ArrayList<>();
+        lists.add(new Pair<>(mTargetFirstActivity, mTargetSecondActivity));
+        List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
+        Ln.i(TAG, "ActivityDetector result.get(0).first:" + result.get(0).first + ", result.get(0).second:" + result.get(0).second);
+        if (result.get(0).first && !result.get(0).second) {
+            startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
         }
     }
 
@@ -92,9 +148,9 @@ public class ActivityDetector {
     }
 
     @RequiresApi(api = 26)
-    private void startSecondActivity() {
+    private void startSecondActivity(@Nullable String packageName, @Nullable String className) {
         Intent intent = new Intent();
-        intent.setClassName(mSecondActivityPackage, mSecondActivityClassName);
+        intent.setClassName(packageName, className);
         ActivityOptions options = ActivityOptions.makeBasic();
         options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
 
@@ -102,7 +158,7 @@ public class ActivityDetector {
         Ln.i(TAG, "startSecondActivity result:" + result);
         if (result < 0) {
             Ln.e(TAG, "Could not start second activity by ActivityManager");
-            Utils.startActivity(mSecondActivity, DisplayInfo.getMirrorDisplayId());
+            Utils.startActivity(mTargetSecondActivity, DisplayInfo.getMirrorDisplayId());
         }
     }
 }

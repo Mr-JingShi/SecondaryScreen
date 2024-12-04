@@ -2,12 +2,13 @@ package com.secondaryscreen.server;
 
 import android.annotation.SuppressLint;
 import android.app.TaskInfo;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,6 +17,10 @@ import java.util.concurrent.TimeUnit;
 public class Utils {
     private static String TAG = "Utils";
     static final String APP_PACKAGE_NAME = "com.secondaryscreen.app";
+    static final String APP_MAIN_ACTIVITY_CLASS_NAME = APP_PACKAGE_NAME + ".MainActivity";
+    static final String APP_MAIN_ACTIVITY_NAME = APP_PACKAGE_NAME + "/" + APP_MAIN_ACTIVITY_CLASS_NAME;
+    static final String APP_SECOND_ACTIVITY_CLASS_NAME = APP_PACKAGE_NAME + ".SecondActivity";
+    static final String APP_SECOND_ACTIVITY_NAME = APP_PACKAGE_NAME + "/" + APP_SECOND_ACTIVITY_CLASS_NAME;
     static final String PACKAGE_NAME = "com.android.shell";
     static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
     static int CONTROL_CHANNEL_PORT = 8402;
@@ -96,54 +101,96 @@ public class Utils {
     }
 
     @RequiresApi(api = 29)
-    static boolean isActivityReady(@Nullable String firstActivity, @NonNull String secondActivity) {
-        boolean found = firstActivity == null;
+    static List<Pair<Boolean, Boolean>> checkActivityReady(@NonNull List<Pair<String, String>> lists) {
         try {
-            List<ActivityManager.StackInfo> list = ServiceManager.getActivityManager().getAllTaskInfos();
-            Ln.i(TAG, "list size:" + list.size());
+            List<ActivityManager.StackInfo> StackInfos = ServiceManager.getActivityManager().getAllTaskInfos();
+            Ln.i(TAG, "StackInfos size:" + StackInfos.size());
 
-            for (ActivityManager.StackInfo stackInfo : list) {
-                for (String activityName : stackInfo.taskNames) {
-                    // INFO ActivityDetector activity:com.secondaryscreen.sample/com.secondaryscreen.sample.SecondActivity
-                    Ln.i(TAG, "activityName:" + activityName);
+            List<Pair<Boolean, Boolean>> result = new ArrayList<>();
+            for (Pair<String, String> pair : lists) {
+                String firstActivity = pair.first;
+                String secondActivity = pair.second;
+                boolean firstActivityStarted = false;
+                boolean secondResultStarted = false;
+                if (firstActivity == null) {
+                    firstActivityStarted = true;
+                }
 
-                    if (stackInfo.displayId == DisplayInfo.getMirrorDisplayId() && activityName.equals(secondActivity)) {
-                        return false;
-                    } else if (stackInfo.displayId == 0 && firstActivity != null && activityName.equals(firstActivity)) {
-                        found = true;
+                for (ActivityManager.StackInfo stackInfo : StackInfos) {
+                    for (String activityName : stackInfo.taskNames) {
+                        Ln.i(TAG, "activityName:" + activityName);
+
+                        if (stackInfo.displayId == DisplayInfo.getMirrorDisplayId() && activityName.equals(secondActivity)) {
+                            secondResultStarted = true;
+                            if (firstActivityStarted) {
+                                break;
+                            }
+                        } else if (stackInfo.displayId == 0 && firstActivity != null && activityName.equals(firstActivity)) {
+                            firstActivityStarted = true;
+                            if (secondResultStarted) {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (firstActivityStarted && secondResultStarted) {
+                        break;
                     }
                 }
+
+                result.add(new Pair<>(firstActivityStarted, secondResultStarted));
             }
-            return found;
+            return result;
         } catch (ReflectiveOperationException e) {
             Ln.e(TAG, "getAllTaskInfos Could not invoke method", e);
 
             try {
-                List<TaskInfo> list = ServiceManager.getActivityManager().getTasks(9999);
-                Ln.i(TAG, "list size:" + list.size());
-                for (TaskInfo taskInfo : list) {
-                    if (taskInfo.baseIntent.getComponent() != null) {
-                        String packageName = taskInfo.baseIntent.getComponent().getPackageName();
-                        String className = taskInfo.baseIntent.getComponent().getClassName();
-                        String activityName = packageName + "/" + className;
-                        // INFO ActivityDetector activityName:activity:com.secondaryscreen.sample/com.secondaryscreen.sample.SecondActivity
-                        Ln.i(TAG, "activityName:" + activityName);
-                        @SuppressLint("BlockedPrivateApi")
-                        int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
-                        Ln.i(TAG, "taskInfo.displayId:" + displayId);
-                        if (displayId == DisplayInfo.getMirrorDisplayId() && secondActivity.equals(activityName)) {
-                            return false;
-                        } else if (displayId == 0 && firstActivity != null && firstActivity.equals(activityName)) {
-                            found = true;
+                List<TaskInfo> TaskInfos = ServiceManager.getActivityManager().getTasks(9999);
+                Ln.i(TAG, "TaskInfos size:" + TaskInfos.size());
+
+                List<Pair<Boolean, Boolean>> result = new ArrayList<>();
+                for (int i = 0; i < lists.size(); ++i) {
+                    Pair<String, String> pair = lists.get(i);
+                    String firstActivity = pair.first;
+                    String secondActivity = pair.second;
+                    boolean firstActivityStarted = false;
+                    boolean secondResultStarted = false;
+                    if (firstActivity == null) {
+                        firstActivityStarted = true;
+                    }
+
+                    for (TaskInfo taskInfo : TaskInfos) {
+                        if (taskInfo.baseIntent.getComponent() != null) {
+                            String packageName = taskInfo.baseIntent.getComponent().getPackageName();
+                            String className = taskInfo.baseIntent.getComponent().getClassName();
+                            String activityName = packageName + "/" + className;
+                            Ln.i(TAG, "activityName:" + activityName);
+                            @SuppressLint("BlockedPrivateApi")
+                            int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
+                            Ln.i(TAG, "taskInfo.displayId:" + displayId);
+                            if (displayId == DisplayInfo.getMirrorDisplayId() && secondActivity.equals(activityName)) {
+                                secondResultStarted = true;
+                                if (firstActivityStarted) {
+                                    break;
+                                }
+                            } else if (displayId == 0 && firstActivity != null && firstActivity.equals(activityName)) {
+                                firstActivityStarted = true;
+                                if (secondResultStarted) {
+                                    break;
+                                }
+                            }
                         }
                     }
+
+                    result.add(new Pair<>(firstActivityStarted, secondResultStarted));
                 }
-                return found;
+                return result;
             } catch (ReflectiveOperationException e1) {
                 Ln.e(TAG, "getTasks Could not invoke method", e1);
             }
         }
 
-        return !Utils.activityRunning(secondActivity) && Utils.activityRunning(firstActivity);
+        return null;
+        //return !Utils.activityRunning(secondActivity) && Utils.activityRunning(firstActivity);
     }
 }

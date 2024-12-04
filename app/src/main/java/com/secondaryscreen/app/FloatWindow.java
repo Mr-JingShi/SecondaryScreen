@@ -44,7 +44,6 @@ final class FloatWindow {
     private ImageView mFocusImageView;
     private WindowManager.LayoutParams mWindowParams;
     private TextureView mTextureView;
-    private SurfaceTexture mSurfaceTexture;
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
     private boolean mWindowVisible;
@@ -120,6 +119,8 @@ final class FloatWindow {
             mDisplayManager.unregisterDisplayListener(mDisplayListener);
             mWindowManager.removeView(mWindowContent);
             mWindowVisible = false;
+
+            MainActivity.clearFloatWindow();
 
             System.exit(0);
         }
@@ -243,10 +244,7 @@ final class FloatWindow {
         mLiveTranslationY = 0f;
         mLiveScale = 1.0f;
     }
-
-    public View getWindowContent() {
-        return mWindowContent;
-    }
+    
     private final View.OnClickListener mLockListener =
             new View.OnClickListener() {
                 @Override
@@ -334,8 +332,6 @@ final class FloatWindow {
                         if (View.VISIBLE == mLockImageView.getVisibility()) {
                             mVideoConnection.start(new Surface(surfaceTexture), mDisplayConnection);
                             mControlConnection.start();
-                        } else {
-                            mSurfaceTexture = surfaceTexture;
                         }
                     }
                 }

@@ -25,6 +25,8 @@
             android:name=".SecondActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:launchMode="singleInstance"
+            android:taskAffinity=".SecondContainer"
+            android:excludeFromRecents="true"
             android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
             android:exported="true">
         </activity>

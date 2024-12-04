@@ -47,7 +47,7 @@ public class MediaDecoder {
                 Log.i(TAG, "configure cache decoder:" + decoderCache);
                 mMediaCodec.configure(format, surface, null, 0);
                 return;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

@@ -15,11 +15,15 @@ public class Server {
 
             if (args.length >= 2) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    throw new RuntimeException(">= Android 13时，无需指定activity！！！");
+                    throw new RuntimeException("大于等于Android 13时，不需要指定activity！！！");
                 }
                 firstActivity = Utils.prettifyActivity(args[0]);
                 secondActivity = Utils.prettifyActivity(args[1]);
                 Ln.i(TAG, "firstActivity:" + firstActivity + " secondActivity:" + secondActivity);
+            } else {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    throw new RuntimeException("小于Android 13时，必须指定activity！！！");
+                }
             }
 
             KillSelf.start();
@@ -42,11 +46,6 @@ public class Server {
             Ln.i(TAG, "displayId:" + displayId);
 
             DisplayInfo.setMirrorDisplayId(displayId);
-
-            // Android 11 ~ 12 需启动SecondaryDisplayLauncher
-            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R || Build.VERSION.SDK_INT == Build.VERSION_CODES.S) {
-                SecondaryDisplayLauncher.start();
-            }
 
             ServiceManager.getWindowManager().freezeRotation(displayId, rotation);
 

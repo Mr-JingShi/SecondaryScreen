@@ -13,7 +13,7 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:launchMode="standard"
+            android:launchMode="singleInstance"
             android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
             android:exported="true">
             <intent-filter>
@@ -24,10 +24,17 @@
         <activity
             android:name=".SlaveActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:launchMode="standard"
+            android:launchMode="singleInstance"
             android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
+        <activity
+            android:name=".SecondActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".SecondContainer"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
+            android:exported="true" />
     </application>
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />

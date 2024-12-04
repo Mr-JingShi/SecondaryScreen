@@ -13,7 +13,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -58,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         if (mFloatWindow != null) {
             Utils.toast("检测到悬浮窗在运行，请先关闭悬浮窗！");
             finish();
+            return;
         }
 
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -201,6 +201,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        Log.i(TAG, "MainActivity onDestroy");
     }
 
     private void startFloatWindow() {
@@ -218,6 +220,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         Log.i(TAG, "showFloatWindow");
         mFloatWindow = new FloatWindow();
         mFloatWindow.show();
+    }
+
+    public static void clearFloatWindow() {
+        mFloatWindow = null;
     }
 
     private boolean hasOverlayPermission() {
