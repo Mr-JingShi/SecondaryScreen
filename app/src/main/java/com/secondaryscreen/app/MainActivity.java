@@ -224,6 +224,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     public static void clearFloatWindow() {
         mFloatWindow = null;
+
+        Utils.finishAndRemoveTask(MainActivity.class.getName());
     }
 
     private boolean hasOverlayPermission() {

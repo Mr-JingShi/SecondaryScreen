@@ -1,6 +1,8 @@
 package com.secondaryscreen.app;
 
+import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -28,6 +30,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -290,5 +293,22 @@ public class Utils {
             }
         }
         return list;
+    }
+
+    static void finishAndRemoveTask(String className) {
+        ActivityManager activityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.AppTask> appTasks = activityManager.getAppTasks();
+
+        for (ActivityManager.AppTask appTask : appTasks) {
+            ActivityManager.RecentTaskInfo recentTaskInfo = appTask.getTaskInfo();
+            Log.i(TAG, "recentTaskInfo:" + recentTaskInfo);
+            Intent baseIntent = recentTaskInfo.baseIntent;
+            if (baseIntent.getComponent() != null
+                && baseIntent.getComponent().getClassName().equals(className)) {
+                Log.i(TAG, "setExcludeFromRecents:" + className);
+                appTask.setExcludeFromRecents(true);
+                appTask.finishAndRemoveTask();
+            }
+        }
     }
 }

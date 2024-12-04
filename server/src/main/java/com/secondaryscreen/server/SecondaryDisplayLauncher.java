@@ -108,10 +108,30 @@ public final class SecondaryDisplayLauncher {
                         launcherIntent.setClassName(packageName, className);
                     }
                     launcherIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    // FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                    // 具有这个标记的 Activity 不会出现在历史 Activity 的列表中，
-                    // 在某些情况下我们不希望用户通过历史列表回到我们的 Activity 的时候这个标记比较有用。
-                    // 它等同于在 XML 中指定 Activity 的属性 android:excludeFromRecents="true"。
+                    /**
+                     * FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS 具有这个标记的 Activity 不会出现在历史 Activity 的列表中，
+                     * 在某些情况下我们不希望用户通过历史列表回到我们的 Activity 的时候这个标记比较有用。
+                     * 它等同于在 XML 中指定 Activity 的属性 android:excludeFromRecents="true"。
+                     * 如果您想在“最近使用的应用”屏幕中保留某个任务，可传递Intent.FLAG_ACTIVITY_RETAIN_IN_RECENTS标记。
+                     *
+                     * autoRemoveFromRecents 和 excludeFromRecents
+                     *
+                     * android:autoRemoveFromRecents
+                     * android:autoRemoveFromRecents 是在任务栈中的最后一个 Activity 完成之前，由具有此属性的 Activity 启动的任务栈是否保留在多任务切换页面中。即 autoRemoveFromRecents 指定了当 Activity 被系统回收时，是否保留在多任务切换页面中。默认值为 false。
+                     * 当设置为 true 时: 当 Activity 被系统回收时，从最近使用的多任务切换页中移除该 Activity 所在的任务栈；当设置为 false 时: 当 Activity 被系统回收时，不从最近使用的多任务切换页中移除该 Activity 所在的任务栈。
+                     * 这个属性主要用于:
+                     * 1）一些临时 Activity，当它们被销毁后，不希望它们出现在多任务切换页中，可以设置为 true；
+                     * 2）一些没有重要数据的 Activity，如果设置为 true，当内存不足被系统回收后，由于它已经从多任务切换页移除，用户不太可能再去恢复它，及时移除有利于内存回收；
+                     * 3）一些包含敏感数据的 Activity，为了安全考虑，不希望它出现在多任务切换页中,可以设置为 true。
+                     * 所以，总体来说，这个属性主要是出于内存管理和安全考虑，控制 Activity 在被系统回收后是否从多任务切换页中移除。
+                     *
+                     * android:excludeFromRecents
+                     * android:excludeFromRecents 也是一个 Activity 属性，它指定了是否从多任务切换页中排除该 Activity 所在的任务栈。默认值为 false。
+                     * 当设置为 true 时：该 Activity 所在的任务栈不会出现在多任务切换页中；当设置为 false 时：不从多任务切换页中排除该 Activity 所在的任务栈。
+                     * 这个属性与 android:autoRemoveFromRecents 很像，它们的区别是:
+                     * android:autoRemoveFromRecents 是当 Activity 被系统回收时，所在栈是否从多任务切换页中移除；
+                     * android:excludeFromRecents 是 Activity 所在的栈从一开始就不会出现在任务列表中。
+                     * */
                     launcherIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
                     ActivityOptions options = ActivityOptions.makeBasic();
                     options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
