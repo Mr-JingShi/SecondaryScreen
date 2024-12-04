@@ -36,8 +36,8 @@ public class ActivityDetector {
     public void start() {
         // 1. 优先启动SecondaryDisplayLauncher
         // Android 11 ~ 12 需启动SecondaryDisplayLauncher
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R
-                || Build.VERSION.SDK_INT == Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
             SecondaryDisplayLauncher.start();
         }
 
@@ -58,7 +58,7 @@ public class ActivityDetector {
                     if (mTargetFirstActivity.equals(activityName)) {
                         startFlag |= targetFlag;
                     } else if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                            || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S)
+                            || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2)
                             && Utils.APP_MAIN_ACTIVITY_NAME.equals(activityName)) {
                         /* remark
                         * Android 10 ～ 12 的SecondaryDisplayLauncher实际场景基本用不到，各个厂商的界面效果相差很大，
@@ -148,7 +148,7 @@ public class ActivityDetector {
     }
 
     @RequiresApi(api = 26)
-    private void startSecondActivity(@Nullable String packageName, @Nullable String className) {
+    private void startSecondActivity(@NonNull String packageName, @NonNull String className) {
         Intent intent = new Intent();
         intent.setClassName(packageName, className);
         ActivityOptions options = ActivityOptions.makeBasic();

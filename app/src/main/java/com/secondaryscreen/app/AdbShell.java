@@ -109,7 +109,6 @@ public class AdbShell {
 
                 AbsAdbConnectionManager manager = AdbManager.getInstance(Utils.getContext());
                 manager.disconnect();
-                manager.close();
             } catch (Throwable th) {
                 th.printStackTrace();
             }
@@ -209,7 +208,7 @@ public class AdbShell {
         sb.append(" ");
         sb.append("nohup app_process / com.secondaryscreen.server.Server");
 
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
             sb.append(" ");
             sb.append(Utils.getContext().getString(R.string.first_activity));
             sb.append(" ");

@@ -212,6 +212,7 @@ public final class SurfaceControl {
          * Android 10 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
          * Android 11 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP可见，APP无权限使用
          * Android 12 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP有些设备可见，有些设备不可见，APP无权限使用
+         * Android 12-V2 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP可见，APP无权限使用
          * Android 13 pirvate的virtualdisplay对ADB SHELL不可见，ADB SHELL无权限使用；对APP不可见，APP无权限使用
          * Android 14 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
          */

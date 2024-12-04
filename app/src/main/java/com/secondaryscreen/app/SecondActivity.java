@@ -23,7 +23,7 @@ public class SecondActivity extends AppCompatActivity {
 
         setTaskDescription(new ActivityManager.TaskDescription("副屏桌面"));
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Build.VERSION.SDK_INT > Build.VERSION_CODES.S_V2) {
             Utils.toast("副屏桌面只允许运行在Android 10 ～ 12系统上");
 
             finish();
