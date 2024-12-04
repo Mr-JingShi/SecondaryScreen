@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
-import android.util.Pair;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

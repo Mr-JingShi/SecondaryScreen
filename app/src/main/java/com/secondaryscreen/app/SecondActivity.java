@@ -1,6 +1,5 @@
 package com.secondaryscreen.app;
 
-import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.WallpaperManager;
 import android.graphics.drawable.Drawable;
@@ -24,8 +23,8 @@ public class SecondActivity extends AppCompatActivity {
 
         setTaskDescription(new ActivityManager.TaskDescription("副屏桌面"));
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
-            Utils.toast("副屏桌面只允许运行在Android 11、12系统上");
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+            Utils.toast("副屏桌面只允许运行在Android 10 ～ 12系统上");
 
             finish();
             return;

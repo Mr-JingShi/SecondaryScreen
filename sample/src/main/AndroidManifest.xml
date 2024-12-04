@@ -13,8 +13,8 @@
         <activity
             android:name=".SampleActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:launchMode="singleInstance"
             android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
+            android:launchMode="singleInstance"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,10 +24,10 @@
         <activity
             android:name=".SecondActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
+            android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
             android:launchMode="singleInstance"
             android:taskAffinity=".SecondContainer"
             android:excludeFromRecents="true"
-            android:windowSoftInputMode="stateHidden|stateAlwaysHidden"
             android:exported="true">
         </activity>
     </application>
