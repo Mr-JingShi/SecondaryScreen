@@ -16,6 +16,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -70,6 +71,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
 
         setContentView(R.layout.activity_main);
+
+        processPowerSavePermission();
 
         mTcpipImageView = findViewById(R.id.adb_tcpip);
         mTcpipImageView.setOnClickListener((View v) -> {
@@ -637,5 +640,30 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         // Andrid 11+ 支持无线调试
         // 华为设备禁用了无线调试功能
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Build.MANUFACTURER.equals("HUAWEI");
+    }
+
+    /**
+     * 处理省电优化权限
+     * @return
+     */
+    private boolean processPowerSavePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            final PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (!pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+                builder.setTitle("低电量优化策略");
+                builder.setMessage("请允许副屏忽略低电量优化策略，以确保副屏能在低电量时正常运行");
+
+                builder.setNegativeButton("取消", null);
+                builder.setPositiveButton("开启", (DialogInterface dialog, int which) -> {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                });
+                builder.show();
+            }
+        }
+        return true;
     }
 }
