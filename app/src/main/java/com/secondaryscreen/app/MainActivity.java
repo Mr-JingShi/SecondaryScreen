@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         String remoteHost = PrivatePreferences.getRemoteHost();
         wlan_address.setText(remoteHost);
         chooseResolution(spinner);
+
+        wlanTextOnMasterMode(wlan_description, wlan_address);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             radio_master.setVisibility(View.GONE);
             radio_slave.setChecked(true);
@@ -96,20 +98,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             wlan_address.setVisibility(View.VISIBLE);
         } else {
             radio_master.setOnClickListener((view) -> {
-                spinner.setVisibility(View.GONE);
-                String ip = Utils.getHostAddress();
-                if (ip.isEmpty()) {
-                    wlan_description.setVisibility(View.GONE);
-                } else {
-                    wlan_description.setVisibility(View.VISIBLE);
-                    wlan_description.setText("本设备WLAN地址：\n" + ip);
-                }
-                wlan_address.setVisibility(View.GONE);
+                wlanTextOnMasterMode(wlan_description, wlan_address);
             });
             radio_slave.setOnClickListener((view) -> {
-                spinner.setVisibility(View.VISIBLE);
                 wlan_description.setVisibility(View.VISIBLE);
-                wlan_description.setText("主设备WLAN地址：");
+                wlan_description.setText("请输入主设备WLAN地址：");
                 wlan_address.setVisibility(View.VISIBLE);
                 setAdbConnectionVisibility(false);
             });
@@ -151,6 +144,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                 }
             }
         });
+    }
+
+    private void wlanTextOnMasterMode(TextView wlan_description, TextView wlan_address) {
+        String ip = Utils.getHostAddress();
+        if (ip.isEmpty()) {
+            wlan_description.setVisibility(View.GONE);
+        } else {
+            wlan_description.setVisibility(View.VISIBLE);
+            wlan_description.setText("本设备WLAN地址：\n" + ip);
+        }
+        wlan_address.setVisibility(View.GONE);
     }
 
     @Override
