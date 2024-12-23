@@ -47,6 +47,16 @@ public class Server {
 
             DisplayInfo.setMirrorDisplayId(displayId);
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+ 自定义virtualdisplay可以设置FLAG_TRUSTED参数，因此可以显示IME和系统装饰
+                if (!ServiceManager.getWindowManager().shouldShowIme(displayId)) {
+                    ServiceManager.getWindowManager().setShouldShowIme(displayId, true);
+                }
+                if (!ServiceManager.getWindowManager().shouldShowSystemDecors(displayId)) {
+                    ServiceManager.getWindowManager().setShouldShowSystemDecors(displayId, true);
+                }
+            }
+
             ServiceManager.getWindowManager().freezeRotation(displayId, rotation);
 
             ActivityDetector activityDetector =  null;

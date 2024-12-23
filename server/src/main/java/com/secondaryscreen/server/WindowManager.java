@@ -19,6 +19,16 @@ public final class WindowManager {
     private Method mThawDisplayRotationMethod;
     private int mThawDisplayRotationMethodVersion;
 
+    private Method mShouldShowImeMethod;
+    private int mShouldShowImeMethodVersion;
+
+    private Method mSetShouldShowImeMethod;
+    private int mSetShouldShowImeMethodVersion;
+
+    private Method mShouldShowSystemDecorsMethod;
+
+    private Method mSetShouldShowSystemDecorsMethod;
+
     public interface RotationListener {
         void onRotationChanged(int rotation);
     }
@@ -188,6 +198,99 @@ public final class WindowManager {
     public void onRotationChanged(int rotation) {
         if (mRotationWatcher != null) {
             mRotationWatcher.onRotationChanged(rotation);
+        }
+    }
+
+    private Method getShouldShowImeMethod() throws NoSuchMethodException {
+        if (mShouldShowImeMethod == null) {
+            try {
+                mShouldShowImeMethod = mManager.getClass().getMethod("getDisplayImePolicy", int.class);
+                mShouldShowImeMethodVersion = 0;
+            } catch (NoSuchMethodException e) {
+                mShouldShowImeMethod = mManager.getClass().getMethod("shouldShowIme", int.class);
+                mShouldShowImeMethodVersion = 1;
+            }
+        }
+        return mShouldShowImeMethod;
+    }
+
+    public boolean shouldShowIme(int displayId) {
+        try {
+            Method method = getShouldShowImeMethod();
+            switch (mShouldShowImeMethodVersion) {
+                case 0:
+                    int policy = (int) method.invoke(mManager, displayId);
+                    Ln.w(TAG, "shouldShowIme:" + policy);
+                    return policy == 0;
+                default:
+                    return (boolean) method.invoke(mManager, displayId);
+            }
+        } catch (ReflectiveOperationException e) {
+            Ln.w(TAG, "Could not invoke method", e);
+            return false;
+        }
+    }
+
+    private Method getSetShouldShowImeMethod() throws NoSuchMethodException {
+        if (mSetShouldShowImeMethod == null) {
+            try {
+                mSetShouldShowImeMethod = mManager.getClass().getMethod("setDisplayImePolicy", int.class, int.class);
+                mSetShouldShowImeMethodVersion = 0;
+            } catch (NoSuchMethodException e) {
+                mSetShouldShowImeMethod = mManager.getClass().getMethod("setShouldShowIme", int.class, boolean.class);
+                mSetShouldShowImeMethodVersion = 1;
+            }
+        }
+        return mSetShouldShowImeMethod;
+    }
+
+    public void setShouldShowIme(int displayId, boolean shouldShow) {
+        try {
+            Method method = getSetShouldShowImeMethod();
+            switch (mSetShouldShowImeMethodVersion) {
+                case 0:
+                    int policy = shouldShow ? 0 : 1;
+                    method.invoke(mManager, displayId, policy);
+                    break;
+                default:
+                    method.invoke(mManager, displayId, shouldShow);
+            }
+        } catch (ReflectiveOperationException e) {
+            Ln.w(TAG, "Could not invoke method", e);
+        }
+    }
+
+    private Method getShouldShowSystemDecorsMethod() throws NoSuchMethodException {
+        if (mShouldShowSystemDecorsMethod == null) {
+            mShouldShowSystemDecorsMethod = mManager.getClass().getMethod("shouldShowSystemDecors", int.class);
+        }
+        return mShouldShowSystemDecorsMethod;
+    }
+
+    public boolean shouldShowSystemDecors(int displayId)  {
+        try {
+            Method method = getShouldShowSystemDecorsMethod();
+            return (boolean)method.invoke(mManager, displayId);
+        } catch (ReflectiveOperationException e) {
+            Ln.w(TAG, "Could not invoke method", e);
+            return false;
+        }
+    }
+
+
+    private Method getSetShouldShowSystemDecorsMethod() throws NoSuchMethodException {
+        if (mSetShouldShowSystemDecorsMethod == null) {
+            mSetShouldShowSystemDecorsMethod = mManager.getClass().getMethod("setShouldShowSystemDecors", int.class, boolean.class);
+        }
+        return mSetShouldShowSystemDecorsMethod;
+    }
+
+    public void setShouldShowSystemDecors(int displayId, boolean shouldShow)  {
+        try {
+            Method method = getSetShouldShowSystemDecorsMethod();
+            method.invoke(mManager, displayId, shouldShow);
+        } catch (ReflectiveOperationException e) {
+            Ln.w(TAG, "Could not invoke method", e);
         }
     }
 }

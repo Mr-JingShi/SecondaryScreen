@@ -112,7 +112,7 @@ public class Utils {
 
         if (ip == null) {
             Log.e(TAG, "getLocalInetAddress failed");
-            throw new RuntimeException("getLocalInetAddress failed");
+            return "";
         }
 
         return ip.getHostAddress();
