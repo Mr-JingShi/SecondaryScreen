@@ -3,6 +3,7 @@ package com.secondaryscreen.server;
 import android.annotation.SuppressLint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.hardware.display.VirtualDisplay;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.IBinder;
@@ -19,6 +20,7 @@ import java.lang.reflect.Method;
 public final class SurfaceControl {
     private static final Class<?> CLASS;
     private static Object TOKEN;
+    private static VirtualDisplay VIRTUALDISPPLAY;
 
     static {
         try {
@@ -77,7 +79,23 @@ public final class SurfaceControl {
        return (IBinder) CLASS.getMethod("createDisplay", String.class, boolean.class).invoke(null, name, secure);
     }
 
+    public static int scrcpy_createVirtualDisplay(int width, int height, int densityDpi) throws Exception {
+        int flags = getflags();
+        Surface surface = getSurface(width, height);
+        VIRTUALDISPPLAY = ServiceManager.getDisplayManager()
+                .createNewVirtualDisplay(Utils.VIRTUALDISPLAY_NAME, width, height, densityDpi, surface, flags);
+        return VIRTUALDISPPLAY.getDisplay().getDisplayId();
+    }
+
     public static int createVirtualDisplay(int width, int height, int densityDpi) throws Exception {
+        try {
+            Workarounds.apply();
+            // scrcpy vritual_display分支
+            return scrcpy_createVirtualDisplay(width, height, densityDpi);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // 通过反射创建virtualdisplay的灵感来源自Android源码
         // https://cs.android.com/android/platform/superproject/+/android-14.0.0_r1:frameworks/base/core/java/android/hardware/display/DisplayManager.java;drc=b3691fab2356133dfc7e11c213732ffef9a85315;l=1567
         IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
@@ -88,7 +106,7 @@ public final class SurfaceControl {
         // 保存token
         TOKEN = callback;
 
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             Surface surface = getSurface(width, height);
 
             return (int)method.invoke(
@@ -198,7 +216,7 @@ public final class SurfaceControl {
 
         // VIRTUAL_DISPLAY_FLAG_PUBLIC 1 << 0
         // VIRTUAL_DISPLAY_FLAG_PRESENTATION 1 << 1
-        // int VIRTUAL_DISPLAY_FLAG_SECURE 1 << 2
+        // VIRTUAL_DISPLAY_FLAG_SECURE 1 << 2
         // VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY 1 << 3
         // VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR = 1 << 4
         // VIRTUAL_DISPLAY_FLAG_CAN_SHOW_WITH_INSECURE_KEYGUARD = 1 << 5;
@@ -223,7 +241,9 @@ public final class SurfaceControl {
     }
 
     public static void resizeVirtualDisplay(int width, int height, int densityDpi) throws Exception {
-        if (TOKEN != null) {
+        if (VIRTUALDISPPLAY != null) {
+            VIRTUALDISPPLAY.resize(width, height, densityDpi);
+        } else if (TOKEN != null) {
             IInterface dm = ServiceManager.getService("display", "android.hardware.display.IDisplayManager");
             Method[] dmMethods = dm.getClass().getDeclaredMethods();
             Method resize = Utils.findMethodAndMakeAccessible(dmMethods, "resizeVirtualDisplay");

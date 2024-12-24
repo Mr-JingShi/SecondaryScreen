@@ -1,9 +1,11 @@
 package com.secondaryscreen.server;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.hardware.display.VirtualDisplay;
 import android.view.Surface;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 // 部分逻辑参考自：
@@ -77,6 +79,14 @@ public final class DisplayManager {
     public VirtualDisplay createVirtualDisplay(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
         Method method = getCreateVirtualDisplayMethod();
         return (VirtualDisplay) method.invoke(null, name, width, height, displayIdToMirror, surface);
+    }
+
+    public VirtualDisplay createNewVirtualDisplay(String name, int width, int height, int dpi, Surface surface, int flags) throws Exception {
+        Constructor<android.hardware.display.DisplayManager> ctor = android.hardware.display.DisplayManager.class.getDeclaredConstructor(
+                Context.class);
+        ctor.setAccessible(true);
+        android.hardware.display.DisplayManager dm = ctor.newInstance(FakeContext.get());
+        return dm.createVirtualDisplay(name, width, height, dpi, surface, flags);
     }
 
     public void setDisplayListener(DisplayListener displayListener) {
