@@ -1,5 +1,6 @@
 package com.secondaryscreen.server;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
@@ -8,6 +9,7 @@ import android.util.Pair;
 
 import androidx.annotation.RequiresApi;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -108,6 +110,7 @@ public final class SecondaryDisplayLauncher {
                         launcherIntent.setClassName(packageName, className);
                     }
                     launcherIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    launcherIntent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                     /**
                      * FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS 具有这个标记的 Activity 不会出现在历史 Activity 的列表中，
                      * 在某些情况下我们不希望用户通过历史列表回到我们的 Activity 的时候这个标记比较有用。
@@ -135,6 +138,13 @@ public final class SecondaryDisplayLauncher {
                     launcherIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
                     ActivityOptions options = ActivityOptions.makeBasic();
                     options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
+                    try {
+                        @SuppressLint("BlockedPrivateApi")
+                        Method method = ActivityOptions.class.getDeclaredMethod("setLaunchActivityType", int.class);
+                        method.invoke(options, /* ACTIVITY_TYPE_HOME */ 2);
+                    } catch(Exception e) {
+                        Ln.e(TAG, "Could not invoke method", e);
+                    }
 
                     int ret = ServiceManager.getActivityManager().startActivity(launcherIntent, options.toBundle());
                     Ln.i(TAG, "Start secondary launcher activity ret:" + ret);
