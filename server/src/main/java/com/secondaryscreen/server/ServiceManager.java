@@ -28,6 +28,7 @@ public final class ServiceManager {
     private static ActivityManager mActivityManager;
     private static PackageManager mPackageManager;
     private static LauncherApps mLauncherApps;
+    private static ActivityTaskManager mActivityTaskManager;
 
     private ServiceManager() {
         /* not instantiable */
@@ -83,5 +84,12 @@ public final class ServiceManager {
             mLauncherApps = LauncherApps.create();
         }
         return mLauncherApps;
+    }
+
+    public static ActivityTaskManager getActivityTaskManager() {
+        if (mActivityTaskManager == null) {
+            mActivityTaskManager = ActivityTaskManager.create();
+        }
+        return mActivityTaskManager;
     }
 }

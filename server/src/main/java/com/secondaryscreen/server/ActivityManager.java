@@ -2,6 +2,7 @@ package com.secondaryscreen.server;
 
 import android.annotation.SuppressLint;
 import android.app.IActivityController;
+import android.app.ITaskStackListener;
 import android.app.TaskInfo;
 import android.content.Intent;
 import android.os.Bundle;
@@ -123,6 +124,21 @@ public final class ActivityManager {
             method.invoke(mManager, stub, true);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void registerTaskStackListener(ITaskStackListener listener) {
+        try {
+            mManager.getClass().getMethod("registerTaskStackListener", ITaskStackListener.class).invoke(mManager, listener);
+        } catch (Exception e) {
+            Ln.e(TAG, "Could not register task stack listener", e);
+        }
+    }
+    public void unregisterTaskStackListener(ITaskStackListener listener) {
+        try {
+            mManager.getClass().getMethod("unregisterTaskStackListener", ITaskStackListener.class).invoke(mManager, listener);
+        } catch (Exception e) {
+            Ln.e(TAG, "Could not register task stack listener", e);
         }
     }
 }

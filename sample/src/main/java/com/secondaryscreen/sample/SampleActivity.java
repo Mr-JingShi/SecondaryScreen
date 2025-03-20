@@ -1,5 +1,6 @@
 package com.secondaryscreen.sample;
 
+import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
@@ -61,15 +62,20 @@ public class SampleActivity extends AppCompatActivity {
         Display[] displays = displayManager.getDisplays();
         Log.i(TAG, "loadSecondActivity displays.length:" + displays.length);
         if (displays.length > 1) {
-            Log.i(TAG, "loadSecondActivity flags:" + (displays[1].getFlags() & Display.FLAG_PRIVATE));
+            Intent intent = new Intent(this, SecondActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-            if ((displays[1].getFlags() & Display.FLAG_PRIVATE) == 0) {
-                Log.i(TAG, "loadSecondActivity displayId:" + displays[1].getDisplayId());
-
-                Intent intent = new Intent(this, SecondActivity.class);
+            ActivityManager am = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+            boolean isAllowed = am.isActivityStartAllowedOnDisplay(this, displays[1].getDisplayId(), intent);
+            Log.i(TAG, "isAllowed:" + isAllowed);
+            if (isAllowed) {
                 ActivityOptions options = ActivityOptions.makeBasic();
                 options.setLaunchDisplayId(displays[1].getDisplayId());
-                startActivity(intent, options.toBundle());
+                try {
+                    startActivity(intent, options.toBundle());
+                } catch (Exception e) {
+                    Log.e(TAG, "loadSecondActivity", e);
+                }
             }
         }
     }

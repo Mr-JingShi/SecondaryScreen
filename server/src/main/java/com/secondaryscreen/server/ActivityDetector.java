@@ -35,15 +35,18 @@ public class ActivityDetector {
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void start() {
         // 1. 优先启动SecondaryDisplayLauncher
-        // Android 11 ~ 12 需启动SecondaryDisplayLauncher
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            SecondaryDisplayLauncher.start();
+        // Android 10 ~ 12 需启动SecondaryDisplayLauncher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            SecondaryDisplayLauncher.startSelfSecondaryLauncher();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+            SecondaryDisplayLauncher.registerTaskStackListener();
         }
 
         // 2. 监听Activity启动
         ServiceManager.getActivityManager().setActivityController(new IActivityController.Stub() {
-            private boolean mAppSecondActivityStartBySelf = false;
             @Override
             public boolean activityStarting(Intent intent, String pkg) {
                 if (intent.getComponent() != null) {
@@ -86,16 +89,16 @@ public class ActivityDetector {
                             if ((finalStartFlag & targetFlag) != 0) {
                                 if (targetResult.first && !targetResult.second) {
                                     if (/*appResult.first && */!appResult.second) {
-                                        startSecondActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
+                                        startActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
                                     }
-                                    startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+                                    startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
                                 }
                             } else if ((finalStartFlag & appFlag) != 0) {
                                 if (/*appResult.first && */!appResult.second) {
-                                    startSecondActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
+                                    startActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
 
                                     if (/*targetResult.first && */targetResult.second) {
-                                        startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+                                        startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
                                     }
                                 }
                             }
@@ -139,16 +142,20 @@ public class ActivityDetector {
         List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
         Ln.i(TAG, "ActivityDetector result.get(0).first:" + result.get(0).first + ", result.get(0).second:" + result.get(0).second);
         if (result.get(0).first && !result.get(0).second) {
-            startSecondActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+            startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
         }
     }
 
     public void stop() {
         ServiceManager.getActivityManager().setActivityController(null);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+            SecondaryDisplayLauncher.unregisterTaskStackListener();
+        }
     }
 
     @RequiresApi(api = 26)
-    private void startSecondActivity(@NonNull String packageName, @NonNull String className) {
+    private void startActivity(@NonNull String packageName, @NonNull String className) {
         Intent intent = new Intent();
         intent.setClassName(packageName, className);
         ActivityOptions options = ActivityOptions.makeBasic();
@@ -158,7 +165,8 @@ public class ActivityDetector {
         Ln.i(TAG, "startSecondActivity result:" + result);
         if (result < 0) {
             Ln.e(TAG, "Could not start second activity by ActivityManager");
-            Utils.startActivity(mTargetSecondActivity, DisplayInfo.getMirrorDisplayId());
+            String activityName = packageName + "/" + className;
+            Utils.startActivity(activityName, DisplayInfo.getMirrorDisplayId());
         }
     }
 }

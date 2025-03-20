@@ -225,7 +225,7 @@ public final class SurfaceControl {
         // VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL = 1 << 8;
         // VIRTUAL_DISPLAY_FLAG_SHOULD_SHOW_SYSTEM_DECORATIONS 1 << 9
         // VIRTUAL_DISPLAY_FLAG_TRUSTED 1 << 10
-        int flags = (1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);
+        int flags = (1<<0)|(1<<1)|(1<<3)|(1<<6)|(1<<7)|(1<<9);
         /** remark
          * Android 10 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
          * Android 11 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP可见，APP无权限使用
@@ -235,7 +235,7 @@ public final class SurfaceControl {
          * Android 14 pirvate的virtualdisplay对ADB SHELL可见，ADB SHELL有权限使用；对APP不可见，APP无权限使用
          */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            flags = flags | (1<<0) | (1<<10);
+            flags = flags | (1<<10);
         }
         return flags;
     }
