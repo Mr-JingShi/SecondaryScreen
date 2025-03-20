@@ -86,7 +86,7 @@ public final class SecondaryDisplayLauncher {
     }
 
     public static void registerTaskStackListener() {
-        // ServiceManager.getActivityTaskManager().setDisplayToSingleTaskInstance(DisplayInfo.getMirrorDisplayId());
+        ServiceManager.getActivityTaskManager().setDisplayToSingleTaskInstance(DisplayInfo.getMirrorDisplayId());
 
         mTaskStackListener = new TaskStackListener() {
             @Override
