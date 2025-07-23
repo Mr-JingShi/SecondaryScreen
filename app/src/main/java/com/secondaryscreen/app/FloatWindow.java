@@ -297,7 +297,9 @@ final class FloatWindow {
 
                 @Override
                 public void onDisplayRemoved(int displayId) {
-                    if (displayId != 0) {
+                    Log.i(TAG, "onDisplayRemoved:" + displayId);
+
+                    if (displayId != 0 && !Utils.checkVirtualDisplayReady()) {
                         dismiss();
                     }
                 }
