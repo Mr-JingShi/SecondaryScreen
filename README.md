@@ -65,6 +65,12 @@ Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位�
 
 ![](doc/img/双设备联动图示.png)
 
+## 分支
+
+main分支在server侧创建virtualdisplay，此irtualdisplay为常驻的，用来模拟第二块物理屏幕。
+
+app_virtualdisplay分支在app侧创建virtualdisplay，此virtualdisplay为非常驻的，此方式可以忽略视频流仅处理控制流。
+
 # 感谢
 
 特别感谢[scrcpy](https://github.com/Genymobile/scrcpy)，给了我诸多灵感。
