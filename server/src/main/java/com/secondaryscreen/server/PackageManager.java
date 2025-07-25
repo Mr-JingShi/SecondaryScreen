@@ -12,8 +12,6 @@ import java.lang.reflect.Method;
 public final class PackageManager {
     private static String TAG = "PackageManager";
     private final IInterface mManager;
-    private Method mResolveIntentMethod;
-    private int mResolveIntentMethodVersion;
 
     static PackageManager create() {
         IInterface manager = ServiceManager.getService("package", "android.content.pm.IPackageManager");
@@ -42,42 +40,5 @@ public final class PackageManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private Method getResolveIntentMethod() throws NoSuchMethodException {
-        if (mResolveIntentMethod == null) {
-            try {
-                mResolveIntentMethod = mManager.getClass().getMethod("resolveIntent", Intent.class, String.class, long.class, int.class);
-                mResolveIntentMethodVersion = 0;
-            } catch (Exception e) {
-                mResolveIntentMethod = mManager.getClass().getMethod("resolveIntent", Intent.class, String.class, int.class, int.class);
-                mResolveIntentMethodVersion = 1;
-            }
-        }
-        return mResolveIntentMethod;
-    }
-
-    ResolveInfo resolveActivity(Intent intent, long flags, int userId) {
-        try {
-            Method method = getResolveIntentMethod();
-
-            switch (mResolveIntentMethodVersion) {
-                case 0:
-                    return (ResolveInfo) method.invoke(mManager,
-                            /* intent */ intent,
-                            /* resolvedType */ null,
-                            /* flags */ flags,
-                            /* userId */ userId);
-                default:
-                    return (ResolveInfo) method.invoke(mManager,
-                            /* intent */ intent,
-                            /* resolvedType */ null,
-                            /* flags */ (int)flags,
-                            /* userId */ userId);
-            }
-        } catch (ReflectiveOperationException e) {
-            Ln.w(TAG, "Could not invoke method", e);
-        }
-        return null;
     }
 }

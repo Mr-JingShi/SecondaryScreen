@@ -85,79 +85,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         });
 
         Spinner spinner = findViewById(R.id.spinner);
-        RadioButton radio_master = findViewById(R.id.radio_master);
-        RadioButton radio_slave = findViewById(R.id.radio_slave);
-        TextView wlan_description = findViewById(R.id.wlan_description);
-        TextView wlan_address = findViewById(R.id.wlan_address);
-        String remoteHost = PrivatePreferences.getRemoteHost();
-        wlan_address.setText(remoteHost);
         chooseResolution(spinner);
 
-        wlanTextOnMasterMode(wlan_description, wlan_address);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            radio_master.setVisibility(View.GONE);
-            radio_slave.setChecked(true);
-            wlan_description.setVisibility(View.VISIBLE);
-            wlan_address.setVisibility(View.VISIBLE);
-        } else {
-            radio_master.setOnClickListener((view) -> {
-                wlanTextOnMasterMode(wlan_description, wlan_address);
-            });
-            radio_slave.setOnClickListener((view) -> {
-                wlan_description.setVisibility(View.VISIBLE);
-                wlan_description.setText("请输入主设备WLAN地址：");
-                wlan_address.setVisibility(View.VISIBLE);
-                setAdbConnectionVisibility(false);
-            });
-        }
-
         findViewById(R.id.start_button).setOnClickListener((view) -> {
-            if (radio_master.isChecked()) {
-                if (checkVirtualDisplayReady()) {
-                    startFloatWindow();
-                }
-            } else if (radio_slave.isChecked()) {
-                CharSequence charSequence = wlan_address.getText();
-                if (charSequence != null) {
-                    String wlanAddress = charSequence.toString();
-                    if (wlanAddress.isEmpty()) {
-                        Utils.toast("请输入主设备WLAN地址");
-                        return;
-                    }
-
-                    if (!Utils.checkRemoteWifi(wlanAddress)) {
-                        Utils.toast("请输入正确的主设备WLAN地址");
-                        return;
-                    }
-
-                    if (wlanAddress.equals("127.0.0.1")) {
-                        if (!Utils.checkVirtualDisplayReady()) {
-                            Utils.toast("jar包未启动，请先按主设备方式启动jar包");
-                            return;
-                        }
-                    }
-
-                    PrivatePreferences.setRemoteHost(wlanAddress);
-                    Utils.setRemoteHost(wlanAddress);
-
-                    Utils.hideKeyboard(view);
-
-                    Intent intent = new Intent(this, SlaveActivity.class);
-                    startActivity(intent);
-                }
+            if (checkJarReady()) {
+                startFloatWindow();
             }
         });
-    }
-
-    private void wlanTextOnMasterMode(TextView wlan_description, TextView wlan_address) {
-        String ip = Utils.getHostAddress();
-        if (ip.isEmpty()) {
-            wlan_description.setVisibility(View.GONE);
-        } else {
-            wlan_description.setVisibility(View.VISIBLE);
-            wlan_description.setText("本设备WLAN地址：\n" + ip);
-        }
-        wlan_address.setVisibility(View.GONE);
     }
 
     @Override
@@ -230,8 +164,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     public static void clearFloatWindow() {
-        mFloatWindow = null;
-
         Utils.finishAndRemoveTask(MainActivity.class.getName());
     }
 
@@ -618,8 +550,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         openDeveloperOptions();
     }
 
-    private boolean checkVirtualDisplayReady() {
-        boolean ready = Utils.checkVirtualDisplayReady();
+    private boolean checkJarReady() {
+        boolean ready = Utils.checkJarReady();
         if (ready) {
             setAdbConnectionVisibility(false);
         } else {

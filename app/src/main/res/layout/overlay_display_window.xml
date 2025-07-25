@@ -37,15 +37,6 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/go_unlock" />
-
-        <ImageView
-            android:id="@+id/overlay_display_window_focus"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:visibility="gone"
-            android:src="@drawable/focus_weak" />
     </LinearLayout>
 
     <TextView

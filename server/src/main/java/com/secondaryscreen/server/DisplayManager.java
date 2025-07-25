@@ -38,64 +38,24 @@ public final class DisplayManager {
         this.mManager = manager;
     }
 
-    public DisplayInfo getDisplayInfo(boolean refresh) {
-        if (mDisplayInfo == null || refresh) {
-            mDisplayInfo = getDisplayInfo();
+    public boolean isActive(int displayId) {
+        if (displayId != 0) {
+            try {
+                Object displayInfo = mManager.getClass().getMethod("getDisplayInfo", int.class).invoke(mManager, displayId);
+                if (displayInfo != null) {
+                    Class<?> cls = displayInfo.getClass();
+
+                    String name = (String) (cls.getDeclaredField("name").get(displayInfo));
+                    if (name.equals(Utils.VIRTUALDISPLAY_NAME)) {
+                        return true;
+                    }
+                }
+            } catch (ReflectiveOperationException e) {
+                Ln.w(TAG, "isActive e:" + e);
+            }
+
+            DisplayInfo.setDisplayId(0);
         }
-        return mDisplayInfo;
-    }
-
-    public void forceDisplayInfo(int width, int height, int rotation, int densityDpi) {
-        Ln.d(TAG, "forceDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
-        mDisplayInfo = new DisplayInfo(new Size(width, height), rotation, densityDpi);;
-    }
-
-    private DisplayInfo getDisplayInfo() {
-        try {
-            Object displayInfo = mManager.getClass().getMethod("getDisplayInfo", int.class).invoke(mManager, 0);
-            Class<?> cls = displayInfo.getClass();
-
-            int width = cls.getDeclaredField("logicalWidth").getInt(displayInfo);
-            int height = cls.getDeclaredField("logicalHeight").getInt(displayInfo);
-            int rotation = cls.getDeclaredField("rotation").getInt(displayInfo);
-            int densityDpi = cls.getDeclaredField("logicalDensityDpi").getInt(displayInfo);
-
-            Ln.d(TAG, "getDisplayInfo width:" + width + " height:" + height + " rotation:" + rotation + " densityDpi:" + densityDpi);
-
-            return new DisplayInfo(new Size(width, height), rotation, densityDpi);
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    private Method getCreateVirtualDisplayMethod() throws NoSuchMethodException {
-        if (mCreateVirtualDisplayMethod == null) {
-            mCreateVirtualDisplayMethod = android.hardware.display.DisplayManager.class
-                    .getMethod("createVirtualDisplay", String.class, int.class, int.class, int.class, Surface.class);
-        }
-        return mCreateVirtualDisplayMethod;
-    }
-
-    public VirtualDisplay createVirtualDisplay(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
-        Method method = getCreateVirtualDisplayMethod();
-        return (VirtualDisplay) method.invoke(null, name, width, height, displayIdToMirror, surface);
-    }
-
-    public VirtualDisplay createNewVirtualDisplay(String name, int width, int height, int dpi, Surface surface, int flags) throws Exception {
-        Constructor<android.hardware.display.DisplayManager> ctor = android.hardware.display.DisplayManager.class.getDeclaredConstructor(
-                Context.class);
-        ctor.setAccessible(true);
-        android.hardware.display.DisplayManager dm = ctor.newInstance(FakeContext.get());
-        return dm.createVirtualDisplay(name, width, height, dpi, surface, flags);
-    }
-
-    public void setDisplayListener(DisplayListener displayListener) {
-        mDisplayListener = displayListener;
-    }
-
-    public void onDisplayChanged(String remoteAddress) {
-        if (mDisplayListener != null) {
-            mDisplayListener.onDisplayChanged(remoteAddress);
-        }
+        return false;
     }
 }

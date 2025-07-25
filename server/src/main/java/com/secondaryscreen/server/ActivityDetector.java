@@ -34,18 +34,6 @@ public class ActivityDetector {
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
     public void start() {
-        // 1. 优先启动SecondaryDisplayLauncher
-        // Android 10 ~ 12 需启动SecondaryDisplayLauncher
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            SecondaryDisplayLauncher.startSelfSecondaryLauncher();
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-            SecondaryDisplayLauncher.registerTaskStackListener();
-        }
-
-        // 2. 监听Activity启动
         ServiceManager.getActivityManager().setActivityController(new IActivityController.Stub() {
             @Override
             public boolean activityStarting(Intent intent, String pkg) {
@@ -54,55 +42,10 @@ public class ActivityDetector {
                     String className = intent.getComponent().getClassName();
                     String activityName = packageName + "/" + className;
                     Ln.i(TAG, "activityStarting activityName:" + activityName);
-
-                    final int targetFlag = 1 << 0;
-                    final int appFlag = 1 << 1;
-                    int startFlag = 0;
-                    if (mTargetFirstActivity.equals(activityName)) {
-                        startFlag |= targetFlag;
-                    } else if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                            || Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2)
-                            && Utils.APP_MAIN_ACTIVITY_NAME.equals(activityName)) {
-                        /* remark
-                        * Android 10 ～ 12 的SecondaryDisplayLauncher实际场景基本用不到，各个厂商的界面效果相差很大，
-                        * 小米的一款Android 10设备SecondaryDisplayLauncher直接把背景色设置为全黑，很丑，这里尝试做一个自己副屏桌面
-                        */
-                        startFlag |= appFlag;
-                    }
-
-                    if (startFlag != 0) {
-                        final int finalStartFlag = startFlag;
+                    if (ServiceManager.getDisplayManager().isActive(DisplayInfo.getDisplayId()) && mTargetFirstActivity.equals(activityName)) {
                         Utils.schedule(() -> {
-                            ArrayList<Pair<String, String>> lists = new ArrayList<>();
-                            lists.add(new Pair<>(mTargetFirstActivity, mTargetSecondActivity));
-                            lists.add(new Pair<>(Utils.APP_MAIN_ACTIVITY_NAME, Utils.APP_SECOND_ACTIVITY_NAME));
-
-                            List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
-
-                            Ln.i(TAG, "activityStarting startFlag:" + finalStartFlag);
-
-                            Pair<Boolean, Boolean> targetResult = result.get(0);
-                            Pair<Boolean, Boolean> appResult = result.get(1);
-                            Ln.i(TAG, "activityStarting targetResult.first:" + targetResult.first + ", targetResult.second:" + targetResult.second);
-                            Ln.i(TAG, "activityStarting appResult.first:" + appResult.first + ", appResult.second:" + appResult.second);
-
-                            if ((finalStartFlag & targetFlag) != 0) {
-                                if (targetResult.first && !targetResult.second) {
-                                    if (/*appResult.first && */!appResult.second) {
-                                        startActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
-                                    }
-                                    startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
-                                }
-                            } else if ((finalStartFlag & appFlag) != 0) {
-                                if (/*appResult.first && */!appResult.second) {
-                                    startActivity(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
-
-                                    if (/*targetResult.first && */targetResult.second) {
-                                        startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
-                                    }
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
+                            startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
+                        }, 1, TimeUnit.SECONDS);
                     }
                 }
                 return true;
@@ -135,38 +78,35 @@ public class ActivityDetector {
                 return 0;
             }
         });
-
-        // 3. 检查是否需要启动SecondActivity
-        ArrayList<Pair<String, String>> lists = new ArrayList<>();
-        lists.add(new Pair<>(mTargetFirstActivity, mTargetSecondActivity));
-        List<Pair<Boolean, Boolean>> result = Utils.checkActivityReady(lists);
-        Ln.i(TAG, "ActivityDetector result.get(0).first:" + result.get(0).first + ", result.get(0).second:" + result.get(0).second);
-        if (result.get(0).first && !result.get(0).second) {
-            startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
-        }
     }
 
     public void stop() {
         ServiceManager.getActivityManager().setActivityController(null);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-            SecondaryDisplayLauncher.unregisterTaskStackListener();
+    }
+
+
+    public void startSecondActivity() {
+        SecondaryDisplayLauncher.startSelfSecondaryLauncher();
+        if (Utils.checkActivityReady(mTargetFirstActivity)) {
+            startActivity(mTargetSecondActivityPackageName, mTargetSecondActivityClassName);
         }
     }
 
     @RequiresApi(api = 26)
     private void startActivity(@NonNull String packageName, @NonNull String className) {
-        Intent intent = new Intent();
-        intent.setClassName(packageName, className);
-        ActivityOptions options = ActivityOptions.makeBasic();
-        options.setLaunchDisplayId(DisplayInfo.getMirrorDisplayId());
+        if (ServiceManager.getDisplayManager().isActive(DisplayInfo.getDisplayId())) {
+            Intent intent = new Intent();
+            intent.setClassName(packageName, className);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(DisplayInfo.getDisplayId());
 
-        int result = ServiceManager.getActivityManager().startActivity(intent, options.toBundle());
-        Ln.i(TAG, "startSecondActivity result:" + result);
-        if (result < 0) {
-            Ln.e(TAG, "Could not start second activity by ActivityManager");
-            String activityName = packageName + "/" + className;
-            Utils.startActivity(activityName, DisplayInfo.getMirrorDisplayId());
+            int result = ServiceManager.getActivityManager().startActivity(intent, options.toBundle());
+            Ln.i(TAG, "startActivity result:" + result);
+            if (result < 0) {
+                Ln.e(TAG, "Could not start second activity by ActivityManager");
+                String activityName = packageName + "/" + className;
+                Utils.startActivity(activityName, DisplayInfo.getDisplayId());
+            }
         }
     }
 }

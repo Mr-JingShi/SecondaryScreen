@@ -24,19 +24,11 @@ public class Utils {
     static final String PACKAGE_NAME = "com.android.shell";
     static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
     static int CONTROL_CHANNEL_PORT = 8402;
-    static int VIDEO_CHANNEL_PORT = 8403;
     static int DISPLAY_CHANNEL_PORT = 8404;
     private static boolean mIsSingleMachineMode = true;
     private static ScheduledExecutorService mExecutor  = Executors.newSingleThreadScheduledExecutor();
 
-    static boolean isSingleMachineMode() {
-        return mIsSingleMachineMode;
-    }
-    static void setSingleMachineMode(boolean isSingleMachineMode) {
-        mIsSingleMachineMode = isSingleMachineMode;
-    }
-
-    static List<Pair<Boolean, Boolean>> checkActivityReadyByShell(@NonNull List<Pair<String, String>> lists) {
+    static boolean checkActivityReadyByShell(@NonNull String targetFirstActivity) {
         try {
             // Stack id=535 bounds=[0,0][1080,2340] displayId=38 userId=0
             //  configuration={1.0 ?mcc?mnc [zh_CN] ldltr sw392dp w392dp h803dp 440dpi nrml long port night finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2340) mAppBounds=Rect(0, 0 - 1080, 2210) mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=home mAlwaysOnTop=undefined mRotation=ROTATION_0} s.3321 themeChanged=0 themeChangedFlags=0 extraData = Bundle[{}]}
@@ -66,11 +58,11 @@ public class Utils {
             }
 
             Ln.i(TAG, "StackInfos size:" + stackInfos.size());
-            return checkStackInfo(lists, stackInfos);
+            return checkStackInfo(targetFirstActivity, stackInfos);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return false;
     }
 
     static void startActivity(@NonNull String activity, int displayId) {
@@ -98,25 +90,6 @@ public class Utils {
         return activity;
     }
 
-    static Class<?> findClass(Class<?>[] innerClasses, String name) throws ClassNotFoundException {
-        for (Class<?> clazz : innerClasses) {
-            if (clazz.getName().equals(name)) {
-                return clazz;
-            }
-        }
-        throw new ClassNotFoundException(name);
-    }
-
-    static Method findMethodAndMakeAccessible(Method[] methods, String name) throws NoSuchMethodException {
-        for (Method method : methods) {
-            if (method.getName().equals(name)) {
-                method.setAccessible(true);
-                return method;
-            }
-        }
-        throw new NoSuchMethodException(name);
-    }
-
     static void schedule(Runnable runnable, long time, TimeUnit timeUnit) {
         mExecutor.schedule(runnable, time, timeUnit);
     }
@@ -126,12 +99,12 @@ public class Utils {
     }
 
     @RequiresApi(api = 29)
-    static List<Pair<Boolean, Boolean>> checkActivityReady(@NonNull List<Pair<String, String>> lists) {
+    static boolean checkActivityReady(@NonNull String targetFirstActivity) {
         try {
             List<ActivityManager.StackInfo> stackInfos = ServiceManager.getActivityManager().getAllTaskInfos();
             Ln.i(TAG, "StackInfos size:" + stackInfos.size());
 
-            return checkStackInfo(lists, stackInfos);
+            return checkStackInfo(targetFirstActivity, stackInfos);
         } catch (ReflectiveOperationException e) {
             Ln.e(TAG, "getAllTaskInfos Could not invoke method", e);
         }
@@ -140,84 +113,35 @@ public class Utils {
             List<TaskInfo> taskInfos = ServiceManager.getActivityManager().getTasks(9999);
             Ln.i(TAG, "TaskInfos size:" + taskInfos.size());
 
-            List<Pair<Boolean, Boolean>> result = new ArrayList<>();
-            for (int i = 0; i < lists.size(); ++i) {
-                Pair<String, String> pair = lists.get(i);
-                String firstActivity = pair.first;
-                String secondActivity = pair.second;
-                boolean firstActivityStarted = false;
-                boolean secondResultStarted = false;
-                if (firstActivity == null) {
-                    firstActivityStarted = true;
-                }
-
-                for (TaskInfo taskInfo : taskInfos) {
-                    if (taskInfo.baseIntent.getComponent() != null) {
-                        String packageName = taskInfo.baseIntent.getComponent().getPackageName();
-                        String className = taskInfo.baseIntent.getComponent().getClassName();
-                        String activityName = packageName + "/" + className;
-                        Ln.i(TAG, "activityName:" + activityName);
-                        @SuppressLint("BlockedPrivateApi")
-                        int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
-                        Ln.i(TAG, "taskInfo.displayId:" + displayId);
-                        if (displayId == DisplayInfo.getMirrorDisplayId() && secondActivity.equals(activityName)) {
-                            secondResultStarted = true;
-                            if (firstActivityStarted) {
-                                break;
-                            }
-                        } else if (displayId == 0 && firstActivity != null && firstActivity.equals(activityName)) {
-                            firstActivityStarted = true;
-                            if (secondResultStarted) {
-                                break;
-                            }
-                        }
+            for (TaskInfo taskInfo : taskInfos) {
+                if (taskInfo.baseIntent.getComponent() != null) {
+                    String packageName = taskInfo.baseIntent.getComponent().getPackageName();
+                    String className = taskInfo.baseIntent.getComponent().getClassName();
+                    String activityName = packageName + "/" + className;
+                    Ln.i(TAG, "activityName:" + activityName);
+                    @SuppressLint("BlockedPrivateApi")
+                    int displayId = TaskInfo.class.getDeclaredField("displayId").getInt(taskInfo);
+                    Ln.i(TAG, "taskInfo.displayId:" + displayId);
+                    if (displayId == 0 && activityName.equals(targetFirstActivity)) {
+                        return true;
                     }
                 }
-
-                result.add(new Pair<>(firstActivityStarted, secondResultStarted));
             }
-            return result;
         } catch (ReflectiveOperationException e1) {
             Ln.e(TAG, "getTasks Could not invoke method", e1);
         }
-        return checkActivityReadyByShell(lists);
+        return checkActivityReadyByShell(targetFirstActivity);
     }
 
-    private static List<Pair<Boolean, Boolean>> checkStackInfo(@NonNull List<Pair<String, String>> lists, @NonNull List<ActivityManager.StackInfo> stackInfos) {
-        List<Pair<Boolean, Boolean>> result = new ArrayList<>();
-        for (Pair<String, String> pair : lists) {
-            String firstActivity = pair.first;
-            String secondActivity = pair.second;
-            boolean firstActivityStarted = false;
-            boolean secondResultStarted = false;
-            if (firstActivity == null) {
-                firstActivityStarted = true;
-            }
-
-            for (ActivityManager.StackInfo stackInfo : stackInfos) {
-                for (String activityName : stackInfo.taskNames) {
-                    Ln.i(TAG, "activityName:" + activityName);
-
-                    if (stackInfo.displayId == DisplayInfo.getMirrorDisplayId() && activityName.equals(secondActivity)) {
-                        secondResultStarted = true;
-                        if (firstActivityStarted) {
-                            break;
-                        }
-                    } else if (stackInfo.displayId == 0 && firstActivity != null && activityName.equals(firstActivity)) {
-                        firstActivityStarted = true;
-                        if (secondResultStarted) {
-                            break;
-                        }
-                    }
-                }
-
-                if (firstActivityStarted && secondResultStarted) {
-                    break;
+    private static boolean checkStackInfo(@NonNull String targetFirstActivity, @NonNull List<ActivityManager.StackInfo> stackInfos) {
+        for (ActivityManager.StackInfo stackInfo : stackInfos) {
+            for (String activityName : stackInfo.taskNames) {
+                Ln.i(TAG, "activityName:" + activityName);
+                if (stackInfo.displayId == 0 && activityName.equals(targetFirstActivity)) {
+                    return true;
                 }
             }
-
-            result.add(new Pair<>(firstActivityStarted, secondResultStarted));
         }
-        return result;
+        return false;
     }
 }

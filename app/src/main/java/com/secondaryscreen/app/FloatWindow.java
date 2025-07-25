@@ -33,7 +33,6 @@ final class FloatWindow {
     private final boolean DISABLE_MOVE_AND_RESIZE = false;
     private final boolean ADD_FLAG_SECURE = false;
     private final boolean USE_SURFACE_EVENT = false;
-    private final boolean USE_APP_VIRTUALDISPLAY = false;
     private int mWidth;
     private int mHeight;
     private int mDensityDpi;
@@ -41,7 +40,6 @@ final class FloatWindow {
     private WindowManager mWindowManager;
     private View mWindowContent;
     private ImageView mLockImageView;
-    private ImageView mFocusImageView;
     private WindowManager.LayoutParams mWindowParams;
     private TextureView mTextureView;
     private GestureDetector mGestureDetector;
@@ -56,10 +54,7 @@ final class FloatWindow {
     private float mRealScale;
     private FloatIcon mFloatIcon;
     private boolean mIsLocked = false;
-    private boolean mIsFocused = false;
     private ControlConnection mControlConnection;
-    private VideoConnection mVideoConnection;
-    private DisplayConnection mDisplayConnection;
     private int mScreenWidth;
     private int mScreenHeight;
     private int mRotation;
@@ -76,7 +71,9 @@ final class FloatWindow {
         mScreenWidth = realMetrics.widthPixels;
         mScreenHeight = realMetrics.heightPixels;
 
-        mRotation = display.getRotation();
+        mRotation = Utils.getRotation();
+        Log.i(TAG, "mRotation:" + mRotation);
+        Log.i(TAG, "defaultDisplay:" + display);
 
         if (mRotation % 2 == 0) {
             resize(Resolution.R.TEXTUREVIEW_WIDTH,
@@ -93,14 +90,7 @@ final class FloatWindow {
 
         mFloatIcon = new FloatIcon(mWindowContent);
 
-        mVideoConnection = new VideoConnection();
         mControlConnection = new ControlConnection();
-        mDisplayConnection = new DisplayConnection();
-        mDisplayConnection.setScreenInfo(0,
-                Resolution.R.VIRTUALDISPLAY_WIDTH,
-                Resolution.R.VIRTUALDISPLAY_HEIGHT,
-                Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
-                mRotation);
     }
 
     public void show() {
@@ -164,12 +154,6 @@ final class FloatWindow {
         mLockImageView = mWindowContent.findViewById(R.id.overlay_display_window_lock);
         mLockImageView.setOnClickListener(mLockListener);
 
-        mFocusImageView = mWindowContent.findViewById(R.id.overlay_display_window_focus);
-        mFocusImageView.setOnClickListener((View v) -> {
-            mIsFocused = !mIsFocused;
-            focusImageViewChange(mIsFocused);
-        });
-
         TextView titleTextView = mWindowContent.findViewById(R.id.overlay_display_window_title);
         titleTextView.append(" " + Resolution.R.toSimpleString());
 
@@ -229,7 +213,9 @@ final class FloatWindow {
         mWindowParams.width = width;
         mWindowParams.height = height;
 
-        mRealScale = scale * Resolution.R.SCALE_X;
+        if (!USE_SURFACE_EVENT) {
+            mRealScale = scale;
+        }
     }
 
     private void saveWindowParams() {
@@ -253,21 +239,16 @@ final class FloatWindow {
                     if (mIsLocked) {
                         mLockImageView.setImageResource(R.drawable.go_lock);
 
-                        focusImageViewShow(true);
-
                         if (USE_SURFACE_EVENT) {
                             mTextureView.setOnTouchListener((view, event) -> {
                                 if (mIsLocked) {
-                                    Utils.offerMotionEvent(event, true);
+                                    Utils.offerMotionEvent(event);
                                 }
                                 return true;
                             });
                         }
                     } else {
                         mLockImageView.setImageResource(R.drawable.go_unlock);
-
-                        mIsFocused = false;
-                        focusImageViewShow(false);
 
                         if (USE_SURFACE_EVENT) {
                             mTextureView.setOnTouchListener(null);
@@ -284,14 +265,10 @@ final class FloatWindow {
 
                 @Override
                 public void onDisplayChanged(int displayId) {
-                    Log.i(TAG, "onDisplayChanged:" + displayId);
-                    if (displayId == 0) {
-                        int rotation = Utils.getRotation();
-                        if (mRotation != rotation) {
-                            onRotationChanged(rotation);
-                        }
-                    } else {
-                        relayout();
+                    Log.i(TAG, "onDisplayChanged displayId:" + displayId);
+                    int rotation = Utils.getRotation();
+                    if (mRotation != rotation) {
+                        onRotationChanged(rotation);
                     }
                 }
 
@@ -299,7 +276,7 @@ final class FloatWindow {
                 public void onDisplayRemoved(int displayId) {
                     Log.i(TAG, "onDisplayRemoved:" + displayId);
 
-                    if (displayId != 0 && !Utils.checkVirtualDisplayReady()) {
+                    if (displayId != 0 && !Utils.checkJarReady()) {
                         dismiss();
                     }
                 }
@@ -311,31 +288,17 @@ final class FloatWindow {
                 @Override
                 public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureAvailable surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
-
-                    if (USE_APP_VIRTUALDISPLAY) {
-                        /** remark
-                         * 可以在APP内部直接创建virtualdisplay
-                         * server端只需要对接control通道完成事件注入即可
-                         * server端无需对接video通道
-                         * server端无需对接display通道
-                         * APP侧在屏幕旋转时需要处理onSurfaceTextureSizeChanged回调
-                         *
-                         * 此方式启动的virtaldisplay在APP完全退出时，无法进行scrcpy投屏
-                         * TODO 创建一个新的分支，在新分支中实现此方式的投屏
-                         */
-                        int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                            flags = flags | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC | (1 << 10);
-                        }
-                        mVirtualDisplay = mDisplayManager.createVirtualDisplay(Utils.VIRTUALDISPLAY_NAME, width, height, mDensityDpi, new Surface(surfaceTexture), flags, null, null);
-                        Display display = mVirtualDisplay.getDisplay();
-                        Log.i(TAG, "FloatWindow display: " + display);
-                    } else {
-                        if (View.VISIBLE == mLockImageView.getVisibility()) {
-                            mVideoConnection.start(new Surface(surfaceTexture), mDisplayConnection);
-                            mControlConnection.start();
-                        }
+                    int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC | DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                        flags = flags | (1 << 10);
                     }
+                    mVirtualDisplay = mDisplayManager.createVirtualDisplay(Utils.VIRTUALDISPLAY_NAME, width, height, mDensityDpi, new Surface(surfaceTexture), flags, null, null);
+                    Display display = mVirtualDisplay.getDisplay();
+                    Log.i(TAG, "FloatWindow display: " + display);
+                    int displayId = display.getDisplayId();
+                    DisplayConnection.setDisplayInfo(displayId);
+
+                    mControlConnection.start();
                 }
 
                 @Override
@@ -347,7 +310,7 @@ final class FloatWindow {
                 @Override
                 public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
                     Log.i(TAG, "onSurfaceTextureSizeChanged surfaceTexture:" + surfaceTexture + " width:" + width + " height:" + height);
-                    if (USE_APP_VIRTUALDISPLAY && mVirtualDisplay != null) {
+                    if (mVirtualDisplay != null) {
                         mVirtualDisplay.resize(width, height, mDensityDpi);
                     }
                 }
@@ -360,10 +323,11 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            if (!USE_SURFACE_EVENT && mIsLocked) {
-                event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
-
-                Utils.offerMotionEvent(event, true);
+            if (mIsLocked) {
+                if (!USE_SURFACE_EVENT) {
+                    event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
+                    Utils.offerMotionEvent(event);
+                }
                 return true;
             }
 
@@ -409,31 +373,7 @@ final class FloatWindow {
                 }
             };
 
-    private void focusImageViewChange(boolean focus) {
-        if (focus) {
-            mFocusImageView.setImageResource(R.drawable.focus_strong);
-
-            mWindowParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        } else {
-            mFocusImageView.setImageResource(R.drawable.focus_weak);
-
-            mWindowParams.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        }
-        mWindowManager.updateViewLayout(mWindowContent, mWindowParams);
-    }
-
-    public void focusImageViewShow(boolean show) {
-        mFocusImageView.setVisibility(show ? View.VISIBLE : View.GONE);
-        focusImageViewChange(false);
-    }
-
     private void onRotationChanged(int rotation) {
-        mDisplayConnection.setScreenInfo(0,
-                Resolution.R.VIRTUALDISPLAY_WIDTH,
-                Resolution.R.VIRTUALDISPLAY_HEIGHT,
-                Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
-                rotation);
-
         if ((mRotation + rotation) % 2 != 0) {
             int tmp = mScreenWidth;
             mScreenWidth = mScreenHeight;

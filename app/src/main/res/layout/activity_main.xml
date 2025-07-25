@@ -50,44 +50,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:orientation="vertical">
-        <RadioGroup
-            android:id="@+id/radioGroup"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton
-                android:id="@+id/radio_master"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="20dip"
-                android:checked="true"
-                android:text="主设备" />
-            <RadioButton
-                android:id="@+id/radio_slave"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:textSize="20dip"
-                android:text="从设备" />
-        </RadioGroup>
-        <TextView
-            android:id="@+id/wlan_description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:visibility="gone"
-            android:textSize="20dip"
-            android:text="请输入主设备WLAN地址：" />
-        <EditText
-            android:id="@+id/wlan_address"
-            android:inputType="number"
-            android:digits="0123456789."
-            android:gravity="center"
-            android:visibility="gone"
-            android:textSize="20dip"
-            android:layout_marginTop="10dp"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
         <Spinner
             android:id="@+id/spinner"
             android:layout_width="wrap_content"

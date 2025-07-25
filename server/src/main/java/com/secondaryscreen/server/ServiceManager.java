@@ -22,13 +22,11 @@ public final class ServiceManager {
         }
     }
 
-    private static WindowManager mWindowManager;
     private static DisplayManager mDisplayManager;
     private static InputManager mInputManager;
     private static ActivityManager mActivityManager;
     private static PackageManager mPackageManager;
     private static LauncherApps mLauncherApps;
-    private static ActivityTaskManager mActivityTaskManager;
 
     private ServiceManager() {
         /* not instantiable */
@@ -42,13 +40,6 @@ public final class ServiceManager {
         } catch (Exception e) {
             throw new AssertionError(e);
         }
-    }
-
-    public static WindowManager getWindowManager() {
-        if (mWindowManager == null) {
-            mWindowManager = WindowManager.create();
-        }
-        return mWindowManager;
     }
 
     public static DisplayManager getDisplayManager() {
@@ -84,12 +75,5 @@ public final class ServiceManager {
             mLauncherApps = LauncherApps.create();
         }
         return mLauncherApps;
-    }
-
-    public static ActivityTaskManager getActivityTaskManager() {
-        if (mActivityTaskManager == null) {
-            mActivityTaskManager = ActivityTaskManager.create();
-        }
-        return mActivityTaskManager;
     }
 }

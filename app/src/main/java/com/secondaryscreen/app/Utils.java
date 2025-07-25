@@ -39,10 +39,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Utils {
     private static String TAG = "Utils";
-    static String VIDEO_FORMAT = "video/avc";
     static final String VIRTUALDISPLAY_NAME = "secondaryscreen";
     static int CONTROL_CHANNEL_PORT = 8402;
-    static int VIDEO_CHANNEL_PORT = 8403;
     static int DISPLAY_CHANNEL_PORT = 8404;
     static int SOCKET_TIMEOUT = 3000;
     private static String REMOTE_HOST = "127.0.0.1";
@@ -55,84 +53,6 @@ public class Utils {
     }
     static Context getContext() {
         return mContext;
-    }
-    static String getWlanAddress() {
-        String cmd = "ifconfig | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}'";
-        Process process = null;
-        BufferedReader reader = null;
-        try {
-            process = Runtime.getRuntime().exec(cmd);
-            reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains(":")) {
-                    return line.split(":")[1].trim();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (process != null) {
-                process.destroy();
-            }
-        }
-        return null;
-    }
-
-    public static String getHostAddress() {
-        InetAddress ip = null;
-        try {
-            Enumeration<NetworkInterface> en_netInterface = NetworkInterface.getNetworkInterfaces();
-            while (en_netInterface.hasMoreElements()) {
-                NetworkInterface ni = en_netInterface.nextElement();
-                Enumeration<InetAddress> en_ip = ni.getInetAddresses();
-                while (en_ip.hasMoreElements()) {
-                    ip = en_ip.nextElement();
-                    if (!ip.isLoopbackAddress() && !ip.getHostAddress().contains(":")) {
-                        break;
-                    }
-                    else {
-                        ip = null;
-                    }
-                }
-                if (ip != null) {
-                    break;
-                }
-            }
-        } catch (SocketException e) {
-            Log.w(TAG, "getLocalInetAddress exception", e);
-        }
-
-        if (ip == null) {
-            Log.e(TAG, "getLocalInetAddress failed");
-            return "";
-        }
-
-        return ip.getHostAddress();
-    }
-
-    static boolean checkRemoteWifi(String remoteHost) {
-        Future<Boolean> future = mExecutor.submit(() -> {
-            try {
-                return InetAddress.getByName(remoteHost).isReachable(1000);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return false;
-        });
-        try {
-            return future.get().booleanValue();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
     }
 
     static String getServiceAdbTcpPort() {
@@ -177,35 +97,12 @@ public class Utils {
         return targets;
     }
 
-     static void offerMotionEvent(MotionEvent event, boolean singleMachineMode) {
-        byte[] bytes = null;
-        if (singleMachineMode) {
-            Parcel parcel = Parcel.obtain();
-            event.writeToParcel(parcel, 0);
-            bytes = parcel.marshall();
-            parcel.recycle();
-        } else {
-            StringBuilder sb = new StringBuilder();
-
-            int action = event.getAction();
-            sb.append(action);
-
-            int pointerCount = event.getPointerCount();
-            sb.append(";").append(pointerCount);
-
-            for (int i = 0; i < pointerCount; ++i) {
-                int pointerId = event.getPointerId(i);
-                float x = event.getX(i);
-                float y = event.getY(i);
-                sb.append(";").append(pointerId).append(",").append(x).append(",").append(y);
-            }
-            String message = sb.toString();
-            bytes = message.getBytes();
-        }
-
-        if (bytes != null) {
-            offerMotionEventBytes(bytes);
-        }
+     static void offerMotionEvent(MotionEvent event) {
+         Parcel parcel = Parcel.obtain();
+         event.writeToParcel(parcel, 0);
+         byte[] bytes = parcel.marshall();
+         parcel.recycle();
+         offerMotionEventBytes(bytes);
     }
 
     static void offerMotionEventBytes(byte[] bytes) {
@@ -218,54 +115,51 @@ public class Utils {
         return mMotioneventBytesQueue.take();
     }
 
-    static boolean checkVirtualDisplayReady() {
-        DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
-        Display[] displays = dm.getDisplays();
-        if (displays.length > 1) {
-            for (Display display : displays) {
-                if (display.getName().equals(VIRTUALDISPLAY_NAME)) {
-                    Log.i(TAG, "checkVirtualDisplayReady:" + display.getName());
+    static boolean checkJarReady() {
+        Future<Boolean> future = mExecutor.submit(() -> {
+            try (Socket socket = new Socket()) {
+                socket.setReuseAddress(true);
+                socket.bind(new InetSocketAddress(CONTROL_CHANNEL_PORT));
+            } catch (java.net.BindException e) {
+                Log.i(TAG, "BindException exception:" + e);
+                String message = e.getMessage();
+                if (message.contains("EADDRINUSE") || message.contains("Address already in use")) {
                     return true;
                 }
-            }
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Future<Boolean> future = mExecutor.submit(() -> {
-                try (Socket socket = new Socket()) {
-                    socket.setReuseAddress(true);
-                    socket.bind(new InetSocketAddress(CONTROL_CHANNEL_PORT));
-                } catch (java.net.BindException e) {
-                    Log.i(TAG, "BindException exception:" + e);
-                    String message = e.getMessage();
-                    if (message.contains("EADDRINUSE") || message.contains("Address already in use")) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return false;
-            });
-            try {
-                return future.get().booleanValue();
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            return false;
+        });
+        try {
+            return future.get().booleanValue();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return false;
     }
-    static void hideKeyboard(View view) {
-        view.clearFocus();
-        InputMethodManager imm = (InputMethodManager)mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null && imm.isActive()) {
-            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-        }
-    }
 
     static int getRotation() {
-        WindowManager wm = (WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE);
-        int rotation = wm.getDefaultDisplay().getRotation();
-        Log.i(TAG, "rotation:" + rotation);
-        return rotation;
+        // WindowManager wm = (WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE);
+        // int rotation = wm.getDefaultDisplay().getRotation();
+
+        // 在APP侧创建virtualdisplay时，会扰乱Display信息，比如getDefaultDisplay会返回virutaldisplay的而不是默认屏幕的
+        // 且dispalyId=0的display在获取rotation时返回的也是virutaldisplay的而不是默认屏幕的
+        // 所以此次使用解析display.toString()的方式获取rotation
+        DisplayManager dm = (DisplayManager)mContext.getSystemService(Context.DISPLAY_SERVICE);
+        Display[] displays = dm.getDisplays();
+        for (Display display : displays) {
+            if (display.getDisplayId() == 0) {
+                String str = display.toString();
+                Log.i(TAG, "str:" + str);
+                int index1 = str.indexOf(", rotation ");
+                int index2 = str.indexOf(", state ", index1);
+                int rotation = Integer.parseInt(str.substring(index1 + 11, index2));
+                Log.i(TAG, "rotation:" + rotation);
+                return rotation;
+            }
+        }
+        throw new RuntimeException("getRotation error");
     }
 
     static void sleep(long millis) {
@@ -276,23 +170,8 @@ public class Utils {
         }
     }
 
-    static void setRemoteHost(String remoteHost) {
-        REMOTE_HOST = remoteHost;
-    }
     static String getRemoteHost() {
         return REMOTE_HOST;
-    }
-
-    static ArrayList<String> getDecodeList() {
-        ArrayList<String> list = new ArrayList<>();
-        MediaCodecList codecs = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
-        for (MediaCodecInfo codecInfo : codecs.getCodecInfos()) {
-            if (!codecInfo.isEncoder() && Arrays.asList(codecInfo.getSupportedTypes()).contains(VIDEO_FORMAT)) {
-                Log.i(TAG, "decode name:" + codecInfo.getName());
-                list.add(codecInfo.getName());
-            }
-        }
-        return list;
     }
 
     static void finishAndRemoveTask(String className) {

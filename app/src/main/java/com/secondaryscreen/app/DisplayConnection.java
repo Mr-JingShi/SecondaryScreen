@@ -10,101 +10,34 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class DisplayConnection {
     private static String TAG = "DisplayConnection";
-    private Thread mThread;
-    private Lock mLock = new ReentrantLock();
-    private Condition mCondition = mLock.newCondition();
-    private String mDisplayInfo;
-    public DisplayConnection() {
-        mThread = new DisplayThread();
-    }
 
-    public void setScreenInfo(int flag, int width, int height, int densityDpi, int rotation) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(flag);
-        sb.append(",");
-        sb.append(width);
-        sb.append(",");
-        sb.append(height);
-        sb.append(",");
-        sb.append(densityDpi);
-        sb.append(",");
-        sb.append(rotation);
+    public static void setDisplayInfo(int displayId) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try (Socket socket = new Socket()) {
+                    socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.DISPLAY_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
+                    Log.d(TAG, "DisplayThread connect success");
 
-        setDisplayInfo(sb.toString());
-    }
 
-    private void setDisplayInfo(String displayInfo) {
-        mLock.lock();
-        try {
-            mDisplayInfo = displayInfo;
-            mCondition.signal();
-        } finally {
-            mLock.unlock();
-        }
-
-    }
-
-    private String getDisplayInfo() throws InterruptedException {
-        String displayInfo = null;
-        mLock.lock();
-        try {
-            while (mDisplayInfo == null) {
-                mCondition.await();
-            }
-            displayInfo = mDisplayInfo;
-            mDisplayInfo = null;
-        } finally {
-            mLock.unlock();
-        }
-        return displayInfo;
-    }
-
-    public void start() {
-        mThread.start();
-    }
-
-    public void shutdown() {
-        try {
-            if (mThread != null
-                && mThread.isAlive()
-                && !mThread.isInterrupted()) {
-                mThread.interrupt();
-                mThread.join();
-                mThread = null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    class DisplayThread extends Thread {
-        DisplayThread() {
-            super("DisplayThread");
-            Log.d(TAG, "DisplayThread");
-        }
-        @Override
-        public void run() {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(Utils.getRemoteHost(), Utils.DISPLAY_CHANNEL_PORT), Utils.SOCKET_TIMEOUT);
-                Log.d(TAG, "DisplayThread connect success");
-
-                byte[] length = new byte[4];
-                while (!Thread.currentThread().isInterrupted()) {
-                    String displayInfo = getDisplayInfo();
-
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(displayId);
+                    String displayInfo = sb.toString();
                     Log.d(TAG, "displayInfo:" + displayInfo);
+
+                    byte[] length = new byte[4];
                     byte[] bytes = displayInfo.getBytes("UTF-8");
                     if (bytes != null) {
                         socket.getOutputStream().write(Utils.intToByte4(bytes.length, length));
                         socket.getOutputStream().write(bytes);
                         socket.getOutputStream().flush();
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.d(TAG, "DisplayThread exception:" + e);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.d(TAG, "DisplayThread exception:" + e);
             }
-        }
+        }).start();
     }
 }
 
