@@ -152,9 +152,9 @@ public class Utils {
             if (display.getDisplayId() == 0) {
                 String str = display.toString();
                 Log.i(TAG, "str:" + str);
-                int index1 = str.indexOf(", rotation ");
-                int index2 = str.indexOf(", state ", index1);
-                int rotation = Integer.parseInt(str.substring(index1 + 11, index2));
+                int index1 = str.indexOf("rotation ");
+                int index2 = str.indexOf(",", index1);
+                int rotation = Integer.parseInt(str.substring(index1 + 9, index2));
                 Log.i(TAG, "rotation:" + rotation);
                 return rotation;
             }
