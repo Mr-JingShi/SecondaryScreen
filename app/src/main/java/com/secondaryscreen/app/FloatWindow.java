@@ -172,6 +172,7 @@ final class FloatWindow {
 
         mGestureDetector = new GestureDetector(Utils.getContext(), mOnGestureListener);
 
+        mWindowScale = INITIAL_SCALE;
         switch (mIndex) {
             case 0:
                 mWindowX = 0;
@@ -190,11 +191,17 @@ final class FloatWindow {
                 mWindowY = mScreenHeight;
                 break;
             case 4:
-                mWindowX = mScreenHeight;
-                mWindowY = mScreenWidth;
+                float scale = mWindowScale * mLiveScale;
+                scale = Math.min(scale, (float)mScreenWidth / mWidth);
+                scale = Math.min(scale, (float)mScreenHeight / mHeight);
+                scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+                float offsetScale = (scale / mWindowScale - 1.0f) * 0.5f;
+                int width = (int)(mWidth * scale);
+                int height = (int)(mHeight * scale);
+                mWindowX = (int)((mScreenWidth - width)/2 + width * offsetScale);
+                mWindowY = (int)((mScreenHeight - height)/2 + height * offsetScale);
                 break;
         }
-        mWindowScale = INITIAL_SCALE;
     }
 
     private void updateWindowParams() {
@@ -208,13 +215,8 @@ final class FloatWindow {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        if (mIndex != 4) {
-            x = Math.max(0, Math.min(x, mScreenWidth - width));
-            y = Math.max(0, Math.min(y, mScreenHeight - height));
-        } else {
-            x = (mScreenWidth - width)/2;
-            y = (mScreenHeight - height)/2;
-        }
+        x = Math.max(0, Math.min(x, mScreenWidth - width));
+        y = Math.max(0, Math.min(y, mScreenHeight - height));
 
         mTextureView.setScaleX(scale);
         mTextureView.setScaleY(scale);
