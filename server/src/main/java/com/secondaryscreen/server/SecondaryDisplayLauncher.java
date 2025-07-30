@@ -4,20 +4,16 @@ import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
 
 import java.lang.reflect.Method;
 
 public final class SecondaryDisplayLauncher {
     private static String TAG = "SecondaryDisplayLauncher";
-
-    public static void startSelfSecondaryLauncher() {
+    public static void startSelfSecondaryLauncher(int displayId) {
         Intent secondaryHomeIntent = new Intent();
         secondaryHomeIntent.setClassName(Utils.APP_PACKAGE_NAME, Utils.APP_SECOND_ACTIVITY_CLASS_NAME);
         ActivityOptions options = ActivityOptions.makeBasic();
-        options.setLaunchDisplayId(DisplayInfo.getDisplayId());
+        options.setLaunchDisplayId(displayId);
         try {
             @SuppressLint("BlockedPrivateApi")
             Method method = ActivityOptions.class.getDeclaredMethod("setLaunchActivityType", int.class);
@@ -30,9 +26,9 @@ public final class SecondaryDisplayLauncher {
 
         int ret = ServiceManager.getActivityManager().startActivity(secondaryHomeIntent, options.toBundle());
         Ln.i(TAG, "Start secondary launcher activity ret:" + ret);
-        if (ret < 0) {
+        if (ret != 0) {
             Ln.e(TAG, "Could not start secondary launcher activity by ActivityManager");
-            Utils.startActivity(Utils.APP_SECOND_ACTIVITY_NAME, DisplayInfo.getDisplayId());
+            Utils.startActivity(Utils.APP_SECOND_ACTIVITY_NAME, displayId);
         }
     }
 }

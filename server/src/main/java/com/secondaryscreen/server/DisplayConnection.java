@@ -1,27 +1,29 @@
 package com.secondaryscreen.server;
 
-import android.util.Log;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.channels.SocketChannel;
+import java.util.concurrent.TimeUnit;
 
 public final class DisplayConnection extends ServerChannel {
     private static String TAG = "DisplayConnection";
-
-    private Runnable mRunnable;
-    public DisplayConnection(Runnable runnable) {
+    public DisplayConnection() {
        super(Utils.DISPLAY_CHANNEL_PORT);
-        mRunnable = runnable;
     }
 
     @Override
     public void work(byte[] buffer, int length) {
         String displayInfo = new String(buffer, 0, length);
         Ln.d(TAG, "displayInfo:" + displayInfo);
-        int displayId = Integer.parseInt(displayInfo);
-        DisplayInfo.setDisplayId(displayId);
-
-        mRunnable.run();
+        String[] infos = displayInfo.split(",");
+        int displayId = Integer.parseInt(infos[0]);
+        SecondaryDisplayLauncher.startSelfSecondaryLauncher(displayId);
+        if (infos.length > 2) {
+            int index = Integer.parseInt(infos[1]);
+            String activityName = infos[2];
+            String[] names = activityName.split("/");
+            String packageName = names[0];
+            String className = names[1];
+            Utils.schedule(() -> {
+                Utils.startActivity(packageName, className, displayId);
+            }, index + 1, TimeUnit.SECONDS);
+        }
     }
 }

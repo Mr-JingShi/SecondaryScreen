@@ -3,34 +3,28 @@ package com.secondaryscreen.app;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.hardware.display.DisplayManager;
-import android.media.MediaCodecInfo;
-import android.media.MediaCodecList;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcel;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.net.Socket;
-import java.net.SocketException;
+import java.text.Collator;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +42,8 @@ public class Utils {
     private static ExecutorService mExecutor  = Executors.newSingleThreadExecutor();
     private static final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private static final BlockingQueue<byte[]> mMotioneventBytesQueue = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<byte[]> mDisplayInfoBytesQueue = new LinkedBlockingQueue<>();
+    private static final List<String> mSelectActivityNames = new ArrayList<>();
     static void setContext(Context context) {
         mContext = context;
     }
@@ -65,6 +61,13 @@ public class Utils {
             e.printStackTrace();
         }
         return port;
+    }
+
+    static void addSelectActivityName(String activityName) {
+        mSelectActivityNames.add(activityName);
+    }
+    static List<String> getSelectActivityNames() {
+        return mSelectActivityNames;
     }
 
     static void runOnOtherThread(Runnable runnable) {
@@ -97,11 +100,20 @@ public class Utils {
         return targets;
     }
 
-     static void offerMotionEvent(MotionEvent event) {
+     static void offerMotionEvent(MotionEvent event, int displayId) {
+        Log.i(TAG, "offerMotionEvent displayId:" + displayId);
+         byte[] bytes1 = new byte[4];
+         intToByte4(displayId, bytes1);
+
          Parcel parcel = Parcel.obtain();
          event.writeToParcel(parcel, 0);
-         byte[] bytes = parcel.marshall();
+         byte[] bytes2 = parcel.marshall();
          parcel.recycle();
+
+         byte[] bytes = new byte[bytes1.length + bytes2.length];
+         System.arraycopy(bytes1, 0, bytes, 0, bytes1.length);
+         System.arraycopy(bytes2, 0, bytes, bytes1.length, bytes2.length);
+
          offerMotionEventBytes(bytes);
     }
 
@@ -113,6 +125,33 @@ public class Utils {
 
     static byte[] takeMotionEventBytes() throws InterruptedException {
         return mMotioneventBytesQueue.take();
+    }
+
+
+    static void offerDisplayInfo(int displayId, int index, String activityName) {
+        Log.i(TAG, "offerDisplayInfo displayId:" + displayId);
+        StringBuilder sb = new StringBuilder();
+        sb.append(displayId);
+        if (activityName != null) {
+            sb.append(',');
+            sb.append(index);
+            sb.append(',');
+            sb.append(activityName);
+        }
+        String displayInfo = sb.toString();
+        Log.d(TAG, "displayInfo:" + displayInfo);
+
+        offerDisplayInfoBytes(displayInfo.getBytes());
+    }
+
+    static void offerDisplayInfoBytes(byte[] bytes) {
+        if (!mDisplayInfoBytesQueue.offer(bytes)) {
+            Log.w(TAG, "offerMotionEventBytes error");
+        }
+    }
+
+    static byte[] takeDisplayInfoBytes() throws InterruptedException {
+        return mDisplayInfoBytesQueue.take();
     }
 
     static boolean checkJarReady() {
@@ -152,9 +191,9 @@ public class Utils {
             if (display.getDisplayId() == 0) {
                 String str = display.toString();
                 Log.i(TAG, "str:" + str);
-                int index1 = str.indexOf(", rotation ");
-                int index2 = str.indexOf(", state ", index1);
-                int rotation = Integer.parseInt(str.substring(index1 + 11, index2));
+                int index1 = str.indexOf("rotation ");
+                int index2 = str.indexOf(",", index1);
+                int rotation = Integer.parseInt(str.substring(index1 + 9, index2));
                 Log.i(TAG, "rotation:" + rotation);
                 return rotation;
             }
@@ -189,5 +228,56 @@ public class Utils {
                 appTask.finishAndRemoveTask();
             }
         }
+    }
+
+    static List<ApplicationInfo> loadApplicationList() {
+        PackageManager pm = mContext.getPackageManager();
+        // 后台加载下应用列表
+        List<ApplicationInfo> listPack = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+
+        List<ApplicationInfo> removedItems = new ArrayList<>();
+
+        String selfPackage = Utils.getContext().getPackageName();
+
+        for (ApplicationInfo pack: listPack) {
+            if ((pack.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                removedItems.add(pack);
+            } else if (Objects.equals(selfPackage, pack.packageName)) {
+                removedItems.add(pack);
+            }
+        }
+        listPack.removeAll(removedItems);
+
+        // 排序下
+        final Comparator c = Collator.getInstance(Locale.CHINA);
+        Collections.sort(listPack, new Comparator<ApplicationInfo>() {
+            @Override
+            public int compare(ApplicationInfo o1, ApplicationInfo o2) {
+                String n1 = o1.loadLabel(pm).toString();
+                String n2 = o2.loadLabel(pm).toString();
+                return c.compare(n1, n2);
+            }
+        });
+
+        Log.i(TAG, "listPack.size:" + listPack.size());
+
+        return listPack;
+    }
+
+    public static String resolveTargetApp(final String packageName) {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setPackage(packageName);
+        List<ResolveInfo> resolveInfos = Utils.getContext().getPackageManager().queryIntentActivities(intent, 0);
+        if (resolveInfos != null && !resolveInfos.isEmpty()) {
+            // 多Launcher情景
+            for (ResolveInfo resolveInfo : resolveInfos) {
+                Log.d(TAG, "resolveInfo:" + resolveInfo);
+            }
+            String targetActivity = resolveInfos.get(0).activityInfo.name;
+            Log.d(TAG, "targetActivity:" + targetActivity);
+            return targetActivity;
+        }
+        return null;
     }
 }

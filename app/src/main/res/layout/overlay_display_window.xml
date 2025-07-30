@@ -9,43 +9,13 @@
         android:layout_width="0px"
         android:layout_height="0px" />
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_gravity="center_vertical|right">
-        <ImageView
-            android:id="@+id/overlay_display_window_close"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/go_close" />
-
-        <ImageView
-            android:id="@+id/overlay_display_window_shrink"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/go_right" />
-
-        <ImageView
-            android:id="@+id/overlay_display_window_lock"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/go_unlock" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/overlay_display_window_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="20dp"
-        android:textColor="#FFA500"
-        android:layout_gravity="center|top"
-        android:text="@string/overlay_window_title" />
+    <ImageView
+        android:id="@+id/overlay_display_window_lock"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center_vertical|right"
+        android:src="@drawable/go_unlock" />
 
 </FrameLayout>

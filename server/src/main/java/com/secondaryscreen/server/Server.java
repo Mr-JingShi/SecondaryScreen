@@ -9,22 +9,10 @@ public class Server {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                 throw new RuntimeException("暂不支持Android 10以下设备！！！");
             }
-            if (args.length < 2) {
-                throw new RuntimeException("必须指定activity！！！");
-            }
-
-            String firstActivity = Utils.prettifyActivity(args[0]);
-            String secondActivity = Utils.prettifyActivity(args[1]);
-            Ln.i(TAG, "firstActivity:" + firstActivity + " secondActivity:" + secondActivity);
 
             KillSelf.start();
 
-            ActivityDetector activityDetector = new ActivityDetector(firstActivity, secondActivity);
-            activityDetector.start();
-
-            DisplayConnection displayConnection = new DisplayConnection(()->{
-                activityDetector.startSecondActivity();
-            });
+            DisplayConnection displayConnection = new DisplayConnection();
             displayConnection.start();
 
             ControlConnection controlConnection = new ControlConnection();
@@ -32,7 +20,6 @@ public class Server {
 
             controlConnection.join();
             displayConnection.join();
-            activityDetector.stop();
             Utils.shutdown();
         } catch (Exception e) {
             Ln.w(TAG, "Server main exception", e);

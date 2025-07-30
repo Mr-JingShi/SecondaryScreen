@@ -12,7 +12,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,30 +26,37 @@ import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.RadioButton;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static String TAG = "MainActivity";
     private static int REQUEST_CODE_OVERLAY_PERMISSION = 1001;
     private static int REQUEST_CODE_NOTIFICATION_PERMISSION = 1002;
-    private static FloatWindow mFloatWindow;
+    private static List<FloatWindow> mFloatWindow;
+    private List<ApplicationInfo> mApplications;
+    private List<Integer> mSelectPositions;
+    private AppAdapter mAppAdapter;
+    private DrawerLayout mDrawerLayout;
+    private View mAppListContainer;
     private ImageView mTcpipImageView;
     private ImageView mPairImageView;
     @Override
@@ -84,13 +93,75 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             adbPairConnect();
         });
 
-        Spinner spinner = findViewById(R.id.spinner);
-        chooseResolution(spinner);
+        chooseResolution();
 
         findViewById(R.id.start_button).setOnClickListener((view) -> {
             if (checkJarReady()) {
                 startFloatWindow();
             }
+        });
+
+        mSelectPositions = new ArrayList<>();
+        mDrawerLayout = findViewById(R.id.drawer_layout);
+        mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        mDrawerLayout.setScrimColor(Color.TRANSPARENT);
+        mDrawerLayout.setDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(View drawerView, float slideOffset) {
+            }
+
+            @Override
+            public void onDrawerOpened(View drawerView) {
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                Log.i(TAG, "onDrawerClosed");
+                for (Integer position : mSelectPositions) {
+                    ApplicationInfo app = (ApplicationInfo) mAppAdapter.getItem(position);
+                    Log.i(TAG, "onDrawerClosed position:" + position + " app:" + app);
+
+                    String activityName = Utils.resolveTargetApp(app.packageName);
+                    if (activityName != null) {
+                        activityName = app.packageName + "/" + activityName;
+                        Utils.addSelectActivityName(activityName);
+                    }
+                }
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+            }
+        });
+
+        mAppListContainer = findViewById(R.id.app_list_container);
+
+        ListView appListView = findViewById(R.id.app_list);
+        appListView.setOnItemClickListener((AdapterView<?> parent, View view, int position, long id) -> {
+            Log.i(TAG, "setOnItemClickListener position:" + position);
+
+            // mDrawerLayout.closeDrawer(mAppListContainer);
+
+            Integer positionInt = Integer.valueOf(position);
+            if (mSelectPositions.contains(positionInt)) {
+                mSelectPositions.remove(positionInt);
+            } else {
+                int size = mSelectPositions.size();
+                if (size >= 5) {
+                    mSelectPositions.remove(0);
+                }
+                mSelectPositions.add(positionInt);
+            }
+            mAppAdapter.notifyDataSetChanged();
+        });
+
+        mApplications = Utils.loadApplicationList();
+
+        mAppAdapter = new AppAdapter();
+        appListView.setAdapter(mAppAdapter);
+
+        findViewById(R.id.select_app).setOnClickListener((view) -> {
+            mDrawerLayout.openDrawer(mAppListContainer);
         });
     }
 
@@ -159,8 +230,14 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     private void showFloatWindow() {
         Log.i(TAG, "showFloatWindow");
-        mFloatWindow = new FloatWindow();
-        mFloatWindow.show();
+        mFloatWindow = new ArrayList<>();
+        ControlConnection.getInstance().start();
+        DisplayConnection.getInstance().start();
+        for (int i = 0; i < 5; i++) {
+            FloatWindow floatWindow = new FloatWindow(i);
+            mFloatWindow.add(floatWindow);
+            floatWindow.show();
+        }
     }
 
     public static void clearFloatWindow() {
@@ -171,108 +248,19 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         return Settings.canDrawOverlays(this);
     }
 
-    private void chooseResolution(Spinner spinner) {
+    private void chooseResolution() {
         Display display = getWindowManager().getDefaultDisplay();
         DisplayMetrics realMetrics = new DisplayMetrics();
         display.getRealMetrics(realMetrics);
         DisplayMetrics metrics = new DisplayMetrics();
         display.getMetrics(metrics);
 
-        if (display.getRotation() % 2 == 0) {
-            Resolution selfResolution = new Resolution("self",
-                    realMetrics.widthPixels,
-                    realMetrics.heightPixels,
-                    realMetrics.densityDpi,
-                    metrics.widthPixels,
-                    metrics.heightPixels);
-            chooseResolution(spinner, selfResolution);
-        } else {
-            Resolution selfResolution = new Resolution("self",
-                    realMetrics.heightPixels,
-                    realMetrics.widthPixels,
-                    realMetrics.densityDpi,
-                    metrics.heightPixels,
-                    metrics.widthPixels);
-            chooseResolution(spinner, selfResolution);
-        }
-    }
-
-    private void chooseResolution(Spinner spinner, Resolution selfResolution) {
-        Log.d(TAG, "chooseResolution selfResolution:" + selfResolution);
-
-        ArrayList<Resolution> resolutions = new ArrayList<>();
-        resolutions.add(new Resolution("480p", 480, 720, 142));
-        resolutions.add(new Resolution("720p", 720, 1280, 213));
-        resolutions.add(new Resolution("1080p", 1080, 1920, 320));
-        resolutions.add(new Resolution("4k", 2160, 3840, 320));
-
-        float[] scales = {2.0f, 1.5f, 1.0f, 0.5f};
-        ArrayList<String> resolutionStrings = new ArrayList<>();
-        for (int i = resolutions.size() - 1 ; i >= 0; i--) {
-            Resolution resolution = resolutions.get(i);
-            boolean match = false;
-            for (int j = 0; j < scales.length; j++) {
-                if (selfResolution.TEXTUREVIEW_WIDTH >= resolution.TEXTUREVIEW_WIDTH * scales[j]
-                    && selfResolution.TEXTUREVIEW_HEIGHT >= resolution.TEXTUREVIEW_HEIGHT * scales[j]) {
-                    resolution.changeScale(scales[j], scales[j]);
-
-                    Log.d(TAG, "chooseResolution RESOLUTIONS[" + i + "]:" + resolution);
-                    resolutionStrings.add(resolution.toSimpleString());
-                    match = true;
-                    break;
-                }
-            }
-            if (!match) {
-                resolutions.remove(i);
-            }
-        }
-
-        if (!resolutions.isEmpty()) {
-            Collections.reverse(resolutionStrings);
-        }
-
-        boolean found = false;
-        for (Resolution resolution : resolutions) {
-            if (resolution.match(selfResolution)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            resolutions.add(selfResolution);
-            resolutionStrings.add(selfResolution.toSimpleString());
-        }
-
-        spinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resolutionStrings));
-
-        String resolution = PrivatePreferences.getResolution();
-        Log.i(TAG, "resolution:" + resolution);
-        for (int i = 0; i < resolutionStrings.size(); i++) {
-            if (resolutionStrings.get(i).equals(resolution)) {
-                spinner.setSelection(i, true);
-
-                Resolution.R = resolutions.get(i);
-                break;
-            }
-        }
-
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                String item = (String) adapterView.getItemAtPosition(i);
-                Utils.toast(item);
-
-                Log.i(TAG, "i:" + i + " item:" + item + " resolutions:" + resolutions.get(i).toString());
-
-                Resolution.R = resolutions.get(i);
-
-                PrivatePreferences.setResolution(item);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-            }
-        });
+        Resolution.R = new Resolution("self",
+                realMetrics.widthPixels,
+                realMetrics.heightPixels,
+                realMetrics.densityDpi,
+                metrics.widthPixels,
+                metrics.heightPixels);
     }
 
     public boolean hasNotificationPermission() {
@@ -598,4 +586,50 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
         return true;
     }
+
+    private class AppAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return mApplications.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return mApplications.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder holder;
+            if (convertView == null) {
+                convertView = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_app_list, parent, false);
+                holder = new ViewHolder();
+                holder.button = convertView.findViewById(R.id.radio_button);
+                holder.icon = convertView.findViewById(R.id.app_icon);
+                holder.name = convertView.findViewById(R.id.app_name);
+                convertView.setTag(holder);
+            } else {
+                holder = (ViewHolder) convertView.getTag();
+            }
+
+            ApplicationInfo info = (ApplicationInfo) getItem(position);
+            holder.button.setChecked(mSelectPositions.contains(Integer.valueOf(position)));
+            holder.icon.setBackground(info.loadIcon(getPackageManager()));
+            holder.name.setText(info.loadLabel(getPackageManager()));
+
+            return convertView;
+        }
+
+        class ViewHolder {
+            RadioButton button;
+            ImageView icon;
+            TextView name;
+        }
+    }
+
 }

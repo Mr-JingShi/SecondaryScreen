@@ -15,13 +15,6 @@ import java.lang.reflect.Method;
 public final class DisplayManager {
     private static final String TAG = "DisplayManager";
     private final Object mManager; // instance of hidden class android.hardware.display.DisplayManagerGlobal
-    private Method mCreateVirtualDisplayMethod;
-    private DisplayInfo mDisplayInfo;
-    private DisplayListener mDisplayListener;
-
-    public interface DisplayListener {
-        void onDisplayChanged(String remoteAddress);
-    }
 
     static DisplayManager create() {
         try {
@@ -53,8 +46,6 @@ public final class DisplayManager {
             } catch (ReflectiveOperationException e) {
                 Ln.w(TAG, "isActive e:" + e);
             }
-
-            DisplayInfo.setDisplayId(0);
         }
         return false;
     }

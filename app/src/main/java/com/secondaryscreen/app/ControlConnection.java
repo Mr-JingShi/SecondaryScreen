@@ -9,6 +9,15 @@ public class ControlConnection {
     private static String TAG = "ControlConnection";
     private Thread mThread;
 
+    public static ControlConnection getInstance() {
+        return ControlConnectionHolder.instance;
+    }
+
+
+    private static class ControlConnectionHolder {
+        private static ControlConnection instance = new ControlConnection();
+    }
+
     public ControlConnection() {
         mThread = new ControlThread();
     }

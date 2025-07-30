@@ -1,25 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
+    <LinearLayout
+        android:gravity="top|center"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|center"
-        android:textSize="25dip"
-        android:textStyle="bold"
-        android:textColor="#FFA500"
-        android:text="SecondaryScreen"/>
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="25dip"
+            android:textStyle="bold"
+            android:textColor="#FFA500"
+            android:text="SecondaryScreen"/>
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/adb_connection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="right|top"
+        android:gravity="right|top"
         android:orientation="horizontal"
         android:visibility="gone">
 
@@ -45,25 +50,58 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/secondaryscreen_settings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical">
-        <Spinner
-            android:id="@+id/spinner"
+        android:gravity="center">
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:spinnerMode="dropdown"
-            android:visibility="visible" />
-        <Button
-            android:id="@+id/start_button"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginTop="10dp"
-            android:textSize="20dip"
-            android:text="启动"/>
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/select_app"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="请选择APP"
+                android:textSize="20dip"
+                android:textColor="#333333"/>
+
+            <Button
+                android:id="@+id/start_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textSize="20dip"
+                android:text="启动"/>
+        </LinearLayout>
     </LinearLayout>
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/app_list_container"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:background="#FFFFFF">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginLeft="24dp"
+            android:text="请选择APP"
+            android:textSize="20dip"
+            android:textColor="#333333"/>
+
+        <ListView
+            android:id="@+id/app_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="16dp"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="0dp">
+        </ListView>
+
+    </LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

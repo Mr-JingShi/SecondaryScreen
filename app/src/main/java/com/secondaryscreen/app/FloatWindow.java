@@ -21,12 +21,14 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.List;
+
 // 部分逻辑参考自：
 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/display/OverlayDisplayWindow.java
 
 final class FloatWindow {
     private static final String TAG = "FloatWindow";
-    private final float INITIAL_SCALE = 0.5f;
+    private float INITIAL_SCALE = 0.35f;
     private final float MIN_SCALE = 0.3f;
     private final float MAX_SCALE = 1.0f;
     private final float WINDOW_ALPHA = 1.0f;
@@ -43,7 +45,6 @@ final class FloatWindow {
     private WindowManager.LayoutParams mWindowParams;
     private TextureView mTextureView;
     private GestureDetector mGestureDetector;
-    private ScaleGestureDetector mScaleGestureDetector;
     private boolean mWindowVisible;
     private int mWindowX;
     private int mWindowY;
@@ -52,14 +53,15 @@ final class FloatWindow {
     private float mLiveTranslationY;
     private float mLiveScale = 1.0f;
     private float mRealScale;
-    private FloatIcon mFloatIcon;
     private boolean mIsLocked = false;
-    private ControlConnection mControlConnection;
     private int mScreenWidth;
     private int mScreenHeight;
     private int mRotation;
+    private int mIndex;
+    private int mDisplayId;
 
-    public FloatWindow() {
+    public FloatWindow(int index) {
+        mIndex = index;
         mDisplayManager = (DisplayManager)Utils.getContext().getSystemService(
                 Context.DISPLAY_SERVICE);
         mWindowManager = (WindowManager)Utils.getContext().getSystemService(
@@ -75,22 +77,19 @@ final class FloatWindow {
         Log.i(TAG, "mRotation:" + mRotation);
         Log.i(TAG, "defaultDisplay:" + display);
 
-        if (mRotation % 2 == 0) {
+        if (mIndex != 4) {
             resize(Resolution.R.TEXTUREVIEW_WIDTH,
                     Resolution.R.TEXTUREVIEW_HEIGHT,
                     Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
                     false);
         } else {
+            INITIAL_SCALE = 0.45f;
             resize(Resolution.R.TEXTUREVIEW_HEIGHT,
                     Resolution.R.TEXTUREVIEW_WIDTH,
                     Resolution.R.VIRTUALDISPLAY_DENSITYDPI,
                     false);
         }
         createWindow();
-
-        mFloatIcon = new FloatIcon(mWindowContent);
-
-        mControlConnection = new ControlConnection();
     }
 
     public void show() {
@@ -143,19 +142,8 @@ final class FloatWindow {
         mWindowContent = inflater.inflate(R.layout.overlay_display_window, null);
         mWindowContent.setOnTouchListener(mOnTouchListener);
 
-        mWindowContent.findViewById(R.id.overlay_display_window_close).setOnClickListener((View v) -> {
-            dismiss();
-        });
-
-        mWindowContent.findViewById(R.id.overlay_display_window_shrink).setOnClickListener((View v) -> {
-            mFloatIcon.show();
-        });
-
         mLockImageView = mWindowContent.findViewById(R.id.overlay_display_window_lock);
         mLockImageView.setOnClickListener(mLockListener);
-
-        TextView titleTextView = mWindowContent.findViewById(R.id.overlay_display_window_title);
-        titleTextView.append(" " + Resolution.R.toSimpleString());
 
         mTextureView = mWindowContent.findViewById(R.id.overlay_display_window_texture);
         mTextureView.setPivotX(0);
@@ -183,10 +171,29 @@ final class FloatWindow {
         mWindowParams.gravity = Gravity.TOP | Gravity.LEFT;
 
         mGestureDetector = new GestureDetector(Utils.getContext(), mOnGestureListener);
-        mScaleGestureDetector = new ScaleGestureDetector(Utils.getContext(), mOnScaleGestureListener);
 
-        mWindowX = 0;
-        mWindowY = 0;
+        switch (mIndex) {
+            case 0:
+                mWindowX = 0;
+                mWindowY = 0;
+                break;
+            case 1:
+                mWindowX = mScreenWidth;
+                mWindowY = 0;
+                break;
+            case 2:
+                mWindowX = 0;
+                mWindowY = mScreenHeight;
+                break;
+            case 3:
+                mWindowX = mScreenWidth;
+                mWindowY = mScreenHeight;
+                break;
+            case 4:
+                mWindowX = mScreenHeight;
+                mWindowY = mScreenWidth;
+                break;
+        }
         mWindowScale = INITIAL_SCALE;
     }
 
@@ -201,9 +208,13 @@ final class FloatWindow {
         int height = (int)(mHeight * scale);
         int x = (int)(mWindowX + mLiveTranslationX - width * offsetScale);
         int y = (int)(mWindowY + mLiveTranslationY - height * offsetScale);
-        x = Math.max(0, Math.min(x, mScreenWidth - width));
-        y = Math.max(0, Math.min(y, mScreenHeight - height));
-
+        if (mIndex != 4) {
+            x = Math.max(0, Math.min(x, mScreenWidth - width));
+            y = Math.max(0, Math.min(y, mScreenHeight - height));
+        } else {
+            x = (mScreenWidth - width)/2;
+            y = (mScreenHeight - height)/2;
+        }
 
         mTextureView.setScaleX(scale);
         mTextureView.setScaleY(scale);
@@ -242,7 +253,7 @@ final class FloatWindow {
                         if (USE_SURFACE_EVENT) {
                             mTextureView.setOnTouchListener((view, event) -> {
                                 if (mIsLocked) {
-                                    Utils.offerMotionEvent(event);
+                                    Utils.offerMotionEvent(event, mDisplayId);
                                 }
                                 return true;
                             });
@@ -296,9 +307,17 @@ final class FloatWindow {
                     Display display = mVirtualDisplay.getDisplay();
                     Log.i(TAG, "FloatWindow display: " + display);
                     int displayId = display.getDisplayId();
-                    DisplayConnection.setDisplayInfo(displayId);
+                    mDisplayId = displayId;
 
-                    mControlConnection.start();
+                    Utils.runOnOtherThread(() -> {
+                        Utils.sleep(200);
+                        List<String> activityNames = Utils.getSelectActivityNames();
+                        String activityName = null;
+                        if (mIndex < activityNames.size()) {
+                            activityName = activityNames.get(mIndex);
+                        }
+                        Utils.offerDisplayInfo(displayId, mIndex, activityName);
+                    });
                 }
 
                 @Override
@@ -326,7 +345,7 @@ final class FloatWindow {
             if (mIsLocked) {
                 if (!USE_SURFACE_EVENT) {
                     event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
-                    Utils.offerMotionEvent(event);
+                    Utils.offerMotionEvent(event, mDisplayId);
                 }
                 return true;
             }
@@ -337,7 +356,7 @@ final class FloatWindow {
             event.setLocation(event.getRawX(), event.getRawY());
 
             mGestureDetector.onTouchEvent(event);
-            mScaleGestureDetector.onTouchEvent(event);
+            // mScaleGestureDetector.onTouchEvent(event);
 
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_UP:
@@ -358,16 +377,6 @@ final class FloatWindow {
                 public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                     mLiveTranslationX -= distanceX;
                     mLiveTranslationY -= distanceY;
-                    relayout();
-                    return true;
-                }
-            };
-
-    private final ScaleGestureDetector.OnScaleGestureListener mOnScaleGestureListener =
-            new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                @Override
-                public boolean onScale(ScaleGestureDetector detector) {
-                    mLiveScale *= detector.getScaleFactor();
                     relayout();
                     return true;
                 }

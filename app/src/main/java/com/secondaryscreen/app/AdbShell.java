@@ -208,10 +208,6 @@ public class AdbShell {
         sb.append(" ");
         sb.append("nohup app_process / com.secondaryscreen.server.Server");
         sb.append(" ");
-        sb.append(Utils.getContext().getString(R.string.first_activity));
-        sb.append(" ");
-        sb.append(Utils.getContext().getString(R.string.seoncd_activity));
-        sb.append(" ");
         sb.append(">/dev/null 2>&1 &");
 
         String cmd = sb.toString();

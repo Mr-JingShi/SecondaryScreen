@@ -13,7 +13,6 @@ public abstract class ServerChannel {
     private static String TAG = "ServerChannel";
     private Thread mThread;
     private int mPort;
-    private String mRemoteAddress;
     public ServerChannel(int port) {
         mPort = port;
         mThread = new ServerChannelThread();
@@ -48,8 +47,6 @@ public abstract class ServerChannel {
                 ByteBuffer headerBuffer = ByteBuffer.allocate(4);
                 ByteBuffer eventBuffer = ByteBuffer.allocate(0);
 
-                SocketChannel currentSocketChannel = null;
-
                 while (!Thread.currentThread().isInterrupted()) {
                     if (selector.select() != 0) {
                         Set keys = selector.selectedKeys();
@@ -64,12 +61,6 @@ public abstract class ServerChannel {
                                 SocketChannel socketChannel = server.accept();
                                 socketChannel.configureBlocking(false);
                                 socketChannel.register(selector, SelectionKey.OP_READ);
-
-                                if (currentSocketChannel != null) {
-                                    currentSocketChannel.close();
-                                    Ln.i(TAG, "close old sockectChannel");
-                                }
-                                currentSocketChannel = socketChannel;
 
                                 accept(socketChannel);
                             }

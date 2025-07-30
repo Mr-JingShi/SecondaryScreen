@@ -3,7 +3,6 @@ package com.secondaryscreen.app;
 import android.app.ActivityManager;
 import android.app.WallpaperManager;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
