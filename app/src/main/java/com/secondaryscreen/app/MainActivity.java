@@ -114,12 +114,12 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                     ApplicationInfo appInfo = mApplications.get(i);
                     if (app.equals(appInfo.packageName)) {
                         mSelectPositions.add(i);
-                    }
 
-                    String activityName = Utils.resolveTargetApp(appInfo.packageName);
-                    if (activityName != null) {
-                        activityName = appInfo.packageName + "/" + activityName;
-                        Utils.addSelectActivityName(activityName);
+                        String activityName = Utils.resolveTargetApp(appInfo.packageName);
+                        if (activityName != null) {
+                            activityName = appInfo.packageName + "/" + activityName;
+                            Utils.addSelectActivityName(activityName);
+                        }
                     }
                 }
             }
