@@ -360,10 +360,12 @@ final class FloatWindow {
     private final View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent event) {
-            if (!USE_SURFACE_EVENT && mIsLocked) {
-                event.setLocation(event.getX()/mRealScale, event.getY()/mRealScale);
+            if (mIsLocked) {
+                if (!USE_SURFACE_EVENT) {
+                    event.setLocation(event.getX() / mRealScale, event.getY() / mRealScale);
 
-                Utils.offerMotionEvent(event, true);
+                    Utils.offerMotionEvent(event, true);
+                }
                 return true;
             }
 
