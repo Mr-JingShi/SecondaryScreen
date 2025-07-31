@@ -22,6 +22,9 @@ public final class DisplayConnection extends ServerChannel {
                 Utils.startActivity(activityName, displayId);
                 Utils.schedule(() -> {
                     Utils.startActivity(activityName, displayId);
+                    Utils.schedule(() -> {
+                        Utils.startActivity(activityName, displayId);
+                    }, 5, TimeUnit.SECONDS);
                 }, 5, TimeUnit.SECONDS);
             }, index + 1, TimeUnit.SECONDS);
         }
