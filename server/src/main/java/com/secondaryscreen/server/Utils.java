@@ -34,6 +34,12 @@ public class Utils {
 
         sb.append("am start -n ");
         sb.append(activity);
+        sb.append(" -a ");
+        sb.append(Intent.ACTION_MAIN);
+        sb.append(" -c ");
+        sb.append(Intent.CATEGORY_LAUNCHER);
+        sb.append(" -f ");
+        sb.append(Intent.FLAG_ACTIVITY_NEW_TASK);
         sb.append(" --display ");
         sb.append(displayId);
 
@@ -49,7 +55,10 @@ public class Utils {
     static void startActivity(@NonNull String packageName, @NonNull String className, int displayId) {
         Ln.i(TAG, "startActivity packageName:" + packageName + " className:" + className + " displayId:" + displayId);
         if (ServiceManager.getDisplayManager().isActive(displayId)) {
-            Intent intent = new Intent();
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.setPackage(packageName);
             intent.setClassName(packageName, className);
             ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(displayId);

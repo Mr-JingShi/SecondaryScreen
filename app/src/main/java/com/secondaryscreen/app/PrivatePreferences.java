@@ -4,10 +4,8 @@ import android.content.SharedPreferences;
 
 public class PrivatePreferences {
     private static final String NOTIFICATION_PERMISSION_REQUESTED = "notificationPermissionRequested";
-    private static final String REMOTE_HOST = "remoteHost";
-    private static final String RESOLUTION = "resolution";
     private static final String SERVICE_ADB_TSL_PORT = "service.adb.tls.port";
-    private static final String DECODER_INFO = "decoderInfo";
+    private static final String START_APP_LIST = "startAppList";
 
     public static boolean getNotificationPermissionRequested() {
         return getBoolean(NOTIFICATION_PERMISSION_REQUESTED, false);
@@ -15,49 +13,18 @@ public class PrivatePreferences {
     public static void setNotificationPermissionRequested(boolean value) {
         putBoolean(NOTIFICATION_PERMISSION_REQUESTED, value);
     }
-    public static String getRemoteHost() {
-        return getString(REMOTE_HOST, "");
-    }
-    public static void setRemoteHost(String value) {
-        putString(REMOTE_HOST, value);
-    }
-    public static String getResolution() {
-        return getString(RESOLUTION, "");
-    }
-    public static void setResolution(String value) {
-        putString(RESOLUTION, value);
-    }
     public static int getServiceAdbTslPort() {
         return getInt(SERVICE_ADB_TSL_PORT, 0);
     }
     public static void setServiceAdbTslPort(int value) {
         putInt(SERVICE_ADB_TSL_PORT, value);
     }
-    public static String getDecoder(int width, int height) {
-        String decoderInfo = getString(DECODER_INFO, "");
-        String[] split = decoderInfo.split("\n");
-        for (String s : split) {
-            String[] s1 = s.split("/");
-            if (s1.length == 2 && s1[0].equals(width + "x" + height)) {
-                return s1[1];
-            }
-        }
-        return null;
-    }
-    public static void appendDecoderInfo(int width, int height, String decoder) {
-        String decoderInfo = getString(DECODER_INFO, "");
 
-        StringBuilder sb = new StringBuilder();
-        if (!decoderInfo.isEmpty()) {
-            sb.append(decoderInfo);
-            sb.append("\n");
-        }
-        sb.append(width);
-        sb.append("x");
-        sb.append(height);
-        sb.append("/");
-        sb.append(decoder);
-        putString(DECODER_INFO, sb.toString());
+    public static String getStartAppList() {
+        return getString(START_APP_LIST, "");
+    }
+    public static void setStartAppList(String value) {
+        putString(START_APP_LIST, value);
     }
 
     private static SharedPreferences getSharedPreferences() {

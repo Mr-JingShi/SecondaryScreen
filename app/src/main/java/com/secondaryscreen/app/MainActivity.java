@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     private View mAppListContainer;
     private ImageView mTcpipImageView;
     private ImageView mPairImageView;
+    private TextView mSlectAppTextView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "MainActivity onCreate");
@@ -101,7 +103,22 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             }
         });
 
+        mApplications = Utils.loadApplicationList();
         mSelectPositions = new ArrayList<>();
+        String startAppList = PrivatePreferences.getStartAppList();
+        if (startAppList != null && !startAppList.isEmpty()) {
+            List<String> appList = Arrays.asList(startAppList.split(","));
+            for (String app : appList) {
+                Log.i(TAG, "app:" + app);
+                for (int i = 0; i < mApplications.size(); i++) {
+                    ApplicationInfo appInfo = mApplications.get(i);
+                    if (app.equals(appInfo.packageName)) {
+                        mSelectPositions.add(i);
+                    }
+                }
+            }
+        }
+
         mDrawerLayout = findViewById(R.id.drawer_layout);
         mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         mDrawerLayout.setScrimColor(Color.TRANSPARENT);
@@ -117,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             @Override
             public void onDrawerClosed(View drawerView) {
                 Log.i(TAG, "onDrawerClosed");
+                String startAppList = "";
                 for (Integer position : mSelectPositions) {
                     ApplicationInfo app = (ApplicationInfo) mAppAdapter.getItem(position);
                     Log.i(TAG, "onDrawerClosed position:" + position + " app:" + app);
@@ -126,7 +144,16 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         activityName = app.packageName + "/" + activityName;
                         Utils.addSelectActivityName(activityName);
                     }
+
+                    startAppList += app.packageName + ",";
                 }
+                if (!startAppList.isEmpty()) {
+                    startAppList = startAppList.substring(0, startAppList.length() - 1);
+                    PrivatePreferences.setStartAppList(startAppList);
+                }
+
+                int size = mSelectPositions.size();
+                mSlectAppTextView.setText(size == 0 ? "请选择应用" : "已选择" + size + "个应用");
             }
 
             @Override
@@ -155,12 +182,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             mAppAdapter.notifyDataSetChanged();
         });
 
-        mApplications = Utils.loadApplicationList();
-
         mAppAdapter = new AppAdapter();
         appListView.setAdapter(mAppAdapter);
 
-        findViewById(R.id.select_app).setOnClickListener((view) -> {
+        mSlectAppTextView = findViewById(R.id.select_app);
+        int size = mSelectPositions.size();
+        mSlectAppTextView.setText(size == 0 ? "请选择应用" : "已选择" + size + "个应用");
+        mSlectAppTextView.setOnClickListener((view) -> {
             mDrawerLayout.openDrawer(mAppListContainer);
         });
     }
