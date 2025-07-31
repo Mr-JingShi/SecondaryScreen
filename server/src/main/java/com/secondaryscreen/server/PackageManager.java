@@ -1,7 +1,5 @@
 package com.secondaryscreen.server;
 
-import android.content.Intent;
-import android.content.pm.ResolveInfo;
 import android.os.IInterface;
 import android.os.IRemoteCallback;
 

@@ -4,9 +4,6 @@ import android.util.Log;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class DisplayConnection {
     private static String TAG = "DisplayConnection";

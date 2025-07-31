@@ -3,7 +3,6 @@ package com.secondaryscreen.server;
 import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.content.Intent;
-import android.content.pm.ResolveInfo;
 
 import java.lang.reflect.Method;
 

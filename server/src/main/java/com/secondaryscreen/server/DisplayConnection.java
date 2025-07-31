@@ -18,12 +18,15 @@ public final class DisplayConnection extends ServerChannel {
         if (infos.length > 2) {
             int index = Integer.parseInt(infos[1]);
             String activityName = infos[2];
+            String[] names = activityName.split("/");
+            String packageName = names[0];
+            String className = names[1];
             Utils.schedule(() -> {
-                Utils.startActivity(activityName, displayId);
+                Utils.startActivity(packageName, className, displayId);
                 Utils.schedule(() -> {
                     Utils.startActivity(activityName, displayId);
                     Utils.schedule(() -> {
-                        Utils.startActivity(activityName, displayId);
+                        Utils.checkActivityReady(activityName, displayId);
                     }, 5, TimeUnit.SECONDS);
                 }, 5, TimeUnit.SECONDS);
             }, index + 1, TimeUnit.SECONDS);

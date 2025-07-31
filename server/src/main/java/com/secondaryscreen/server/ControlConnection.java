@@ -1,9 +1,7 @@
 package com.secondaryscreen.server;
 
 import android.os.Parcel;
-import android.os.SystemClock;
 import android.util.Log;
-import android.view.InputDevice;
 import android.view.MotionEvent;
 
 public final class ControlConnection extends ServerChannel {

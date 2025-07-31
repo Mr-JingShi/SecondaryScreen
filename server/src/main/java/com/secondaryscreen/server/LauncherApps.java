@@ -1,14 +1,9 @@
 package com.secondaryscreen.server;
 
-import android.content.ComponentName;
 import android.content.pm.IOnAppsChangedListener;
-import android.content.pm.ParceledListSlice;
-import android.os.Bundle;
 import android.os.IInterface;
-import android.os.UserHandle;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 public final class LauncherApps {
     private static String TAG = "LauncherApps";
