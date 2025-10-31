@@ -55,7 +55,7 @@ Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位�
 
 1. 副屏APP连接/配对ADB调试启动server
 
-![](doc/img/OverlayWindow图示.png)
+<img src="doc/img/OverlayWindow图示.png" width="60%" ><br>
 
 ## 另一台Android设备模拟副屏
 
@@ -63,7 +63,7 @@ Android 11及以上设备支持ADB WLAN调试，APP内部可以通过输入6位�
 
 2. 另一台设备上副屏APP连接主设备
 
-![](doc/img/双设备联动图示.png)
+<img src="doc/img/双设备联动图示.png" width="60%" ><br>
 
 ## 分支
 
